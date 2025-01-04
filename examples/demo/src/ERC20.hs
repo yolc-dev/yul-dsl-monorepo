@@ -45,12 +45,12 @@ erc20_transfer = lfn $locId $ yulmonad'p @(ADDR -> ADDR -> U256 -> BOOL)
 
   -- data generate 0 block: update sender balance
   amount'p <- pass_ amount'p \amount'p -> LVM.do
-    (from, fromS) <- pass (ver'l from'p) (pure . VersionedLocation . callFn'l erc20_balance_storage_of)
+    (from, fromS) <- pass (ver'l from'p) (ypure . VersionedLocation . callFn'l erc20_balance_storage_of)
     sput fromS (callFn'l erc20_balance_of from - ver'l amount'p)
 
   -- data generation 1 block: update receiver balance
   with amount'p \amount'p -> LVM.do
-    (to, toS) <- pass (ver'l to'p) (pure . VersionedLocation . callFn'l erc20_balance_storage_of)
+    (to, toS) <- pass (ver'l to'p) (ypure . VersionedLocation . callFn'l erc20_balance_storage_of)
     sput toS (callFn'l erc20_balance_of to + ver'l amount'p)
 
   embed true

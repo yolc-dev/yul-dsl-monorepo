@@ -40,8 +40,8 @@ data SLocation v r = PureLocation (P'P r B32)
 
 sget :: forall a r v. (YulO2 r a, ABIWordValue a)
      => SLocation v r ⊸ YulMonad v v r (P'V v r a)
-sget (VersionedLocation a) = pure (encode YulSGet a)
-sget (PureLocation a)      = pure (encode YulSGet (UnsafeLinear.coerce a))
+sget (VersionedLocation a) = ypure (encode YulSGet a)
+sget (PureLocation a)      = ypure (encode YulSGet (UnsafeLinear.coerce a))
 
 sput :: forall v r a. (YulO2 r a, ABIWordValue a)
       => SLocation v r ⊸ P'V v r a ⊸ YulMonad v (v + 1) r (P'V (v + 1) r ())

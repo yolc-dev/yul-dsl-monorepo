@@ -6,6 +6,7 @@ module YulDSL.Effects.LinearSMC.YulMonad
   , YulCat'LVM (MkYulCat'LVM), YulCat'LPM (MkYulCat'LPM)
   , yulmonad'v, yulmonad'p
     -- * Re-import Combinators Of Linearly Versioned Monad
+  , ypure
   , module Control.LinearlyVersionedMonad.Combinators
   , Control.Functor.Linear.fmap
   ) where
@@ -38,6 +39,10 @@ runYulMonad :: forall vd r a ue . YulO2 r a
 runYulMonad u m = let !(ctx', a) = runLVM (MkYulMonadCtx (UnsafeLinear.coerce u)) m
                       !(MkYulMonadCtx (MkUnitDumpster u')) = ctx'
                   in ignore (UnsafeLinear.coerce u') a
+
+-- An alias to 'LVM.pure' to avoid naming conflict with Monad pure function.
+ypure :: forall a v r. a ⊸ YulMonad v v r a
+ypure = LVM.pure
 
 --------------------------------------------------------------------------------
 -- YulMonad Context

@@ -21,7 +21,7 @@ rangeSum'p = fn @(U256 -> U256 -> U256 -> U256) $locId
                                 else 0
 
 rangeSum'l = lfn $locId $ yulmonad'p @(U256 -> U256 -> U256 -> U256)
-  \from'p step'p until'p -> pure $ ver'l $ callFn'lpp rangeSum'p from'p step'p until'p
+  \from'p step'p until'p -> ypure $ ver'l $ callFn'lpp rangeSum'p from'p step'p until'p
 
 -- TODO: yikes, this is ugly and we need to improve.
 callExternalFoo0 = lfn $locId $ yulmonad'v @(ADDR -> U256)

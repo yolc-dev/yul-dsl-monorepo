@@ -15,8 +15,7 @@ These combinators should be reexported by the contextualized 'Control.LinearlyVe
 
 -}
 module Control.LinearlyVersionedMonad.Combinators
-  ( pure
-  , embed
+  ( embed
   , toss, tossN, tossToUnit
   , pass, pass_, passN, passN_
   , with, with_
@@ -27,7 +26,6 @@ import Data.Constraint.Linear         (Dict (Dict))
 import Control.LinearlyVersionedMonad
 import Data.LinearContext
 import Data.TupleN                    (ConvertibleTupleN, TupleNtoNP, fromTupleNtoNP)
-
 
 --------------------------------------------------------------------------------
 -- embed

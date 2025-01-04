@@ -31,7 +31,7 @@ maybe_fn = lfn "maybe_fn" $
     Nothing -> emb'l 0
 
 bar3 = lfn "bar3" $ yulmonad'p @(U256 -> U256 -> U256 -> U256)
-  \x1 x2 x3 -> pure (ver'l x1 + ver'l x2 + ver'l x3)
+  \x1 x2 x3 -> ypure (ver'l x1 + ver'l x2 + ver'l x3)
 
 fooSPut = lfn "fooSPut" $ yulmonad'v @(B32 -> U256 -> ())
   \sloc val -> LVM.do
