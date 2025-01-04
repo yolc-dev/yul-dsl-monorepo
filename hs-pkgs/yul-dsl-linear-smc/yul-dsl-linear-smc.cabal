@@ -52,7 +52,6 @@ library
                       YulDSL.Effects.LinearSMC.YulMonad
                       YulDSL.Effects.LinearSMC.LinearYulCat
                       YulDSL.Effects.LinearSMC.LinearFn
-                      YulDSL.Effects.LinearSMC.Impurable
                       YulDSL.Effects.LinearSMC.Storage
                       YulDSL.Effects.LinearSMC
                       -- YulDSL's linear-smc instances

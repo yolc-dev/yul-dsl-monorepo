@@ -3,10 +3,8 @@ module LinearFn_prop where
 -- hspec
 import Test.Hspec
 --
-import Prelude                        ()
+import Prelude        ()
 import Prelude.YulDSL
---
-import Control.LinearlyVersionedMonad qualified as LVM
 
 foo0 = lfn "foo0" $
   uncurry'lvv @(() -> U256) (emb'l 42)
@@ -33,11 +31,7 @@ maybe_fn = lfn "maybe_fn" $
     Nothing -> emb'l 0
 
 bar3 = lfn "bar3" $ yulmonad'p @(U256 -> U256 -> U256 -> U256)
-  \x1 x2 x3 -> LVM.do
-  x1' <- impure x1
-  x2' <- impure x2
-  x3' <- impure x3
-  pure (x1' + x2' + x3')
+  \x1 x2 x3 -> pure (ver'l x1 + ver'l x2 + ver'l x3)
 
 fooSPut = lfn "fooSPut" $ yulmonad'v @(B32 -> U256 -> ())
   \sloc val -> LVM.do

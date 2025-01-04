@@ -4,13 +4,14 @@ module YulDSL.Effects.LinearSMC.YulPort
     PortEffect (PurePort, VersionedPort), EffectVersionDelta, P'x, P'V, P'P
     -- * General Yul Port Operations
     -- $GeneralOps
-  , emb'l, const'l, dup2'l
+  , ver'l, emb'l, const'l, dup2'l
     -- * Type Operations
     -- $TypeOps
   , coerce'l, cons'l, uncons'l
   ) where
 -- linear-base
 import Prelude.Linear
+import Unsafe.Linear                       qualified as UnsafeLinear
 -- linear-smc
 import Control.Category.Linear
 -- yul-dsl
@@ -48,7 +49,10 @@ type P'P = P'x PurePort
 -- | Linear port of yul category with linearly versioned data, aka. versioned yul ports.
 type P'V v = P'x (VersionedPort v)
 
--- instance LinearlyVersionedData (P'V v r a) v
+-- | Pure port can be converted to any versioned port.
+ver'l :: forall a v r. YulO2 a r
+      => P'P r a ⊸ P'V v r a
+ver'l = UnsafeLinear.coerce
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $GeneralOps
