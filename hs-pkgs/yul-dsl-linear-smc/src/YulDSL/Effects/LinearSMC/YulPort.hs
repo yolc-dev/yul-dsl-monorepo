@@ -18,7 +18,6 @@ import Control.Category.Linear
 import YulDSL.Core
 --
 import Control.Category.Constrained.YulDSL ()
-import Data.LinearContext
 import Data.MPOrd
 
 

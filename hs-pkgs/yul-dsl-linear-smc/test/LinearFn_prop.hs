@@ -33,9 +33,8 @@ maybe_fn = lfn "maybe_fn" $
 bar3 = lfn "bar3" $ yulmonad'p @(U256 -> U256 -> U256 -> U256)
   \x1 x2 x3 -> ypure (ver'l x1 + ver'l x2 + ver'l x3)
 
-fooSPut = lfn "fooSPut" $ yulmonad'v @(B32 -> U256 -> ())
-  \sloc val -> LVM.do
-  sput (VersionedLocation sloc) val
+fooSPut = lfn "fooSPut" $ yulmonad'p @(B32 -> U256 -> ())
+  \sloc'p val'p -> sput (ver'l sloc'p) (ver'l val'p)
 
 call0 = lfn "call0" $
   uncurry'lvv @(() -> U256)

@@ -24,11 +24,11 @@ contract ERC20ProgramTest is Test {
     assertEq(token.balanceOf(BOB), 0, "bob init balance is wrong");
 
     token.mint(ALICE, mintAmount);
-    assertEq(token.balanceOf(ALICE), mintAmount, "alice balance is wrong");
+    assertEq(token.balanceOf(ALICE), mintAmount, "alice balance is wrong 1");
 
     token.transfer(ALICE, BOB, x1);
-    assertEq(token.balanceOf(ALICE), x2, "alice balance is wrong");
-    assertEq(token.balanceOf(BOB), x1, "bob balance is wrong");
+    assertEq(token.balanceOf(ALICE), x2, "alice balance is wrong 2");
+    assertEq(token.balanceOf(BOB), x1, "bob balance is wrong 2");
     vm.expectRevert();
     token.transfer(ALICE, BOB, uint256(x2) + 1);
   }
