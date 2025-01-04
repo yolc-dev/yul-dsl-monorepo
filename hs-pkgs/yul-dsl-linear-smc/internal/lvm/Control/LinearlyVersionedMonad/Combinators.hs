@@ -18,7 +18,7 @@ module Control.LinearlyVersionedMonad.Combinators
   ( embed
   , tossToUnit, toss, tossN
   , pass, pass_, passN, passN_
-  , with, with_, withN, withN_
+  , with, with_,
   ) where
 -- constraints
 import Data.Constraint.Linear         (Dict (Dict))
@@ -121,21 +121,5 @@ with_ :: forall ctx va vb a b.
   => a ⊸ (a ⊸ LVM ctx va vb b) ⊸ (LVM ctx va vb ())
 with_ a mb = MkLVM \ctx ->
   let !(alteb, ctx', b) = unLVM (mb a) ctx
-      ctx'' = contextualConsume ctx' b
-  in (alteb, ctx'', ())
-
--- | Combinator 'with' for TupleN.
-withN :: forall ctx va vb tpl b.
-  tpl ⊸ (tpl ⊸ LVM ctx va vb b) ⊸ LVM ctx va vb b
-withN tpl mb = MkLVM \ctx ->
-  let !(alteb, ctx', b) = unLVM (mb tpl) ctx
-  in (alteb, ctx', b)
-
--- | Combinator 'with_' for TupleN.
-withN_ :: forall ctx va vb tpl b.
-  (ContextualConsumable ctx b)
-  => tpl ⊸ (tpl ⊸ LVM ctx va vb b) ⊸ LVM ctx va vb ()
-withN_ tpl mb = MkLVM \ctx ->
-  let !(alteb, ctx', b) = unLVM (mb tpl) ctx
       ctx'' = contextualConsume ctx' b
   in (alteb, ctx'', ())
