@@ -4,17 +4,23 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    foundry = {
+      url = "github:shazow/foundry.nix/monthly";
+      inputs.flake-utils.follows = "flake-utils";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     solc = {
       url = "github:hellwolf/solc.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
-  outputs = { nixpkgs, flake-utils, solc, ... }: (flake-utils.lib.eachDefaultSystem (system:
+  outputs = { nixpkgs, flake-utils, foundry, solc, ... }: (flake-utils.lib.eachDefaultSystem (system:
     let
       pkgs = import nixpkgs {
         inherit system;
         overlays = [
+          foundry.overlay
           solc.overlay
         ];
       };
@@ -31,8 +37,9 @@
         buildInputs = with pkgs; commonDevInputs ++ [
           # local dev tooling
           nodePackages.nodemon
-          # solc
+          # foundry and solc
           solc_0_8_28
+          foundry-bin
           # haskell tooling
           cabal-install
           haskell.compiler.ghc910
