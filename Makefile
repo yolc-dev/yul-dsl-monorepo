@@ -77,12 +77,15 @@ test-yol-suite:
 	yolc -m yul hs-pkgs/yol-suite/testsuite
 	cd hs-pkgs/yol-suite/testsuite && forge test -vvv
 
-test-demo: test-demo-show test-demo-yul
+test-demo: test-demo-show test-demo-yul test-demo-foundry
 
 test-demo-show:
 	yolc -m show examples/demo:ERC20
 
 test-demo-yul:
+	yolc -m yul examples/demo:ERC20
+
+test-demo-foundry:
 	yolc -m yul examples/demo
 	cd examples/demo && forge test -vvv
 
