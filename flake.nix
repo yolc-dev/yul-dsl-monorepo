@@ -39,6 +39,7 @@
           nodePackages.nodemon
           # foundry and solc
           solc_0_8_28
+          (solc.mkDefault pkgs pkgs.solc_0_8_28)
           foundry-bin
           # haskell tooling
           cabal-install
