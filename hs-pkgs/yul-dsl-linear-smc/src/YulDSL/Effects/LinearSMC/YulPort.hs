@@ -116,13 +116,13 @@ instance (YulO1 r, YulNumCmp a) => MPOrd (P'x eff r a) (P'x eff r BOOL) where
 --
 
 instance (YulNum a, YulO1 r) => Additive (P'V v r a) where
-  a + b = encode (YulJmpB (yulNumAdd @a)) (merge (a, b))
+  a + b = encode (YulJmpB (yulB_NumAdd @a)) (merge (a, b))
 
 instance (YulNum a, YulO1 r) => AddIdentity (P'V v r a) where
   -- Note: uni-port is forbidden in linear-smc, but linear-base AdditiveGroup requires this instance.
   zero = error "unit is undefined for linear ports"
 
 instance (YulNum a, YulO1 r) => AdditiveGroup (P'V v r a) where
-  a - b = encode (YulJmpB (yulNumSub @a)) (merge (a, b))
+  a - b = encode (YulJmpB (yulB_NumSub @a)) (merge (a, b))
 
 -- FIXME other number instances

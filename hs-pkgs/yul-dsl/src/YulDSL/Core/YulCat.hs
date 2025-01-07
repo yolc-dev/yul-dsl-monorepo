@@ -235,12 +235,12 @@ yulNumGt :: forall eff a. YulNumCmp a => YulCat eff (a, a) BOOL
 yulNumGe :: forall eff a. YulNumCmp a => YulCat eff (a, a) BOOL
 yulNumEq :: forall eff a. YulNumCmp a => YulCat eff (a, a) BOOL
 yulNumNe :: forall eff a. YulNumCmp a => YulCat eff (a, a) BOOL
-yulNumLt = YulJmpB (yulNumCmp @a (True , False, False))
-yulNumLe = YulJmpB (yulNumCmp @a (True , True , False))
-yulNumGt = YulJmpB (yulNumCmp @a (False, False, True ))
-yulNumGe = YulJmpB (yulNumCmp @a (False, True , True ))
-yulNumEq = YulJmpB (yulNumCmp @a (False, True , False))
-yulNumNe = YulJmpB (yulNumCmp @a (True , False, True ))
+yulNumLt = YulJmpB (yulB_NumCmp @a (True , False, False))
+yulNumLe = YulJmpB (yulB_NumCmp @a (True , True , False))
+yulNumGt = YulJmpB (yulB_NumCmp @a (False, False, True ))
+yulNumGe = YulJmpB (yulB_NumCmp @a (False, True , True ))
+yulNumEq = YulJmpB (yulB_NumCmp @a (False, True , False))
+yulNumNe = YulJmpB (yulB_NumCmp @a (True , False, True ))
 
 -- | Wrapper for built-in keccak256 yul function.
 yulB_Keccak256 :: forall eff a. YulO1 a => YulCat eff a B32

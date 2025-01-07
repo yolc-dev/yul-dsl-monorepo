@@ -51,11 +51,11 @@ instance MaybeYulNum a => ABITypeCodec (Maybe a)
 instance (MaybeYulNum a, Show a) => YulCatObj (Maybe a)
 
 instance ValidINTx s n => YulNum (Maybe (INTx s n)) where
-  yulNumAdd = (mk_maybe_op @(INTx s n) "add", uncurry (+))
-  yulNumMul = (mk_maybe_op @(INTx s n) "mul", uncurry (*))
-  yulNumSub = (mk_maybe_op @(INTx s n) "sub", uncurry (-))
-  yulNumAbs = (mk_maybe_op @(INTx s n) "abs", abs)
-  yulNumSig = (mk_maybe_op @(INTx s n) "sig", signum)
+  yulB_NumAdd = (mk_maybe_op @(INTx s n) "add", uncurry (+))
+  yulB_NumMul = (mk_maybe_op @(INTx s n) "mul", uncurry (*))
+  yulB_NumSub = (mk_maybe_op @(INTx s n) "sub", uncurry (-))
+  yulB_NumAbs = (mk_maybe_op @(INTx s n) "abs", abs)
+  yulB_NumSig = (mk_maybe_op @(INTx s n) "sig", signum)
 
 mk_maybe_op :: forall a. ABITypeable a => String -> String
 mk_maybe_op n = "__maybe_" ++ n ++ "_t_" ++ abiTypeCanonName @a

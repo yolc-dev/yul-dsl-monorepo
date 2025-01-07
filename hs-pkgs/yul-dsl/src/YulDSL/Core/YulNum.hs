@@ -23,30 +23,30 @@ import YulDSL.Core.YulCatObj
 
 -- | Arithmetic operators for the number objects in the YulCat.
 class (YulCatObj a, Num a, Ord a) => YulNum a where
-  yulNumAdd :: BuiltInYulFunction (a, a) a
-  yulNumSub :: BuiltInYulFunction (a, a) a
-  yulNumMul :: BuiltInYulFunction (a, a) a
-  yulNumAbs :: BuiltInYulFunction a a
-  yulNumSig :: BuiltInYulFunction a a
+  yulB_NumAdd :: BuiltInYulFunction (a, a) a
+  yulB_NumSub :: BuiltInYulFunction (a, a) a
+  yulB_NumMul :: BuiltInYulFunction (a, a) a
+  yulB_NumAbs :: BuiltInYulFunction a a
+  yulB_NumSig :: BuiltInYulFunction a a
 
 -- | Comparing number objects in the YulCat.
 class YulNum a => YulNumCmp a where
-  yulNumCmp :: (Bool, Bool, Bool) -> BuiltInYulFunction (a, a) BOOL
+  yulB_NumCmp :: (Bool, Bool, Bool) -> BuiltInYulFunction (a, a) BOOL
 
 instance ValidINTx s n => YulNum (INTx s n) where
-  yulNumAdd = (mk_chk_op @(INTx s n) "add", uncurry (+))
-  yulNumSub = (mk_chk_op @(INTx s n) "sub", uncurry (-))
-  yulNumMul = (mk_chk_op @(INTx s n) "mul", uncurry (*))
-  yulNumAbs = (mk_chk_op @(INTx s n) "abs", abs)
-  yulNumSig = (mk_chk_op @(INTx s n) "sig", signum)
+  yulB_NumAdd = (mk_chk_op @(INTx s n) "add", uncurry (+))
+  yulB_NumSub = (mk_chk_op @(INTx s n) "sub", uncurry (-))
+  yulB_NumMul = (mk_chk_op @(INTx s n) "mul", uncurry (*))
+  yulB_NumAbs = (mk_chk_op @(INTx s n) "abs", abs)
+  yulB_NumSig = (mk_chk_op @(INTx s n) "sig", signum)
 
 instance ValidINTx s n => YulNumCmp (INTx s n) where
-  yulNumCmp (True , False, False) = (mk_cmp_op @(INTx s n) "lt", BOOL . uncurry ( <))
-  yulNumCmp (True , True , False) = (mk_cmp_op @(INTx s n) "le", BOOL . uncurry (<=))
-  yulNumCmp (False, True , False) = (mk_cmp_op @(INTx s n) "eq", BOOL . uncurry (==))
-  yulNumCmp (False, True , True ) = (mk_cmp_op @(INTx s n) "ge", BOOL . uncurry (>=))
-  yulNumCmp (False, False, True ) = (mk_cmp_op @(INTx s n) "gt", BOOL . uncurry ( >))
-  yulNumCmp _                     = error "yulNumCmp: invalid boolean-switches combo"
+  yulB_NumCmp (True , False, False) = (mk_cmp_op @(INTx s n) "lt", BOOL . uncurry ( <))
+  yulB_NumCmp (True , True , False) = (mk_cmp_op @(INTx s n) "le", BOOL . uncurry (<=))
+  yulB_NumCmp (False, True , False) = (mk_cmp_op @(INTx s n) "eq", BOOL . uncurry (==))
+  yulB_NumCmp (False, True , True ) = (mk_cmp_op @(INTx s n) "ge", BOOL . uncurry (>=))
+  yulB_NumCmp (False, False, True ) = (mk_cmp_op @(INTx s n) "gt", BOOL . uncurry ( >))
+  yulB_NumCmp _                     = error "yulNumCmp: invalid boolean-switches combo"
 
 --
 -- Internal function
