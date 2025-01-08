@@ -20,7 +20,7 @@ import YulDSL.Core.YulNum
 instance (YulO2 a r, YulNum a) => Num (YulCat eff r a) where
   a + b = YulJmpB (yulB_NumAdd @a) <.< YulProd a b <.< YulDup
   a - b = YulJmpB (yulB_NumSub @a) <.< YulProd a b <.< YulDup
-  a * b = YulJmpB (yulB_NumMul @a)  <.< YulProd a b <.< YulDup
+  a * b = YulJmpB (yulB_NumMul @a) <.< YulProd a b <.< YulDup
   abs = YulComp (YulJmpB (yulB_NumAbs @a))
   signum = YulComp (YulJmpB (yulB_NumSig @a))
   fromInteger = YulEmb . fromInteger

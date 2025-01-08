@@ -49,9 +49,29 @@ sub_int32   = fn @(I32  -> I32  -> I32)  $locId \x y -> x - y
 -- mul
 --
 
+mul_uint256 = fn @(U256 -> U256 -> U256) $locId \x y -> x * y
+mul_uint192 = fn @(U192 -> U192 -> U192) $locId \x y -> x * y
+mul_uint128 = fn @(U128 -> U128 -> U128) $locId \x y -> x * y
+mul_uint32  = fn @(U32  -> U32  -> U32)  $locId \x y -> x * y
+
+mul_int256 = fn @(I256 -> I256 -> I256) $locId \x y -> x * y
+mul_int192 = fn @(I192 -> I192 -> I192) $locId \x y -> x * y
+mul_int128 = fn @(I128 -> I128 -> I128) $locId \x y -> x * y
+mul_int32  = fn @(I32  -> I32  -> I32)  $locId \x y -> x * y
+
 --
 -- div
 --
+
+-- div_uint256 = fn @(U256 -> U256 -> U256) $locId \x y -> x / y
+-- div_uint192 = fn @(U192 -> U192 -> U192) $locId \x y -> x / y
+-- div_uint128 = fn @(U128 -> U128 -> U128) $locId \x y -> x / y
+-- div_uint32  = fn @(U32  -> U32  -> U32)  $locId \x y -> x / y
+
+-- div_int256 = fn @(I256 -> I256 -> I256) $locId \x y -> x / y
+-- div_int192 = fn @(I192 -> I192 -> I192) $locId \x y -> x / y
+-- div_int128 = fn @(I128 -> I128 -> I128) $locId \x y -> x / y
+-- div_int32  = fn @(I32  -> I32  -> I32)  $locId \x y -> x / y
 
 --
 -- maybe values
@@ -101,6 +121,16 @@ object = mkYulObject "NumTests" emptyCtor
   , pureFn "sub_int192" sub_int192
   , pureFn "sub_int128" sub_int128
   , pureFn "sub_int32" sub_int32
+  --
+  , pureFn "mul_uint256" mul_uint256
+  , pureFn "mul_uint192" mul_uint192
+  , pureFn "mul_uint128" mul_uint128
+  , pureFn "mul_uint32"  mul_uint32
+  --
+  , pureFn "mul_int256" mul_int256
+  , pureFn "mul_int192" mul_int192
+  , pureFn "mul_int128" mul_int128
+  , pureFn "mul_int32"  mul_int32
   --
   , pureFn "add_maybe_int96" add_maybe_int96
   , pureFn "add_int96_with_default" add_int96_with_default

@@ -11,4 +11,5 @@ remappings = [ "yol-build/=build/yol-testsuite/contracts/"
              ]
 # END
 
-solc_version = "0.8.21"
+[profile.default.fuzz]
+runs = 3000

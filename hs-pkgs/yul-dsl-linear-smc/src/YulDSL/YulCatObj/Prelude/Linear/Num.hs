@@ -33,5 +33,8 @@ instance (YulO1 r, YulNum a) => AddIdentity (YulCat eff r a) where
 instance (YulO1 r, YulNum a) => AdditiveGroup (YulCat eff r a) where
   a - b = YulJmpB (yulB_NumSub @a) <.< YulProd a b <.< YulDup
 
+instance (YulO1 r, YulNum a) => Multiplicative (YulCat eff r a) where
+  a * b = YulJmpB (yulB_NumMul @a) <.< YulProd a b <.< YulDup
+
 instance (YulO1 r, ValidINTx s n) => FromInteger (YulCat eff r (INTx s n)) where
   fromInteger x = YulEmb (fromInteger x)

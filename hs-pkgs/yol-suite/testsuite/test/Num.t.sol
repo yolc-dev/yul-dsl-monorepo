@@ -20,35 +20,35 @@ contract NumTest is Test {
   // cmp
   ////////////////////////////////////////////////////////////////////////////////
 
-  function test_le(uint256 x, uint256 y) external {
+  function test_le(uint256 x, uint256 y) external view {
     assertEq(p.le_uint256(x, y), x < y);
   }
 
-  function test_le(uint192 x, uint192 y) external {
+  function test_le(uint192 x, uint192 y) external view {
     assertEq(p.le_uint192(x, y), x < y);
   }
 
-  function test_le(uint128 x, uint128 y) external {
+  function test_le(uint128 x, uint128 y) external view {
     assertEq(p.le_uint128(x, y), x < y);
   }
 
-  function test_le(uint32 x, uint32 y) external {
+  function test_le(uint32 x, uint32 y) external view {
     assertEq(p.le_uint32(x, y), x < y);
   }
 
-  function test_le(int256 x, int256 y) external {
+  function test_le(int256 x, int256 y) external view {
     assertEq(p.le_int256(x, y), x < y);
   }
 
-  function test_le(int192 x, int192 y) external {
+  function test_le(int192 x, int192 y) external view {
     assertEq(p.le_int192(x, y), x < y);
   }
 
-  function test_le(int128 x, int128 y) external {
+  function test_le(int128 x, int128 y) external view {
     assertEq(p.le_int128(x, y), x < y);
   }
 
-  function test_le(int32 x, int32 y) external {
+  function test_le(int32 x, int32 y) external view {
     assertEq(p.le_int32(x, y), x < y);
   }
 
@@ -224,6 +224,110 @@ contract NumTest is Test {
     } else {
       vm.expectRevert(panicError(0x11));
       int32 z = p.sub_int32(x, y);
+      console2.log(z);
+    }
+  }
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // mul uintX
+  ////////////////////////////////////////////////////////////////////////////////
+
+  function test_mul_uint256(uint256 x, uint256 y) external {
+    if (x == 0 || y <= type(uint256).max / x) {
+      assertEq(p.mul_uint256(x, y), x * y);
+    } else {
+      vm.expectRevert(panicError(0x11));
+      uint256 z = p.mul_uint256(x, y);
+      console2.log(z);
+    }
+  }
+
+  function test_mul_uint192(uint192 x, uint192 y) external {
+    if (x == 0 || y <= type(uint192).max / x) {
+      assertEq(p.mul_uint192(x, y), x * y);
+    } else {
+      vm.expectRevert(panicError(0x11));
+      uint192 z = p.mul_uint192(x, y);
+      console2.log(z);
+    }
+  }
+
+  function test_mul_uint128(uint128 x, uint128 y) external {
+    if (x == 0 || y <= type(uint128).max / x) {
+      assertEq(p.mul_uint128(x, y), x * y);
+    } else {
+      vm.expectRevert(panicError(0x11));
+      uint128 z = p.mul_uint128(x, y);
+      console2.log(z);
+    }
+  }
+
+  function test_mul_uint32(uint32 x, uint32 y) external {
+    if (x == 0 || y <= type(uint32).max / x) {
+      assertEq(p.mul_uint32(x, y), x * y);
+    } else {
+      vm.expectRevert(panicError(0x11));
+      uint32 z = p.mul_uint32(x, y);
+      console2.log(z);
+    }
+  }
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // mul intX
+  ////////////////////////////////////////////////////////////////////////////////
+
+  function test_mul_int256(int256 x, int256 y) external {
+    if ((x == 0 || y == 0) ||
+        (x > 0 && y > 0 && y <= type(int256).max / x) ||
+        (x > 0 && y < 0 && y >= type(int256).min / x) ||
+        (x < 0 && y < 0 && x >= type(int256).max / y) ||
+        (x < 0 && y > 0 && x >= type(int256).min / y)) {
+      assertEq(p.mul_int256(x, y), x * y);
+    } else {
+      vm.expectRevert(panicError(0x11));
+      int256 z = p.mul_int256(x, y);
+      console2.log(z);
+    }
+  }
+
+  function test_mul_int192(int192 x, int192 y) external {
+    if ((x == 0 || y == 0) ||
+        (x > 0 && y > 0 && y <= type(int192).max / x) ||
+        (x > 0 && y < 0 && y >= type(int192).min / x) ||
+        (x < 0 && y < 0 && x >= type(int192).max / y) ||
+        (x < 0 && y > 0 && x >= type(int192).min / y)) {
+      assertEq(p.mul_int192(x, y), x * y);
+    } else {
+      vm.expectRevert(panicError(0x11));
+      int192 z = p.mul_int192(x, y);
+      console2.log(z);
+    }
+  }
+
+  function test_mul_int128(int128 x, int128 y) external {
+    if ((x == 0 || y == 0) ||
+        (x > 0 && y > 0 && y <= type(int128).max / x) ||
+        (x > 0 && y < 0 && y >= type(int128).min / x) ||
+        (x < 0 && y < 0 && x >= type(int128).max / y) ||
+        (x < 0 && y > 0 && x >= type(int128).min / y)) {
+      assertEq(p.mul_int128(x, y), x * y);
+    } else {
+      vm.expectRevert(panicError(0x11));
+      int128 z = p.mul_int128(x, y);
+      console2.log(z);
+    }
+  }
+
+  function test_mul_int32(int32 x, int32 y) external {
+    if ((x == 0 || y == 0) ||
+        (x > 0 && y > 0 && y <= type(int32).max / x) ||
+        (x > 0 && y < 0 && y >= type(int32).min / x) ||
+        (x < 0 && y < 0 && x >= type(int32).max / y) ||
+        (x < 0 && y > 0 && x >= type(int32).min / y)) {
+      assertEq(p.mul_int32(x, y), x * y);
+    } else {
+      vm.expectRevert(panicError(0x11));
+      int32 z = p.mul_int32(x, y);
       console2.log(z);
     }
   }

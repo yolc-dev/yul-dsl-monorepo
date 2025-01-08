@@ -120,13 +120,51 @@ safe_sub_intn = mk_builtin "__safe_sub_t_int" $ \part full ->
        ]
      , [ "__cleanup_t_int" <> part ] )
 
+safe_mul_uintn = mk_builtin "__safe_mul_t_uint" $ \part full ->
+  let part' = T.pack part
+      nbits = read part :: Int
+  in ( [ "function " <> T.pack full <> "(x, y) -> product, failed {"
+       , " x := __cleanup_t_uint" <> part' <> "(x)"
+       , " y := __cleanup_t_uint" <> part' <> "(y)"
+       , " let product_raw := mul(x, y)"
+       , " product := __cleanup_t_uint" <> part' <> "(product_raw)"
+       ] ++ (if nbits == 256
+             then [ " // overflow, if x != 0 and y != product/x"
+                  , " if iszero(or(iszero(x), eq(y, div(product, x)))) { failed := true }"]
+             else [ " if neq(product, product_raw) { failed := true }"]) ++
+       [ "}" ]
+     , [ "__cleanup_t_uint" <> part
+       ])
+
+safe_mul_intn = mk_builtin "__safe_mul_t_int" $ \part full ->
+  let part' = T.pack part
+      nbits = read part :: Int
+  in ( [ "function " <> T.pack full <> "(x, y) -> product, failed {"
+       , " x := __cleanup_t_int" <> part' <> "(x)"
+       , " y := __cleanup_t_int" <> part' <> "(y)"
+       , " let product_raw := mul(x, y)"
+       , " product := __cleanup_t_int" <> part' <> "(product_raw)"
+       ] ++ (if nbits == 256
+             then [ " if and(slt(x, 0), eq(y, " <> min_int_val nbits <> ")) { failed := true }"
+                  , " if iszero(failed) {"
+                  , "   if iszero(or(iszero(x), eq(y, sdiv(product, x)))) { failed := true }"
+                  , " }"
+                  ]
+             else [ " if neq(product, product_raw) { failed := true }"]) ++
+       [ "}" ]
+     , [ "__cleanup_t_int" <> part
+       ])
+
+
 exports :: [BuiltInEntry]
 exports =
   [ cmp_builtins ] ++
   append_checked_maybe_variants safe_add_uintn ++
   append_checked_maybe_variants safe_add_intn ++
   append_checked_maybe_variants safe_sub_uintn ++
-  append_checked_maybe_variants safe_sub_intn
+  append_checked_maybe_variants safe_sub_intn ++
+  append_checked_maybe_variants safe_mul_uintn ++
+  append_checked_maybe_variants safe_mul_intn
 
 --
 -- Internal functions
