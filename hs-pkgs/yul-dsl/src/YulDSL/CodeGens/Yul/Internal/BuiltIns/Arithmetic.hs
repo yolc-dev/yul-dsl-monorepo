@@ -145,12 +145,14 @@ safe_mul_intn = mk_builtin "__safe_mul_t_int" $ \part full ->
        , " let product_raw := mul(x, y)"
        , " product := __cleanup_t_int" <> part' <> "(product_raw)"
        ] ++ (if nbits == 256
-             then [ " if and(slt(x, 0), eq(y, " <> min_int_val nbits <> ")) { failed := true }"
-                  , " if iszero(failed) {"
-                  , "   if iszero(or(iszero(x), eq(y, sdiv(product, x)))) { failed := true }"
-                  , " }"
-                  ]
-             else [ " if neq(product, product_raw) { failed := true }"]) ++
+              then [ " if and(slt(x, 0), eq(y, " <> min_int_val nbits <> ")) { failed := true }"
+                   , " if iszero(failed) {"
+                   , "   if iszero(or(iszero(x), eq(y, sdiv(product, x)))) { failed := true }"
+                   , " }"
+                   ]
+             else if nbits > 128
+              then [ " if iszero(or(iszero(x), eq(y, sdiv(product, x)))) { failed := true }" ]
+              else [ " if neq(product, product_raw) { failed := true }"] ) ++
        [ "}" ]
      , [ "__cleanup_t_int" <> part
        ])

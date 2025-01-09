@@ -12,4 +12,4 @@ remappings = [ "yol-build/=build/yol-testsuite/contracts/"
 # END
 
 [profile.default.fuzz]
-runs = 3000
+runs = 10000
