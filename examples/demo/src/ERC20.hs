@@ -2,6 +2,12 @@ module ERC20 where
 import Control.LinearlyVersionedMonad qualified as LVM
 import Prelude.YulDSL
 
+-- | Ethereum contract is a Yul Object in Yolc.
+object = mkYulObject "ERC20" emptyCtor
+  [ staticFn "balanceOf" erc20_balance_of
+  , omniFn   "mint" erc20_mint
+  , omniFn   "transfer" erc20_transfer
+  ]
 
 -- | ERC20 balance storage location for the account.
 --
@@ -57,12 +63,6 @@ erc20_transfer = lfn $locId $ yulmonad'p @(ADDR -> ADDR -> U256 -> BOOL)
     receiverBalanceRef := newReceiverBalance : []
   -- always return true as a silly urban-legendary ERC20 convention
   embed true
-
-object = mkYulObject "ERC20" emptyCtor
-  [ staticFn "balanceOf" erc20_balance_of
-  , omniFn   "mint" erc20_mint
-  , omniFn   "transfer" erc20_transfer
-  ]
 
 -- TODO: to be abstracted in an interface definition
 --
