@@ -18,7 +18,7 @@ license:        LGPL-3.0-or-later
 license-file:   LGPL-3.0-LICENSE
 author:         Miao, ZhiCheng
 maintainer:     hellwolf@yolc.dev
-copyright:      (c) 2023-2024 Miao, ZhiCheng
+copyright:      (c) 2023-2025 Miao, ZhiCheng
 
 extra-doc-files:  README.md
 -- extra-doc-files:  CHANGELOG.md
@@ -27,71 +27,76 @@ tested-with:    GHC==9.10.1
 build-type:     Simple
 
 common basic-options
-  default-language:     GHC2024
-  ghc-options:          -Wall
-                        -Wunused-packages
-  default-extensions:   UnicodeSyntax
-                        BlockArguments
-                        QualifiedDo
-                        NoImplicitPrelude
-                        ImpredicativeTypes
-                        LinearTypes
-  build-depends:        base >= 4.20.0.0 && < 666
+  default-language:   GHC2024
+  ghc-options:        -Wall
+                      -Wunused-packages
+  default-extensions: UnicodeSyntax
+                      BlockArguments
+                      QualifiedDo
+                      NoImplicitPrelude
+                      ImpredicativeTypes
+                      LinearTypes
+  build-depends:      base >= 4.20.0.0 && < 666
 
 library
   import:             basic-options
   default-extensions: TypeFamilies
                       RequiredTypeArguments
-  --
   hs-source-dirs:     src
-  exposed-modules:    Prelude.YulDSL
-                      -- Additional YulCatObj
-                      YulDSL.YulCatObj.Prelude.Linear.Num
-                      -- YulDSL's LinearSMC Effect
-                      YulDSL.Effects.LinearSMC.YulPort
-                      YulDSL.Effects.LinearSMC.YulMonad
-                      YulDSL.Effects.LinearSMC.LinearYulCat
-                      YulDSL.Effects.LinearSMC.LinearFn
-                      YulDSL.Effects.LinearSMC.Storage
-                      YulDSL.Effects.LinearSMC
-                      -- YulDSL's linear-smc instances
-                      Control.Category.Constrained.YulDSL
-                      -- Prelude curation
-                      Data.MPOrd
-                      Data.MPOrd.YulDSL
-  reexported-modules: Data.LinearContext,
-                      Control.LinearlyVersionedMonad,
-                      Control.LinearlyVersionedMonad.Combinators
-  build-depends:    constraints >= 0.13,
-                    linear-base >= 0.3.1,
-                    linear-smc >= 2.2.3,
-                    yul-dsl,
-                    yul-dsl-linear-smc:linearly-versioned-monad
+  build-depends:      constraints >= 0.13,
+                      linear-base >= 0.3.1,
+                      linear-smc >= 2.2.3,
+                      yul-dsl,
+                      yul-dsl-linear-smc:linearly-versioned-monad
+  -- modules
+  exposed-modules:
+    -- Additional YulCatObj
+    YulDSL.YulCatObj.Prelude.Linear.Num
+    -- YulDSL's LinearSMC Effect
+    YulDSL.Effects.LinearSMC.YulPort
+    YulDSL.Effects.LinearSMC.YulMonad
+    YulDSL.Effects.LinearSMC.LinearYulCat
+    YulDSL.Effects.LinearSMC.LinearFn
+    YulDSL.Effects.LinearSMC.Storage
+    YulDSL.Effects.LinearSMC
+    -- YulDSL's linear-smc instances
+    Control.Category.Constrained.YulDSL
+    -- Prelude curation
+    Data.MPOrd
+    Data.MPOrd.YulDSL
+    -- Main export
+    Prelude.YulDSL
+  reexported-modules:
+    Data.LinearContext,
+    Control.LinearlyVersionedMonad,
+    Control.LinearlyVersionedMonad.Combinators
 
 library linearly-versioned-monad
-  import:     basic-options
-  visibility: private
-  --
-  hs-source-dirs:  ./internal/lvm
-  exposed-modules: Data.LinearContext
-                   Control.LinearlyVersionedMonad
-                   Control.LinearlyVersionedMonad.Combinators
-                   -- support linear types for constraints package
-                   Data.Constraint.Linear
-  build-depends:   constraints >= 0.13,
-                   deepseq >= 1.5,
-                   linear-base >= 0.3.1,
-                   eth-abi
+  import:         basic-options
+  visibility:     private
+  hs-source-dirs: ./internal/lvm
+  build-depends:  constraints >= 0.13,
+                  deepseq >= 1.5,
+                  linear-base >= 0.3.1,
+                  eth-abi
+  -- modules
+  exposed-modules:
+    Data.LinearContext
+    Control.LinearlyVersionedMonad
+    Control.LinearlyVersionedMonad.Combinators
+    -- support linear types for constraints package
+    Data.Constraint.Linear
 
 Test-Suite test-yul-dsl-linear-smc
   import:           basic-options
   ghc-options:      -Wno-missing-signatures
-  --
   type:             exitcode-stdio-1.0
   hs-source-dirs:   test
-  other-modules:    Num_prop
-                    LinearFn_prop
-  main-is:          Main.hs
   build-depends:    hspec >=2.11,
                     -- QuickCheck >=2.13,
                     yul-dsl-linear-smc
+  -- modules
+  other-modules:
+    Num_prop
+    LinearFn_prop
+  main-is: Main.hs

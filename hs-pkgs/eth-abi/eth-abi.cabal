@@ -10,9 +10,9 @@ license:        MIT
 license-file:   MIT-LICENSE
 author:         Miao, ZhiCheng
 maintainer:     helwolf@yolc.dev
-copyright:      (c) 2024 Miao, ZhiCheng
+copyright:      (c) 2024-2025 Miao, ZhiCheng
 
--- extra-doc-files:  README.md
+extra-doc-files:  README.md
 -- extra-doc-files:  CHANGELOG.md
 
 tested-with:    GHC==9.10.1
@@ -27,45 +27,54 @@ common basic-options
   build-depends:      base >= 4.20.0.0 && < 666
 
 library
-  import:           basic-options
-  --
-  hs-source-dirs:     src
-  exposed-modules:    Ethereum.ContractABI.ABICoreType
-                      Ethereum.ContractABI.ABITypeable
-                      Ethereum.ContractABI.ABITypeCodec
-                      Ethereum.ContractABI.CoreType.NP
-                      Ethereum.ContractABI.CoreType.BOOL
-                      Ethereum.ContractABI.CoreType.ADDR
-                      Ethereum.ContractABI.CoreType.INTx
-                      Ethereum.ContractABI.CoreType.BYTESn
-                      Ethereum.ContractABI.ABITypeCoercible
-                      Ethereum.ContractABI.ExtendedType.REF
-                      Ethereum.ContractABI.ExtendedType.TUPLEn
-                      Ethereum.ContractABI.ExtendedType.SELECTOR
-                      Ethereum.ContractABI
-  other-modules:      Internal.Data.Type.Bool
-  reexported-modules: Data.SimpleNP,
-                      Data.TupleN.TH,
-                      Data.TupleN
-  build-depends:      bytestring >= 0.11,
-                      template-haskell >= 2.22,
-                      constraints >= 0.13,
-                      crypton >= 0.32,
-                      memory >= 0.18,
-                      cereal >= 0.5,
-                      eth-abi:simple-np
+  import:         basic-options
+  hs-source-dirs: src
+  build-depends:  bytestring >= 0.11,
+                  template-haskell >= 2.22,
+                  constraints >= 0.13,
+                  crypton >= 0.32,
+                  memory >= 0.18,
+                  cereal >= 0.5,
+                  eth-abi:simple-np
+  -- modules
+  exposed-modules:
+    -- core type machinery
+    Ethereum.ContractABI.ABICoreType
+    Ethereum.ContractABI.ABITypeable
+    Ethereum.ContractABI.ABITypeCodec
+    Ethereum.ContractABI.ABITypeCoercible
+    -- core types
+    Ethereum.ContractABI.CoreType.NP
+    Ethereum.ContractABI.CoreType.BOOL
+    Ethereum.ContractABI.CoreType.ADDR
+    Ethereum.ContractABI.CoreType.INTx
+    Ethereum.ContractABI.CoreType.BYTESn
+    -- extended types
+    Ethereum.ContractABI.ExtendedType.REF
+    Ethereum.ContractABI.ExtendedType.TUPLEn
+    Ethereum.ContractABI.ExtendedType.SELECTOR
+    -- main export
+    Ethereum.ContractABI
+  other-modules:
+    Internal.Data.Type.Bool
+  reexported-modules:
+    -- simple-np
+    Data.SimpleNP,
+    Data.TupleN.TH,
+    Data.TupleN
 
 library simple-np
-  import:     basic-options
-  visibility: private
-  --
+  import:          basic-options
+  visibility:      private
   hs-source-dirs:  ./internal/simple-np/src
-  exposed-modules: Data.SimpleNP
-                   Data.TupleN.TH
-                   Data.TupleN
-                   Internal.Data.Type.List
   build-depends:   ghc-experimental >= 0.1,
                    template-haskell >= 2.22
+  -- modules
+  exposed-modules:
+    Data.SimpleNP
+    Data.TupleN.TH
+    Data.TupleN
+    Internal.Data.Type.List
 
 Test-Suite test-eth-abi
   import:           basic-options
@@ -76,7 +85,9 @@ Test-Suite test-eth-abi
                     eth-abi:simple-np,
                     eth-abi
   hs-source-dirs:   test
-  other-modules:    SimpleNP_test
-                    TupleN_test
-                    INTx_prop
-  main-is:          Main.hs
+  -- modules
+  other-modules:
+    SimpleNP_test
+    TupleN_test
+    INTx_prop
+  main-is: Main.hs
