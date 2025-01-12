@@ -20,36 +20,36 @@ contract NumTest is Test {
   // cmp
   ////////////////////////////////////////////////////////////////////////////////
 
-  function test_le(uint256 x, uint256 y) external view {
-    assertEq(p.le_uint256(x, y), x < y);
+  function test_lt(uint256 x, uint256 y) external view {
+    assertEq(p.lt_uint256(x, y), x < y);
   }
 
-  function test_le(uint192 x, uint192 y) external view {
-    assertEq(p.le_uint192(x, y), x < y);
+  function test_lt(uint192 x, uint192 y) external view {
+    assertEq(p.lt_uint192(x, y), x < y);
   }
 
-  function test_le(uint128 x, uint128 y) external view {
-    assertEq(p.le_uint128(x, y), x < y);
+  function test_lt(uint128 x, uint128 y) external view {
+    assertEq(p.lt_uint128(x, y), x < y);
   }
 
-  function test_le(uint32 x, uint32 y) external view {
-    assertEq(p.le_uint32(x, y), x < y);
+  function test_lt(uint32 x, uint32 y) external view {
+    assertEq(p.lt_uint32(x, y), x < y);
   }
 
-  function test_le(int256 x, int256 y) external view {
-    assertEq(p.le_int256(x, y), x < y);
+  function test_lt(int256 x, int256 y) external view {
+    assertEq(p.lt_int256(x, y), x < y);
   }
 
-  function test_le(int192 x, int192 y) external view {
-    assertEq(p.le_int192(x, y), x < y);
+  function test_lt(int192 x, int192 y) external view {
+    assertEq(p.lt_int192(x, y), x < y);
   }
 
-  function test_le(int128 x, int128 y) external view {
-    assertEq(p.le_int128(x, y), x < y);
+  function test_lt(int128 x, int128 y) external view {
+    assertEq(p.lt_int128(x, y), x < y);
   }
 
-  function test_le(int32 x, int32 y) external view {
-    assertEq(p.le_int32(x, y), x < y);
+  function test_lt(int32 x, int32 y) external view {
+    assertEq(p.lt_int32(x, y), x < y);
   }
 
   ////////////////////////////////////////////////////////////////////////////////

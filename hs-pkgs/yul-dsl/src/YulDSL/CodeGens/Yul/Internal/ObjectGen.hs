@@ -2,34 +2,38 @@
 module YulDSL.CodeGens.Yul.Internal.ObjectGen (compile_object) where
 
 -- base
-import Control.Monad                               (unless)
-import Data.Functor                                ((<&>))
-import Data.Maybe                                  (catMaybes)
+import Control.Monad                            (unless)
+import Data.Functor                             ((<&>))
+import Data.Maybe                               (catMaybes)
 -- text
-import Data.Text.Lazy                              qualified as T
+import Data.Text.Lazy                           qualified as T
+-- CodeGenUtils
+import CodeGenUtils.CodeFormatters
+import CodeGenUtils.Variable
 --
 import YulDSL.Core
 --
-import YulDSL.CodeGens.Yul.Internal.CodeFormatters
+import YulDSL.StdBuiltIns.ABICodec              ()
+import YulDSL.StdBuiltIns.Prelude
+--
 import YulDSL.CodeGens.Yul.Internal.CodeGen
 import YulDSL.CodeGens.Yul.Internal.FunctionGen
-import YulDSL.CodeGens.Yul.Internal.Variable
 
 
 compile_fn_dispatcher :: HasCallStack
                       => Indenter -> AnyExportedYulCat -> CGState (Maybe Code)
 compile_fn_dispatcher ind (MkAnyExportedYulCat sel _ ((cid, _) :: NamedYulCat eff a b)) = do
-  let abidec_builtin = "__abidec_dispatcher_c_" <> abiTypeCompactName @a
-      abienc_builtin = "__abienc_from_stack_c_" <> abiTypeCompactName @b
+  let abidec_builtin = MkYulBuiltIn @"__abidec_dispatcher_c_" @(U256, U256) @a
+      abienc_builtin = MkYulBuiltIn @"__abienc_from_stack_c_" @(U256, b) @U256
   vars_a <- cg_create_vars @a
   vars_b <- cg_create_vars @b
-  unless (null vars_a) $ cg_use_builtin abidec_builtin
-  unless (null vars_b) $ cg_use_builtin abienc_builtin
+  unless (null vars_a) $ cg_use_builtin (MkAnyYulBuiltIn abidec_builtin)
+  unless (null vars_b) $ cg_use_builtin (MkAnyYulBuiltIn abienc_builtin)
   pure . Just $ cbracket ind ("case " <> T.pack (show sel)) $ \ ind' ->
         declare_vars ind' (vars_a ++ vars_b) <>
         -- call the abi decoder for inputs
         ( if not (null vars_a)
-          then ind' ( spread_vars vars_a <> " := " <> T.pack abidec_builtin <> "(4, calldatasize())" )
+          then ind' ( spread_vars vars_a <> " := " <> T.pack (yulB_fname abidec_builtin) <> "(4, calldatasize())" )
           else ""
         ) <>
         -- call the function
@@ -40,7 +44,7 @@ compile_fn_dispatcher ind (MkAnyExportedYulCat sel _ ((cid, _) :: NamedYulCat ef
         -- call the abi encoder for outputs
         ( if not (null vars_b) then
             ind' "let memPos := allocate_unbounded()" <>
-            ind' ( "let memEnd := " <> T.pack abienc_builtin <> "(memPos, " <> spread_vars vars_b <> ")" ) <>
+            ind' ( "let memEnd := " <> T.pack (yulB_fname abienc_builtin) <> "(memPos, " <> spread_vars vars_b <> ")" ) <>
             ind' "return(memPos, sub(memEnd, memPos))"
           else ind' "return(0, 0)"
         )
@@ -50,8 +54,6 @@ compile_dispatchers :: HasCallStack
 compile_dispatchers ind fns = cbracket_m ind "/* dispatcher */" $ \ind' -> do
   cases <- mapM (compile_fn_dispatcher ind') fns
            <&> catMaybes
-
-  cg_use_builtin "__dispatcher_dependencies"
 
   pure $
     ind' "switch selector()" <>
@@ -100,17 +102,12 @@ compile_object ind (MkYulObject { yulObjectName = oname
 
         pure $
           code_dispatcher <>
-
-          ind''' "// exported functions" <>
-          T.intercalate "\n" code_fns <>
-          "\n" <>
-
-          ind''' "// dependent functions" <>
-          T.intercalate "\n" deps_codes <>
-          "\n" <>
-
-          ind''' "// builtin functions" <>
-          T.intercalate "\n" builtin_codes
+          T.unlines
+          ( ind''' "// exported functions" : ind''' "" : code_fns ++
+            ind''' "// dependent functions" : ind''' "" : deps_codes ++
+            ind''' "// builtin functions" : ind''' "" : builtin_codes
+          ) <>
+          foldr (T.append . ind''') T.empty ("// prelude" : "" : yulObjectPrelude)
 
     -- sub objects code
     code_subobjs <- mapM (compile_object ind') subobjs <&> T.intercalate "\n"

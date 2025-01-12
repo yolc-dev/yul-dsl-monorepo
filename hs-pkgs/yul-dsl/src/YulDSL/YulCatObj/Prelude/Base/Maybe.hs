@@ -3,7 +3,7 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-|
 
-Copyright   : (c) 2023-2024 Miao, ZhiCheng
+Copyright   : (c) 2023-2025 Miao, ZhiCheng
 License     : LGPL-3
 Maintainer  : hellwolf@yolc.dev
 Stability   : experimental
@@ -20,9 +20,11 @@ module YulDSL.YulCatObj.Prelude.Base.Maybe
 -- eth-abi
 import Ethereum.ContractABI
 --
+import YulDSL.Core.YulBuiltIn
 import YulDSL.Core.YulCat
 import YulDSL.Core.YulCatObj
-import YulDSL.Core.YulNum
+--
+import YulDSL.StdBuiltIns.ValueType ()
 
 
 --
@@ -50,15 +52,13 @@ instance MaybeYulNum a => ABITypeCodec (Maybe a)
 
 instance (MaybeYulNum a, Show a) => YulCatObj (Maybe a)
 
-instance ValidINTx s n => YulNum (Maybe (INTx s n)) where
-  yulB_NumAdd = (mk_maybe_op @(INTx s n) "add", uncurry (+))
-  yulB_NumMul = (mk_maybe_op @(INTx s n) "mul", uncurry (*))
-  yulB_NumSub = (mk_maybe_op @(INTx s n) "sub", uncurry (-))
-  yulB_NumAbs = (mk_maybe_op @(INTx s n) "abs", abs)
-  yulB_NumSig = (mk_maybe_op @(INTx s n) "sig", signum)
-
-mk_maybe_op :: forall a. ABITypeable a => String -> String
-mk_maybe_op n = "__maybe_" ++ n ++ "_t_" ++ abiTypeCanonName @a
+instance (YulO1 r, ValidINTx s n) => Num (YulCat eff r (Maybe (INTx s n))) where
+  a + b = YulJmpB (MkYulBuiltIn @"__maybe_add_t_") <.< YulProd a b <.< YulDup
+  a - b = YulJmpB (MkYulBuiltIn @"__maybe_sub_t_") <.< YulProd a b <.< YulDup
+  a * b = YulJmpB (MkYulBuiltIn @"__maybe_mul_t_") <.< YulProd a b <.< YulDup
+  signum = YulComp (YulJmpB (MkYulBuiltIn @"__maybe_sig_t_"))
+  abs = YulComp (YulJmpB (MkYulBuiltIn @"__maybe_abs_t_"))
+  fromInteger = YulEmb . Just . fromInteger
 
 --
 -- PatternMatchable instance

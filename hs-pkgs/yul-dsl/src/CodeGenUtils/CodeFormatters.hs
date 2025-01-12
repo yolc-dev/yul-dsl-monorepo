@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module YulDSL.CodeGens.Yul.Internal.CodeFormatters
+module CodeGenUtils.CodeFormatters
   ( Code
   , Indenter
   , add_indent, indent, init_ind

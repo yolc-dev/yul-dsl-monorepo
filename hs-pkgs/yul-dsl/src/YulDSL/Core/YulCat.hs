@@ -34,7 +34,6 @@ module YulDSL.Core.YulCat
   , ExternalFn (MkExternalFn), declareExternalFn
   , (>.>), (<.<)
     -- * YulCat Pure Verbs
-  , yulNumLt, yulNumLe, yulNumGt, yulNumGe, yulNumEq, yulNumNe
   , yulKeccak256
     -- * YulCat Exceptions
   , yulRevert
@@ -49,26 +48,29 @@ module YulDSL.Core.YulCat
   , locId
   ) where
 -- base
-import Data.Kind                (Constraint)
-import GHC.TypeError            (Assert, ErrorMessage (Text), TypeError)
-import Text.Printf              (printf)
+import Data.Kind                    (Constraint)
+import GHC.TypeError                (Assert, ErrorMessage (Text), TypeError)
+import Text.Printf                  (printf)
 -- template-haskell
-import Language.Haskell.TH      qualified as TH
+import Language.Haskell.TH          qualified as TH
 -- bytestring
-import Data.ByteString          qualified as BS
-import Data.ByteString.Char8    qualified as BS_Char8
+import Data.ByteString              qualified as BS
+import Data.ByteString.Char8        qualified as BS_Char8
 -- memory
-import Data.ByteArray           qualified as BA
+import Data.ByteArray               qualified as BA
 -- crypton
-import Crypto.Hash              qualified as Hash
+import Crypto.Hash                  qualified as Hash
 -- eth-abi
 import Ethereum.ContractABI
---
+-- (control-extra)
 import Control.IfThenElse
 import Control.PatternMatchable
 --
+import YulDSL.Core.YulBuiltIn
 import YulDSL.Core.YulCatObj
-import YulDSL.Core.YulNum
+--
+import YulDSL.StdBuiltIns.ABICodec  ()
+import YulDSL.StdBuiltIns.Exception ()
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -170,7 +172,7 @@ data YulCat (eff :: k) a b where
   -- ^ Jump to an user-defined morphism.
   YulJmpU :: forall eff a b. YulO2 a b => NamedYulCat eff a b %1-> YulCat eff a b
   -- ^ Jump to a built-in yul function.
-  YulJmpB :: forall eff a b. YulO2 a b => BuiltInYulFunction a b %1-> YulCat eff a b
+  YulJmpB :: forall eff a b p. (YulO2 a b, YulBuiltInPrefix p a b) => YulBuiltIn p a b %1-> YulCat eff a b
   -- ^ Call an external contract at the address along with a possible msgValue.
   YulCall :: forall eff a b. (YulO2 a b, AssertNonPureEffect eff) => SELECTOR -> YulCat eff ((ADDR, U256), a) b
   -- TODO: YulSCall
@@ -228,23 +230,9 @@ infixr 1 >.>, <.<
 -- YulCat Pure "Verbs"
 ------------------------------------------------------------------------------------------------------------------------
 
--- Densely lined-up of YulNum Ord operations, to be used for creating number-related instances:
-yulNumLt :: forall eff a. YulNumCmp a => YulCat eff (a, a) BOOL
-yulNumLe :: forall eff a. YulNumCmp a => YulCat eff (a, a) BOOL
-yulNumGt :: forall eff a. YulNumCmp a => YulCat eff (a, a) BOOL
-yulNumGe :: forall eff a. YulNumCmp a => YulCat eff (a, a) BOOL
-yulNumEq :: forall eff a. YulNumCmp a => YulCat eff (a, a) BOOL
-yulNumNe :: forall eff a. YulNumCmp a => YulCat eff (a, a) BOOL
-yulNumLt = YulJmpB (yulB_NumCmp @a (True , False, False))
-yulNumLe = YulJmpB (yulB_NumCmp @a (True , True , False))
-yulNumGt = YulJmpB (yulB_NumCmp @a (False, False, True ))
-yulNumGe = YulJmpB (yulB_NumCmp @a (False, True , True ))
-yulNumEq = YulJmpB (yulB_NumCmp @a (False, True , False))
-yulNumNe = YulJmpB (yulB_NumCmp @a (True , False, True ))
-
 -- | Wrapper for built-in keccak256 yul function.
 yulB_Keccak256 :: forall eff a. YulO1 a => YulCat eff a B32
-yulB_Keccak256 = YulJmpB ("__keccak_c_" ++ abiTypeCompactName @a, error "TODO: keccak_c")
+yulB_Keccak256 = YulJmpB (MkYulBuiltIn @"__keccak_c_" @a @B32)
 
 yulKeccak256 :: YulO2 r a => YulCat eff r a -> YulCat eff r B32
 yulKeccak256 x = x >.> yulB_Keccak256
@@ -255,7 +243,7 @@ yulKeccak256 x = x >.> yulB_Keccak256
 
 -- | Revert without any message.
 yulRevert :: forall eff a b. (YulO2 a b) => YulCat eff a b
-yulRevert = YulDis >.> YulJmpB ("__revert_c_" ++ abiTypeCompactName @b, error "revert(0, 0)")
+yulRevert = YulDis >.> YulJmpB (MkYulBuiltIn @"__const_revert0_c_" @() @b)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- YulCat Control Flows
@@ -348,7 +336,7 @@ yulCatCompactShow = go
     go (YulEmb @_ @a @b x)         = "{" <> show x <> "}" <> abi_type_name2 @a @b
     go (YulITE a b)                = "?" <> "(" <> go a <> "):(" <> go b <> ")"
     go (YulJmpU @_ @a @b (cid, _)) = "Ju " <> cid <> abi_type_name2 @a @b
-    go (YulJmpB @_ @a @b (cid, _)) = "Jb " <> cid <> abi_type_name2 @a @b
+    go (YulJmpB @_ @a @b p)        = "Jb " <> yulB_fname p <> abi_type_name2 @a @b
     go (YulCall @_ @a @b sel)      = "C" <> showSelectorOnly sel <> abi_type_name2 @a @b
     --
     go (YulSGet @_ @a)             = "Sg" <> abi_type_name @a

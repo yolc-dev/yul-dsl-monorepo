@@ -19,7 +19,7 @@ license:        LGPL-3.0-or-later
 license-file:   LGPL-3.0-LICENSE
 author:         Miao, ZhiCheng
 maintainer:     helwolf@yolc.dev
-copyright:      (c) 2023-2024 Miao, ZhiCheng
+copyright:      (c) 2023-2025 Miao, ZhiCheng
 
 extra-doc-files:     README.md
 -- extra-doc-files:  CHANGELOG.md
@@ -35,57 +35,66 @@ common basic-options
   build-depends:      base >= 4.20.0.0 && < 666
 
 library
-  import:           basic-options
+  import:             basic-options
+  hs-source-dirs:     src
   default-extensions: TypeFamilies
-  --
-  hs-source-dirs:   src
-  exposed-modules:  Control.PatternMatchable
-                    Control.IfThenElse
-                    YulDSL.Core.YulCatObj
-                    YulDSL.Core.YulNum
-                    YulDSL.Core.YulCat
-                    YulDSL.Core.YulObject
-                    YulDSL.Core
-                    YulDSL.YulCatObj.Prelude.Base.Maybe
-                    YulDSL.YulCatObj.Prelude.Base.Num
-                    YulDSL.Effects.Pure
-                    YulDSL.Eval
-                    YulDSL.CodeGens.YulGen
-  other-modules:    YulDSL.CodeGens.Yul.Internal.CodeFormatters
-                    YulDSL.CodeGens.Yul.Internal.Variable
-                    YulDSL.CodeGens.Yul.Internal.RhsExpr
-                    YulDSL.CodeGens.Yul.Internal.CodeGen
-                    YulDSL.CodeGens.Yul.Internal.FunctionGen
-                    YulDSL.CodeGens.Yul.Internal.ObjectGen
-                    YulDSL.CodeGens.Yul.Internal.BuiltInRegistra
-                    YulDSL.CodeGens.Yul.Internal.BuiltIns.Runtime
-                    YulDSL.CodeGens.Yul.Internal.BuiltIns.ValueType
-                    YulDSL.CodeGens.Yul.Internal.BuiltIns.Arithmetic
-                    YulDSL.CodeGens.Yul.Internal.BuiltIns.ABICodec
-                    YulDSL.CodeGens.Yul.Internal.BuiltIns
-  build-depends:    eth-abi ^>= 0.1.0.0,
-                    template-haskell >= 2.22,
-                    constraints >= 0.14,
-                    bytestring >= 0.11,
-                    crypton >= 0.32,
-                    memory >= 0.18,
-                    text >= 2.0.1,
-                    containers >= 0.6.7,
-                    mtl >= 2.3.1
+  build-depends:      eth-abi ^>= 0.1.0.0,
+                      template-haskell >= 2.22,
+                      constraints >= 0.14,
+                      bytestring >= 0.11,
+                      crypton >= 0.32,
+                      memory >= 0.18,
+                      text >= 2.0.1,
+                      containers >= 0.6.7,
+                      mtl >= 2.3.1
+  -- modules
+  exposed-modules:
+    -- YulDSL Core
+    YulDSL.Core.YulCatObj
+    YulDSL.Core.YulBuiltIn
+    YulDSL.Core.YulCat
+    YulDSL.Core.YulObject
+    YulDSL.Core
+    -- YulDSL Built-Ins
+    YulDSL.StdBuiltIns.Prelude
+    YulDSL.StdBuiltIns.Exception
+    YulDSL.StdBuiltIns.ValueType
+    YulDSL.StdBuiltIns.ABICodec
+    -- YulDSL Eval
+    YulDSL.Eval
+    -- YulDSL CodeGen
+    YulDSL.CodeGens.YulGen
+    -- YulDSL/Haskell Essentials
+    YulDSL.YulCatObj.Prelude.Base.Maybe
+    YulDSL.YulCatObj.Prelude.Base.Num
+    YulDSL.Effects.Pure
+  other-modules:
+    -- CodeGen Utils
+    CodeGenUtils.CodeFormatters
+    CodeGenUtils.Variable
+    -- Extra Control patterns
+    Control.PatternMatchable
+    Control.IfThenElse
+    -- Yul CodeGen Internals
+    YulDSL.CodeGens.Yul.Internal.RhsExpr
+    YulDSL.CodeGens.Yul.Internal.CodeGen
+    YulDSL.CodeGens.Yul.Internal.FunctionGen
+    YulDSL.CodeGens.Yul.Internal.ObjectGen
 
 Test-Suite test-yul-dsl
   import:             basic-options
+  type:               exitcode-stdio-1.0
   default-extensions: BlockArguments
                       TemplateHaskell
   ghc-options:        -Wno-missing-signatures
-  --
-  type:             exitcode-stdio-1.0
-  build-depends:    QuickCheck >=2.13,
-                    hspec >=2.11,
-                    eth-abi,
-                    yul-dsl
-  hs-source-dirs:   test
-  other-modules:    TestCommon
-                    Fn_prop
-                    Eval_prop
-  main-is:          Main.hs
+  hs-source-dirs:     test
+  build-depends:      QuickCheck >=2.13,
+                      hspec >=2.11,
+                      eth-abi,
+                      yul-dsl
+  -- modules
+  other-modules:
+    TestCommon
+    Fn_prop
+    Eval_prop
+  main-is: Main.hs

@@ -7,15 +7,15 @@ import Prelude.YulDSL
 --
 
 -- TODO: hmm, need to use returning TupleN for testing full cmp booleans:
-le_uint256 = fn @(U256 -> U256 -> BOOL) $locId \x y -> x < y
-le_uint192 = fn @(U192 -> U192 -> BOOL) $locId \x y -> x < y
-le_uint128 = fn @(U128 -> U128 -> BOOL) $locId \x y -> x < y
-le_uint32  = fn @(U32  -> U32  -> BOOL) $locId \x y -> x < y
+lt_uint256 = fn @(U256 -> U256 -> BOOL) $locId \x y -> x < y
+lt_uint192 = fn @(U192 -> U192 -> BOOL) $locId \x y -> x < y
+lt_uint128 = fn @(U128 -> U128 -> BOOL) $locId \x y -> x < y
+lt_uint32  = fn @(U32  -> U32  -> BOOL) $locId \x y -> x < y
 
-le_int256 = fn @(I256 -> I256 -> BOOL) $locId \x y -> x < y
-le_int192 = fn @(I192 -> I192 -> BOOL) $locId \x y -> x < y
-le_int128 = fn @(I128 -> I128 -> BOOL) $locId \x y -> x < y
-le_int32  = fn @(I32  -> I32  -> BOOL) $locId \x y -> x < y
+lt_int256 = fn @(I256 -> I256 -> BOOL) $locId \x y -> x < y
+lt_int192 = fn @(I192 -> I192 -> BOOL) $locId \x y -> x < y
+lt_int128 = fn @(I128 -> I128 -> BOOL) $locId \x y -> x < y
+lt_int32  = fn @(I32  -> I32  -> BOOL) $locId \x y -> x < y
 
 --
 -- add
@@ -92,15 +92,15 @@ add_maybe_int96_with_default = fn @(Maybe I96 -> Maybe I96 -> I96 -> I96) $locId
 
 object :: YulObject
 object = mkYulObject "NumTests" emptyCtor
-  [ pureFn "le_uint256" le_uint256
-  , pureFn "le_uint192" le_uint192
-  , pureFn "le_uint128" le_uint128
-  , pureFn "le_uint32"  le_uint32
+  [ pureFn "lt_uint256" lt_uint256
+  , pureFn "lt_uint192" lt_uint192
+  , pureFn "lt_uint128" lt_uint128
+  , pureFn "lt_uint32"  lt_uint32
 
-  , pureFn "le_int256" le_int256
-  , pureFn "le_int192" le_int192
-  , pureFn "le_int128" le_int128
-  , pureFn "le_int32"  le_int32
+  , pureFn "lt_int256" lt_int256
+  , pureFn "lt_int192" lt_int192
+  , pureFn "lt_int128" lt_int128
+  , pureFn "lt_int32"  lt_int32
 
   , pureFn "add_uint256" add_uint256
   , pureFn "add_uint192" add_uint192

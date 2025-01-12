@@ -1,6 +1,6 @@
 {-|
 
-Copyright   : (c) 2023-2024 Miao, ZhiCheng
+Copyright   : (c) 2023-2025 Miao, ZhiCheng
 License     : LGPL-3
 Maintainer  : hellwolf@yolc.dev
 Stability   : experimental
@@ -34,5 +34,7 @@ instance YulCatObj (NP '[])
 instance (YulCatObj x, YulCatObj (NP xs)) => YulCatObj (NP (x:xs))
 instance (YulCatObj a1, YulCatObj a2) => YulCatObj (a1, a2) where yul_prod_objs = Dict
 
--- | A built-in yul function has a name and a evaluation function.
-type BuiltInYulFunction a b = (YulCatObj a, YulCatObj b) => (String, a -> b)
+-- | Constraint objects to only unit-like ones.
+class YulUnit a
+instance YulUnit ()
+instance YulUnit (NP '[])

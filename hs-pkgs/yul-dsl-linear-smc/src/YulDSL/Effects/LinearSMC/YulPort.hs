@@ -16,6 +16,7 @@ import Unsafe.Linear                       qualified as UnsafeLinear
 import Control.Category.Linear
 -- yul-dsl
 import YulDSL.Core
+import YulDSL.StdBuiltIns.ValueType        ()
 --
 import Control.Category.Constrained.YulDSL ()
 import Data.MPOrd
@@ -100,29 +101,33 @@ uncons'l = split . coerce'l
 -- 'MPEq' instance for the yul ports.
 --
 
-instance (YulO1 r, YulNumCmp a) => MPEq (P'x eff r a) (P'x eff r BOOL) where
-  a == b = encode yulNumEq (merge (a, b))
-  a /= b = encode yulNumNe (merge (a, b))
+instance (YulO1 r, ValidINTx s n) => MPEq (P'x eff r (INTx s n)) (P'x eff r BOOL) where
+  a == b = encode (YulJmpB (MkYulBuiltIn @"__cmp_eq_t_")) (merge (a, b))
+  a /= b = encode (YulJmpB (MkYulBuiltIn @"__cmp_ne_t_")) (merge (a, b))
 
 -- | 'MPOrd' instance for the yul ports.
-instance (YulO1 r, YulNumCmp a) => MPOrd (P'x eff r a) (P'x eff r BOOL) where
-  a  < b = encode yulNumLt (merge (a, b))
-  a <= b = encode yulNumLe (merge (a, b))
-  a  > b = encode yulNumGt (merge (a, b))
-  a >= b = encode yulNumGe (merge (a, b))
+instance (YulO1 r, ValidINTx s n) => MPOrd (P'x eff r (INTx s n)) (P'x eff r BOOL) where
+  a  < b = encode (YulJmpB (MkYulBuiltIn @"__cmp_lt_t_")) (merge (a, b))
+  a <= b = encode (YulJmpB (MkYulBuiltIn @"__cmp_le_t_")) (merge (a, b))
+  a  > b = encode (YulJmpB (MkYulBuiltIn @"__cmp_gt_t_")) (merge (a, b))
+  a >= b = encode (YulJmpB (MkYulBuiltIn @"__cmp_ge_t_")) (merge (a, b))
 
 --
--- Num instances for (P'V v r)
+-- Num instances for (P'x eff r)
 --
 
-instance (YulNum a, YulO1 r) => Additive (P'V v r a) where
-  a + b = encode (YulJmpB (yulB_NumAdd @a)) (merge (a, b))
+instance (YulO1 r, ValidINTx s n) => Additive (P'x eff r (INTx s n)) where
+  a + b = encode (YulJmpB (MkYulBuiltIn @"__checked_add_t_")) (merge (a, b))
 
-instance (YulNum a, YulO1 r) => AddIdentity (P'V v r a) where
+instance (YulO1 r, ValidINTx s n) => AddIdentity (P'x eff r (INTx s n)) where
   -- Note: uni-port is forbidden in linear-smc, but linear-base AdditiveGroup requires this instance.
   zero = error "unit is undefined for linear ports"
 
-instance (YulNum a, YulO1 r) => AdditiveGroup (P'V v r a) where
-  a - b = encode (YulJmpB (yulB_NumSub @a)) (merge (a, b))
+instance (YulO1 r, ValidINTx s n) => AdditiveGroup (P'x eff r (INTx s n)) where
+  a - b = encode (YulJmpB (MkYulBuiltIn @"__checked_sub_t_")) (merge (a, b))
 
--- FIXME other number instances
+instance (YulO1 r, ValidINTx s n) => Multiplicative (P'x eff r (INTx s n)) where
+  a * b = encode (YulJmpB (MkYulBuiltIn @"__checked_mul_t_")) (merge (a, b))
+
+-- instance (YulO1 r, ValidINTx s n) => FromInteger (P'V v r (INTx s n)) where
+--   fromInteger = UnsafeLinear.toLinear BasePrelude.fromInteger

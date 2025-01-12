@@ -1,20 +1,20 @@
 {-# LANGUAGE OverloadedStrings #-}
-module YulDSL.CodeGens.Yul.Internal.Variable
+module CodeGenUtils.Variable
   ( Var (MkVar, unVar)
   , AutoVarGen (MkAutoVarGen), cur_var, new_auto_var
   , gen_vars, spread_vars, declare_vars
   ) where
 -- base
-import Data.Char                                   (chr)
-import Data.Function                               ((&))
+import Data.Char                   (chr)
+import Data.Function               ((&))
 -- text
-import Data.Text.Lazy                              qualified as T
---
-import YulDSL.CodeGens.Yul.Internal.CodeFormatters
+import Data.Text.Lazy              qualified as T
+-- CodeGenUtils
+import CodeGenUtils.CodeFormatters
 
 
 -- | A variable represented by its name.
-newtype Var = MkVar { unVar :: T.Text }
+newtype Var = MkVar { unVar :: Code }
 
 -- | Variable generator state.
 newtype AutoVarGen = MkAutoVarGen Int

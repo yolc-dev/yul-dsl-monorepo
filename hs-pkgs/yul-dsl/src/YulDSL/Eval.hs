@@ -23,8 +23,8 @@ import Control.Monad.State.Lazy (State, evalState, gets, modify')
 -- eth-abi
 import Ethereum.ContractABI
 --
+import YulDSL.Core.YulBuiltIn   (yulB_eval)
 import YulDSL.Core.YulCat
-
 
 newtype EvalData = MkEvalData { store_map :: M.Map B32 WORD
                               }
@@ -62,7 +62,7 @@ evalYulCat' YulDis _ = pure () -- FIXME: there may be semantic difference with Y
 evalYulCat' YulDup a = pure (a, a)
 -- control flow
 evalYulCat' (YulJmpU (_, f)) a = evalYulCat' f a
-evalYulCat' (YulJmpB (_, f)) a = pure (f a)
+evalYulCat' (YulJmpB p) a = pure (yulB_eval p a)
 evalYulCat' (YulCall _) _    = error "YulCall not supported" -- FIXME
 evalYulCat' (YulITE ct cf) (BOOL t, a) = if t then evalYulCat' ct a else evalYulCat' cf a
 -- value primitives

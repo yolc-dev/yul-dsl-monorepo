@@ -7,16 +7,19 @@ module YulDSL.CodeGens.Yul.Internal.FunctionGen
   ) where
 
 -- base
-import Control.Monad                               (unless, when)
+import Control.Monad                        (unless, when)
 -- text
-import Data.Text.Lazy                              qualified as T
+import Data.Text.Lazy                       qualified as T
 --
 import YulDSL.Core
+-- (codegen-utils)
+import CodeGenUtils.CodeFormatters
+import CodeGenUtils.Variable
 --
-import YulDSL.CodeGens.Yul.Internal.CodeFormatters
+import YulDSL.StdBuiltIns.ABICodec          ()
+--
 import YulDSL.CodeGens.Yul.Internal.CodeGen
 import YulDSL.CodeGens.Yul.Internal.RhsExpr
-import YulDSL.CodeGens.Yul.Internal.Variable
 
 
 do_compile_cat :: HasCallStack
@@ -41,7 +44,7 @@ do_compile_cat (MkAnyYulCat (cat :: YulCat eff a b)) = go cat where
   go (YulEmb @_ @m @n x)    = go_emb @m @n x
   go (YulITE ct cf)         = go_ite ct cf
   go (YulJmpU t)            = go_jmpu t
-  go (YulJmpB t)            = go_jmpb t
+  go (YulJmpB b)            = go_jmpb b
   go (YulCall @_ @m @n sel) = go_call @m @n 'O' sel
   -- - storage effects
   go (YulSGet)              = go_sget
@@ -158,10 +161,13 @@ go_jmpu :: forall eff a b. (HasCallStack, YulO2 a b)
 go_jmpu (cid, cat) = cg_insert_dependent_cat cid (MkAnyYulCat cat)
                        >> go_jmp @a @b ("u$" ++ cid)
 
-go_jmpb :: forall a b. (HasCallStack, YulO2 a b)
-        => BuiltInYulFunction a b -> CGState RhsExprGen
-go_jmpb (builtinName, _) = cg_use_builtin builtinName
-                           >> go_jmp @a @b builtinName
+go_jmpb :: forall a b p.
+  ( HasCallStack
+  , YulO2 a b
+  , YulBuiltInPrefix p a b
+  ) => YulBuiltIn p a b -> CGState RhsExprGen
+go_jmpb p = cg_use_builtin (MkAnyYulBuiltIn p)
+            >> go_jmp @a @b (yulB_fname p)
 
 go_jmp :: forall a b. (HasCallStack, YulO2 a b)
        => String -> CGState RhsExprGen
@@ -182,12 +188,12 @@ go_call effCode sel = build_code_block @((ADDR, U256), a) @b $ \ind (code, a_ins
   let title = T.pack $ "cal" ++ effCode:" " ++ abiTypeCompactName @a ++ " -> " ++ abiTypeCompactName @b
       addrExpr = a_ins !! 0
       weiExpr = a_ins !! 1
-      abienc_builtin = "__abienc_from_stack_c_" <> abiTypeCompactName @a
       dataSize = length (abiTypeInfo @b) * 32
-      abidec_builtin = "__abidec_from_memory_c_" <> abiTypeCompactName @b
+      abienc_builtin = MkYulBuiltIn @"__abienc_from_stack_c_" @(U256, a) @U256
+      abidec_builtin = MkYulBuiltIn @"__abidec_from_memory_c_" @(U256, U256) @b
   b_vars <- cg_create_vars @b
-  when (length a_ins > 2) $ cg_use_builtin abienc_builtin
-  unless (null b_vars) $ cg_use_builtin abidec_builtin
+  when (length a_ins > 2) $ cg_use_builtin (MkAnyYulBuiltIn abienc_builtin)
+  unless (null b_vars) $ cg_use_builtin (MkAnyYulBuiltIn abidec_builtin)
   pure ( decor_code ind title $
          code <>
          declare_vars ind b_vars <>
@@ -197,7 +203,7 @@ go_call effCode sel = build_code_block @((ADDR, U256), a) @b $ \ind (code, a_ins
            , "mstore(memPos, shl(224, " <> T.pack (showSelectorOnly sel) <> "))"
            , "let memEnd := " <>
              if (length a_ins > 2)
-             then T.pack abienc_builtin <> "(add(memPos, 4), " <> spread_rhs (drop 2 a_ins) <> ")"
+             then T.pack (yulB_fname abienc_builtin) <> "(add(memPos, 4), " <> spread_rhs (drop 2 a_ins) <> ")"
              else "add(memPos, 4)"
            ]) <>
          -- call(g, a, v, in, insize, out, outsize)
@@ -221,7 +227,7 @@ go_call effCode sel = build_code_block @((ADDR, U256), a) @b $ \ind (code, a_ins
            , " finalize_allocation(memPos, rsize)"
            ] ++
            ([ " " <> spread_vars b_vars <> " := " <>
-                    T.pack abidec_builtin <> "(memPos, add(memPos, rsize))"
+                    T.pack (yulB_fname abidec_builtin) <> "(memPos, add(memPos, rsize))"
             | not (null b_vars) ]) ++
            [ "}" ])
        , mk_rhs_vars b_vars )

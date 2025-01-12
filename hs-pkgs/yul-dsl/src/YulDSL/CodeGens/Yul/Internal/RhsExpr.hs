@@ -8,13 +8,14 @@ module YulDSL.CodeGens.Yul.Internal.RhsExpr
   , assign_vars
   ) where
 -- text
-import Data.Text.Lazy                              qualified as T
+import Data.Text.Lazy                       qualified as T
 -- yul-dsl
 import YulDSL.Core
+-- CodeGenUtils
+import CodeGenUtils.CodeFormatters
+import CodeGenUtils.Variable
 --
-import YulDSL.CodeGens.Yul.Internal.CodeFormatters
 import YulDSL.CodeGens.Yul.Internal.CodeGen
-import YulDSL.CodeGens.Yul.Internal.Variable
 
 
 -- | Types of right-hand-side (RHS) expressions.

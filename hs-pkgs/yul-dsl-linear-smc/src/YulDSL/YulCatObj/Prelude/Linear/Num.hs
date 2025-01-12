@@ -1,13 +1,13 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 module YulDSL.YulCatObj.Prelude.Linear.Num where
-
 -- base
-import Prelude        qualified as Prelude.Base
+import Prelude                      qualified as BasePrelude
 -- linear-base
 import Prelude.Linear
-import Unsafe.Linear  qualified as UnsafeLinear
+import Unsafe.Linear                qualified as UnsafeLinear
 -- yul-dsl
 import YulDSL.Core
+import YulDSL.StdBuiltIns.ValueType ()
 
 
 --
@@ -18,23 +18,30 @@ instance FromInteger Integer where
   fromInteger = id
 
 instance ValidINTx s n => FromInteger (INTx s n) where
-  fromInteger = UnsafeLinear.toLinear Prelude.Base.fromInteger
+  fromInteger = UnsafeLinear.toLinear BasePrelude.fromInteger
 
 --
---  Num instances for (YulCat r a)
+--  Num instances for (YulCat r (INTx s n))
 --
 
-instance (YulO1 r, YulNum a) => Additive (YulCat eff r a) where
-  a + b = YulJmpB (yulB_NumAdd @a) <.< YulProd a b <.< YulDup
-
-instance (YulO1 r, YulNum a) => AddIdentity (YulCat eff r a) where
+instance (YulO1 r, ValidINTx s n) => Additive (YulCat eff r (INTx s n)) where
+  (+) = UnsafeLinear.toLinear2 (BasePrelude.+)
+instance (YulO1 r, ValidINTx s n) => AddIdentity (YulCat eff r (INTx s n)) where
   zero = YulEmb (fromIntegral (0 :: Integer))
-
-instance (YulO1 r, YulNum a) => AdditiveGroup (YulCat eff r a) where
-  a - b = YulJmpB (yulB_NumSub @a) <.< YulProd a b <.< YulDup
-
-instance (YulO1 r, YulNum a) => Multiplicative (YulCat eff r a) where
-  a * b = YulJmpB (yulB_NumMul @a) <.< YulProd a b <.< YulDup
-
+instance (YulO1 r, ValidINTx s n) => AdditiveGroup (YulCat eff r (INTx s n)) where
+  (-) = UnsafeLinear.toLinear2 (BasePrelude.-)
+instance (YulO1 r, ValidINTx s n) => Multiplicative (YulCat eff r (INTx s n)) where
+  (*) = UnsafeLinear.toLinear2 (BasePrelude.*)
 instance (YulO1 r, ValidINTx s n) => FromInteger (YulCat eff r (INTx s n)) where
-  fromInteger x = YulEmb (fromInteger x)
+  fromInteger = UnsafeLinear.toLinear BasePrelude.fromInteger
+
+instance (YulO1 r, ValidINTx s n) => Additive (YulCat eff r (Maybe (INTx s n))) where
+  (+) = UnsafeLinear.toLinear2 (BasePrelude.+)
+instance (YulO1 r, ValidINTx s n) => AddIdentity (YulCat eff r (Maybe (INTx s n))) where
+  zero = YulEmb (fromIntegral (0 :: Integer))
+instance (YulO1 r, ValidINTx s n) => AdditiveGroup (YulCat eff r (Maybe (INTx s n))) where
+  (-) = UnsafeLinear.toLinear2 (BasePrelude.-)
+instance (YulO1 r, ValidINTx s n) => Multiplicative (YulCat eff r (Maybe (INTx s n))) where
+  (*) = UnsafeLinear.toLinear2 (BasePrelude.*)
+instance (YulO1 r, ValidINTx s n) => FromInteger (YulCat eff r (Maybe (INTx s n))) where
+  fromInteger = UnsafeLinear.toLinear BasePrelude.fromInteger
