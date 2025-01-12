@@ -1,5 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
-module YulDSL.Effects.LinearSMC.YulMonad
+module YulDSL.Haskell.Effects.LinearSMC.YulMonad
   ( -- * Yul Monad
     YulMonad, runYulMonad
     -- * Yul Monadic Diagrams
@@ -23,8 +23,8 @@ import Control.LinearlyVersionedMonad             qualified as LVM
 import Control.LinearlyVersionedMonad.Combinators
 import Data.LinearContext
 --
-import YulDSL.Effects.LinearSMC.LinearYulCat
-import YulDSL.Effects.LinearSMC.YulPort
+import YulDSL.Haskell.Effects.LinearSMC.LinearYulCat
+import YulDSL.Haskell.Effects.LinearSMC.YulPort
 
 --------------------------------------------------------------------------------
 -- YulMonad: A Linearly Versioned Monad for YulDSL

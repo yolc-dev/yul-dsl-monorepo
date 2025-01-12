@@ -1,7 +1,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE LinearTypes         #-}
 {-|
-Copyright   : (c) 2023-2024 Miao, ZhiCheng
+Copyright   : (c) 2023-2025 Miao, ZhiCheng
 License     : LGPL-3
 Maintainer  : hellwolf@yolc.dev
 Stability   : experimental
@@ -33,44 +33,30 @@ module YulDSL.Core.YulCat
   , Fn (MkFn, unFn)
   , ExternalFn (MkExternalFn), declareExternalFn
   , (>.>), (<.<)
-    -- * YulCat Pure Verbs
-  , yulKeccak256
-    -- * YulCat Exceptions
-  , yulRevert
-    -- * YulCat Control Flows
-  , module Control.IfThenElse
-  , module Control.PatternMatchable
-  , PatternMatchableYulCat
-  , Referenceable (yulRefGet, yulRefPut)
+  , yulIfThenElse
     -- * YulCat Stringify Functions
   , yulCatCompactShow, yulCatFingerprint
     -- * Misc
   , locId
   ) where
 -- base
-import Data.Kind                    (Constraint)
-import GHC.TypeError                (Assert, ErrorMessage (Text), TypeError)
-import Text.Printf                  (printf)
+import Data.Kind              (Constraint)
+import GHC.TypeError          (Assert, ErrorMessage (Text), TypeError)
+import Text.Printf            (printf)
 -- template-haskell
-import Language.Haskell.TH          qualified as TH
+import Language.Haskell.TH    qualified as TH
 -- bytestring
-import Data.ByteString              qualified as BS
-import Data.ByteString.Char8        qualified as BS_Char8
+import Data.ByteString        qualified as BS
+import Data.ByteString.Char8  qualified as BS_Char8
 -- memory
-import Data.ByteArray               qualified as BA
+import Data.ByteArray         qualified as BA
 -- crypton
-import Crypto.Hash                  qualified as Hash
+import Crypto.Hash            qualified as Hash
 -- eth-abi
 import Ethereum.ContractABI
--- (control-extra)
-import Control.IfThenElse
-import Control.PatternMatchable
 --
 import YulDSL.Core.YulBuiltIn
 import YulDSL.Core.YulCatObj
---
-import YulDSL.StdBuiltIns.ABICodec  ()
-import YulDSL.StdBuiltIns.Exception ()
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -226,40 +212,9 @@ m >.> n = n `YulComp` m
 -- see https://hackage.haskell.org/package/base-4.20.0.1/docs/Control-Category.html
 infixr 1 >.>, <.<
 
-------------------------------------------------------------------------------------------------------------------------
--- YulCat Pure "Verbs"
-------------------------------------------------------------------------------------------------------------------------
-
--- | Wrapper for built-in keccak256 yul function.
-yulB_Keccak256 :: forall eff a. YulO1 a => YulCat eff a B32
-yulB_Keccak256 = YulJmpB (MkYulBuiltIn @"__keccak_c_" @a @B32)
-
-yulKeccak256 :: YulO2 r a => YulCat eff r a -> YulCat eff r B32
-yulKeccak256 x = x >.> yulB_Keccak256
-
-------------------------------------------------------------------------------------------------------------------------
--- YulCat Exceptions
-------------------------------------------------------------------------------------------------------------------------
-
--- | Revert without any message.
-yulRevert :: forall eff a b. (YulO2 a b) => YulCat eff a b
-yulRevert = YulDis >.> YulJmpB (MkYulBuiltIn @"__const_revert0_c_" @() @b)
-
-------------------------------------------------------------------------------------------------------------------------
--- YulCat Control Flows
-------------------------------------------------------------------------------------------------------------------------
-
--- ^ 'IfThenElse' instance for 'YulCat' objects.
-instance YulO2 a r => IfThenElse (YulCat eff r BOOL) (YulCat eff r a) where
-  ifThenElse c a b = YulFork c YulId >.> YulITE a b
-
--- | Type alias of 'PatternMatchable' p for 'YulCat' objects.
-type PatternMatchableYulCat eff p a = PatternMatchable (YulCat eff (p a)) (p a) (p (YulCat eff (p a) a)) YulCatObj
-
--- | Type class for building referenceable values.
-class Referenceable a where
-  yulRefGet :: REF a -> YulCat eff B32 a
-  yulRefPut :: REF a -> YulCat eff (B32, a) ()
+yulIfThenElse :: forall eff a r. YulO2 a r
+              => YulCat eff r BOOL %1-> YulCat eff r a %1-> YulCat eff r a %1-> YulCat eff r a
+yulIfThenElse c a b = YulFork c YulId >.> YulITE a b
 
 ------------------------------------------------------------------------------------------------------------------------
 -- SimpleNP Helpers
@@ -357,7 +312,6 @@ yulCatFingerprint = concatMap (printf "%02x") . BS.unpack . BA.convert . hash . 
 instance Show (YulCat eff a b) where show = yulCatCompactShow
 deriving instance Show AnyYulCat
 deriving instance Show (Fn eff f)
-
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Other stuff that probably doesn't belong here

@@ -10,7 +10,9 @@ Stability   : experimental
 This module defines the objects of the YulCat category.
 
 -}
-module YulDSL.Core.YulCatObj where
+module YulDSL.Core.YulCatObj
+  ( YulCatObj (yul_prod_objs)
+  ) where
 
 -- constraints
 import Data.Constraint      (Dict (Dict))
@@ -25,6 +27,7 @@ class (ABITypeable a, ABITypeCodec a, Show a) => YulCatObj a where
   yul_prod_objs = error "yul_prod_objs should only be implemented by the product of YulCatObj"
 
 -- Enumerate known YulCat objects:
+
 instance YulCatObj ()
 instance YulCatObj ADDR
 instance YulCatObj BOOL
@@ -33,8 +36,3 @@ instance ValidINTn n => YulCatObj (BYTESn n)
 instance YulCatObj (NP '[])
 instance (YulCatObj x, YulCatObj (NP xs)) => YulCatObj (NP (x:xs))
 instance (YulCatObj a1, YulCatObj a2) => YulCatObj (a1, a2) where yul_prod_objs = Dict
-
--- | Constraint objects to only unit-like ones.
-class YulUnit a
-instance YulUnit ()
-instance YulUnit (NP '[])

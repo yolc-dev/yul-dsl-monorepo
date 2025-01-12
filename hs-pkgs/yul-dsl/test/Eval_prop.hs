@@ -11,7 +11,8 @@ import Ethereum.ContractABI
 import YulDSL.Core
 import YulDSL.Eval
 --
-import TestCommon           ()
+import TestCommon
+
 
 test_coerce_uint256_unit_prod :: forall a. a ~ U256 => a -> Bool
 test_coerce_uint256_unit_prod a = toInteger a == toInteger b

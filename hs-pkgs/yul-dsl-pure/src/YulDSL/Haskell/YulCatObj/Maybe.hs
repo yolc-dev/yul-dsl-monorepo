@@ -1,6 +1,7 @@
 {-# LANGUAGE AllowAmbiguousTypes  #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
+{-# OPTIONS_HADDOCK hide #-}
 {-|
 
 Copyright   : (c) 2023-2025 Miao, ZhiCheng
@@ -13,18 +14,16 @@ Stability   : experimental
 This module defines the 'Num' instance from base library for Maybe 'YulNum' objects.
 
 -}
-module YulDSL.YulCatObj.Prelude.Base.Maybe
+module YulDSL.Haskell.YulCatObj.Maybe
   ( MaybeYulNum
   ) where
-
 -- eth-abi
 import Ethereum.ContractABI
---
-import YulDSL.Core.YulBuiltIn
-import YulDSL.Core.YulCat
-import YulDSL.Core.YulCatObj
---
+-- yul-dsl
+import YulDSL.Core
 import YulDSL.StdBuiltIns.ValueType ()
+-- (control-extra)
+import Control.PatternMatchable
 
 
 --
@@ -81,4 +80,4 @@ instance ( YulCat eff r ~ m
                          >.> YulCoerceType @_ @(NP '[ABITypeDerivedOf a]) @(ABITypeDerivedOf a, NP '[])
                          >.> YulExl @_ @(ABITypeDerivedOf a) @_
                          >.> YulExtendType
-                 in ifThenElse b (f (Just n)) (f Nothing)
+                 in yulIfThenElse b (f (Just n)) (f Nothing)

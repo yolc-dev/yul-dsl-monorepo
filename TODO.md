@@ -12,6 +12,10 @@ TODO
 > * 🔴 - Likely deferred to the future versions;
 > * ❓ - To be reviewed.
 
+## Refactoring Ideas
+
+- [ ] Haddock prettifying.
+
 ## TODOs for 0.1.0.0
 
 - eth-abi

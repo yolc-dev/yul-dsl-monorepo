@@ -2,18 +2,15 @@ cabal-version:  3.4
 name:           yul-dsl
 version:        0.1.0.0
 category:       Language
-synopsis:       YulDSL - An EDSL targets Solidity\/Yul
-description:    YulDSL provides an embedded domain-specific language (EDSL) called 'YulDSL' in Haskell that targets
-                olidiy\/Yul code.
+synopsis:       YulDSL - A DSL targets Solidity/Yul
+description:    YulDSL provides a domain-specific language (DSL) in Haskell that targets Solidity/Yul code.
 
-                It is a DSL that bases itself on category theory, which makes it possible to have different front ends
-                that all target to YulDSL.
+                It is a DSL that bases itself on category theory, making it possible to have different front-ends that
+                all target YulDSL.
 
-                One such working front end is YulDSL\/Haskell (package: yul-dsl-linear-smc).
-
-                Furthermore, in the future, 'YulDSL' can be serialized into a portable artifact, thereby enabling
-                various front ends, such as a visual programming interface or other YulDSL-supported programming
-                languages to produce and share 'YulDSL' as portable modules with each other.
+                In the future, 'YulDSL' can also be serialized into a portable artifact, thereby enabling various front
+                ends, such as a visual programming interface or other YulDSL-supported programming languages, to produce
+                and share 'YulDSL' as portable modules with each other.
 
 license:        LGPL-3.0-or-later
 license-file:   LGPL-3.0-LICENSE
@@ -29,7 +26,7 @@ build-type:     Simple
 
 common basic-options
   default-language:   GHC2024
-  default-extensions: OverloadedRecordDot
+  default-extensions: TypeFamilies
   ghc-options:        -Wall
                       -Wunused-packages
   build-depends:      base >= 4.20.0.0 && < 666
@@ -37,7 +34,6 @@ common basic-options
 library
   import:             basic-options
   hs-source-dirs:     src
-  default-extensions: TypeFamilies
   build-depends:      eth-abi ^>= 0.1.0.0,
                       template-haskell >= 2.22,
                       constraints >= 0.14,
@@ -55,26 +51,19 @@ library
     YulDSL.Core.YulCat
     YulDSL.Core.YulObject
     YulDSL.Core
+    -- YulDSL Eval
+    YulDSL.Eval
+    -- YulDSL CodeGen
+    YulDSL.CodeGens.YulGen
     -- YulDSL Built-Ins
     YulDSL.StdBuiltIns.Prelude
     YulDSL.StdBuiltIns.Exception
     YulDSL.StdBuiltIns.ValueType
     YulDSL.StdBuiltIns.ABICodec
-    -- YulDSL Eval
-    YulDSL.Eval
-    -- YulDSL CodeGen
-    YulDSL.CodeGens.YulGen
-    -- YulDSL/Haskell Essentials
-    YulDSL.YulCatObj.Prelude.Base.Maybe
-    YulDSL.YulCatObj.Prelude.Base.Num
-    YulDSL.Effects.Pure
   other-modules:
     -- CodeGen Utils
     CodeGenUtils.CodeFormatters
     CodeGenUtils.Variable
-    -- Extra Control patterns
-    Control.PatternMatchable
-    Control.IfThenElse
     -- Yul CodeGen Internals
     YulDSL.CodeGens.Yul.Internal.RhsExpr
     YulDSL.CodeGens.Yul.Internal.CodeGen
@@ -91,10 +80,10 @@ Test-Suite test-yul-dsl
   build-depends:      QuickCheck >=2.13,
                       hspec >=2.11,
                       eth-abi,
+                      eth-abi:lib-test,
                       yul-dsl
   -- modules
   other-modules:
     TestCommon
-    Fn_prop
     Eval_prop
   main-is: Main.hs

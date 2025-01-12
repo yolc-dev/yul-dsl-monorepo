@@ -1,7 +1,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-|
 
-Copyright   : (c) 2024 Miao, ZhiCheng
+Copyright   : (c) 2024-2025 Miao, ZhiCheng
 License     : LGPL-3
 Maintainer  : hellwolf@yolc.dev
 Stability   : experimental
@@ -11,7 +11,7 @@ Stability   : experimental
 This module provides the operations for working with the 'Pure' kind of effect for the yul category morphisms.
 
 -}
-module YulDSL.Effects.Pure
+module YulDSL.Haskell.Effects.Pure
   ( -- * Pure Effect Kind
     -- $PureEffectKind
     PureEffectKind (Pure, Total), PureFn, YulCat'P

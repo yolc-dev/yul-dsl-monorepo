@@ -1,4 +1,4 @@
-module YulDSL.Effects.LinearSMC.YulPort
+module YulDSL.Haskell.Effects.LinearSMC.YulPort
   ( -- * Yul Port Definitions
     -- $LinearPortDefs
     PortEffect (PurePort, VersionedPort), EffectVersionDelta, P'x, P'V, P'P
@@ -17,6 +17,8 @@ import Control.Category.Linear
 -- yul-dsl
 import YulDSL.Core
 import YulDSL.StdBuiltIns.ValueType        ()
+-- yul-dsl-pure
+import YulDSL.Haskell.Effects.Pure
 --
 import Control.Category.Constrained.YulDSL ()
 import Data.MPOrd

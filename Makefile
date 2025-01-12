@@ -62,13 +62,16 @@ clean:
 
 test: test-all-modules test-yol-suite test-demo
 
-test-all-modules: test-eth-abi test-yul-dsl test-yul-dsl-linear-smc
+test-all-modules: test-eth-abi test-yul-dsl test-yul-dsl-pure test-yul-dsl-linear-smc
 
 test-eth-abi:
 	$(CABAL_TEST) test eth-abi $(TEST_OPTIONS)
 
 test-yul-dsl:
 	$(CABAL_TEST) test yul-dsl $(TEST_OPTIONS)
+
+test-yul-dsl-pure:
+	$(CABAL_TEST) test yul-dsl-pure $(TEST_OPTIONS)
 
 test-yul-dsl-linear-smc:
 	$(CABAL_TEST) test yul-dsl-linear-smc $(TEST_OPTIONS)

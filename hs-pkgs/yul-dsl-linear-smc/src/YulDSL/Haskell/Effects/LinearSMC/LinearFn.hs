@@ -1,6 +1,13 @@
 {-# LANGUAGE AllowAmbiguousTypes    #-}
 {-# LANGUAGE FunctionalDependencies #-}
-module YulDSL.Effects.LinearSMC.LinearFn
+{-|
+
+Copyright   : (c) 2023-2025 Miao, ZhiCheng
+License     : LGPL-3
+Maintainer  : hellwolf@yolc.dev
+Stability   : experimental
+-}
+module YulDSL.Haskell.Effects.LinearSMC.LinearFn
   ( -- * Build Linear Yul Functions
     CreateLinearFn (lfn)
     -- * Call Yul Functions Linearly
@@ -10,19 +17,21 @@ module YulDSL.Effects.LinearSMC.LinearFn
   , externalCall
   ) where
 -- base
-import GHC.TypeLits                          (type (+))
+import GHC.TypeLits                                  (type (+))
 -- linear-base
-import Control.Category.Linear               (merge, mkUnit)
+import Control.Category.Linear                       (merge, mkUnit)
 import Prelude.Linear
-import Unsafe.Linear                         qualified as UnsafeLinear
+import Unsafe.Linear                                 qualified as UnsafeLinear
 -- yul-dsl
 import YulDSL.Core
--- linearly-versioned-monoad
-import Control.LinearlyVersionedMonad        qualified as LVM
+-- yul-dsl-pure
+import YulDSL.Haskell.YulUtils
+-- (linearly-versioned-monoad)
+import Control.LinearlyVersionedMonad                qualified as LVM
 --
-import YulDSL.Effects.LinearSMC.LinearYulCat
-import YulDSL.Effects.LinearSMC.YulMonad
-import YulDSL.Effects.LinearSMC.YulPort
+import YulDSL.Haskell.Effects.LinearSMC.LinearYulCat
+import YulDSL.Haskell.Effects.LinearSMC.YulMonad
+import YulDSL.Haskell.Effects.LinearSMC.YulPort
 
 ------------------------------------------------------------------------------------------------------------------------
 -- lfn

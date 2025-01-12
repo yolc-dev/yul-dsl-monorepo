@@ -2,17 +2,18 @@ Cabal-Version:  3.4
 name:           yul-dsl-linear-smc
 version:        0.1.0.0
 category:       Language
-synopsis:       YulDSL\/Haskell - Embedding YulDSL in Haskell Using Linear Types
-description:    YulDSL is an EDSL targets Solidity\/Yul, and this package is one of its front ends called YulDSL\/Haskell
-                which embeds YulDSL in Haskell.
+synopsis:       YulDSL/Haskell's support for side effects using linear types
+description:    YulDSL/Haskell is the Embedded domain-specific language (EDSL) in Haskell using YulDSL.
 
-                The front end uses a technique called "evaluating linear functions to symmetric monoidal
-                categories (Jean-Philippe Bernardy and Arnaud Spiwack)" to provide an ergonomic linear functions
-                programming environment for the 'YulDSL'.
+                This package is one of its front ends called YulDSL/Haskell, which embeds YulDSL in Haskell.
+
+                The front end uses a technique called "evaluating linear functions to symmetric monoidal categories
+                (Jean-Philippe Bernardy and Arnaud Spiwack)" to provide an ergonomic linear functions programming
+                environment for the YulDSL.
 
                 The front end also provides a new type of linear safety using linearly versioned monad, where all data
-                effects are linearly versioned and tracked as types, which aims to eliminates a class of program safety
-                issues arises from using out of date data obtained from side effects.
+                effects are linearly versioned and tracked as types. Linearly versioned monad aims to eliminate a class
+                of program safety issues arising from using out-of-date data obtained from side effects.
 
 license:        LGPL-3.0-or-later
 license-file:   LGPL-3.0-LICENSE
@@ -47,24 +48,21 @@ library
                       linear-base >= 0.3.1,
                       linear-smc >= 2.2.3,
                       yul-dsl,
+                      yul-dsl-pure,
                       yul-dsl-linear-smc:linearly-versioned-monad
   -- modules
   exposed-modules:
-    -- Additional YulCatObj
-    YulDSL.YulCatObj.Prelude.Linear.Num
     -- YulDSL's LinearSMC Effect
-    YulDSL.Effects.LinearSMC.YulPort
-    YulDSL.Effects.LinearSMC.YulMonad
-    YulDSL.Effects.LinearSMC.LinearYulCat
-    YulDSL.Effects.LinearSMC.LinearFn
-    YulDSL.Effects.LinearSMC.Storage
-    YulDSL.Effects.LinearSMC
+    YulDSL.Haskell.Effects.LinearSMC.YulPort
+    YulDSL.Haskell.Effects.LinearSMC.YulMonad
+    YulDSL.Haskell.Effects.LinearSMC.LinearYulCat
+    YulDSL.Haskell.Effects.LinearSMC.LinearFn
+    YulDSL.Haskell.Effects.LinearSMC.Storage
+    YulDSL.Haskell.Effects.LinearSMC
     -- YulDSL's linear-smc instances
     Control.Category.Constrained.YulDSL
-    -- Prelude curation
-    Data.MPOrd
-    Data.MPOrd.YulDSL
-    -- Main export
+    -- Prelude
+    Data.Num.Linear.YulDSL
     Prelude.YulDSL
   reexported-modules:
     Data.LinearContext,
@@ -93,7 +91,6 @@ Test-Suite test-yul-dsl-linear-smc
   type:             exitcode-stdio-1.0
   hs-source-dirs:   test
   build-depends:    hspec >=2.11,
-                    -- QuickCheck >=2.13,
                     yul-dsl-linear-smc
   -- modules
   other-modules:

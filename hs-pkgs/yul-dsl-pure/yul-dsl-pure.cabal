@@ -1,0 +1,60 @@
+cabal-version:  3.4
+name:           yul-dsl-pure
+version:        0.1.0.0
+category:       Language
+synopsis:       YulDSL/Haskell's support for pure effects
+description:    YulDSL/Haskell is the Embedded domain-specific language (EDSL) in Haskell using YulDSL.
+
+                This package provides the machinery, in the form of Haskell rebindable syntax, control patterns, and
+                standard APIs, to program YulDSL's pure effects.
+
+license:        LGPL-3.0-or-later
+license-file:   LGPL-3.0-LICENSE
+author:         Miao, ZhiCheng
+maintainer:     helwolf@yolc.dev
+copyright:      (c) 2023-2025 Miao, ZhiCheng
+
+-- extra-doc-files:  README.md
+-- extra-doc-files:  CHANGELOG.md
+
+common basic-options
+  default-language:   GHC2024
+  default-extensions: TypeFamilies
+  ghc-options:        -Wall
+                      -Wunused-packages
+  build-depends:      base >= 4.20.0.0 && < 666
+
+library
+  import:             basic-options
+  hs-source-dirs:     src
+  build-depends:      eth-abi ^>= 0.1.0.0,
+                      yul-dsl
+  -- modules
+  exposed-modules:
+    -- YulDSL/Haskell
+    YulDSL.Haskell.YulUtils
+    YulDSL.Haskell.Effects.Pure
+    YulDSL.Haskell.YulCatObj.Maybe
+    -- Extra control patterns
+    Data.MPOrd
+    Control.PatternMatchable
+    Control.IfThenElse
+
+Test-Suite test-yul-dsl-pure
+  import:             basic-options
+  type:               exitcode-stdio-1.0
+  default-extensions: BlockArguments
+                      TemplateHaskell
+  ghc-options:        -Wno-missing-signatures
+  hs-source-dirs:     test
+  build-depends:      QuickCheck >=2.13,
+                      hspec >=2.11,
+                      eth-abi,
+                      eth-abi:lib-test,
+                      yul-dsl,
+                      yul-dsl-pure
+  -- modules
+  other-modules:
+    TestCommon
+    Fn_tests
+  main-is: Main.hs

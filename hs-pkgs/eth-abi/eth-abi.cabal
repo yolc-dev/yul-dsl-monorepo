@@ -76,6 +76,16 @@ library simple-np
     Data.TupleN
     Internal.Data.Type.List
 
+library lib-test
+  import:           basic-options
+  visibility:       public
+  hs-source-dirs:   test/lib
+  build-depends:    QuickCheck >= 2.15,
+                    eth-abi
+  -- modules
+  exposed-modules:
+    Ethereum.ContractABI.Arbitrary
+
 Test-Suite test-eth-abi
   import:           basic-options
   ghc-options:      -Wno-missing-signatures

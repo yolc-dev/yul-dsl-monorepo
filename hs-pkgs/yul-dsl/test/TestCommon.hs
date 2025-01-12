@@ -1,19 +1,20 @@
-{-# LANGUAGE DerivingStrategies #-}
-{-# OPTIONS_GHC -Wno-orphans #-}
-
 module TestCommon where
+-- eth-abi
+import Ethereum.ContractABI.Arbitrary ()
+--
+import YulDSL.Core.YulCat
 
-import Data.Functor         ((<&>))
--- quickcheck
-import Test.QuickCheck
 
-import Ethereum.ContractABI
+------------------------------------------------------------------------------------------------------------------------
+-- Pure effect for testing
+------------------------------------------------------------------------------------------------------------------------
 
-instance Arbitrary ADDR where
-  arbitrary = chooseBoundedIntegral (minBound @U160, maxBound @U160)
-              <&> addrFromU160
+data PureEffectKind = Pure
 
-deriving newtype instance Arbitrary BOOL
+instance KnownYulCatEffect Pure where classifyYulCatEffect = PureEffect
 
-instance ValidINTx s n => Arbitrary (INTx s n) where
-  arbitrary = chooseBoundedIntegral (minBound, maxBound)
+type instance IsEffectNotPure (eff :: PureEffectKind) = False
+type instance MayEffectWorld  (eff :: PureEffectKind) = False
+
+-- | Function without side effects, hence pure.
+type PureFn = Fn Pure

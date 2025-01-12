@@ -1,6 +1,6 @@
 {-|
 
-Copyright   : (c) 2023-2024 Miao, ZhiCheng
+Copyright   : (c) 2023-2025 Miao, ZhiCheng
 License     : LGPL-3
 Maintainer  : hellwolf@yolc.dev
 Stability   : experimental
@@ -12,10 +12,11 @@ documentation](https://docs.soliditylang.org/en/latest/yul.html#specification-of
 
 -}
 module YulDSL.Core.YulObject
-  ( AnyExportedYulCat (MkAnyExportedYulCat), withAnyExportedYulCat
+  (-- $AnyExportedYulCat
+    AnyExportedYulCat (MkAnyExportedYulCat), withAnyExportedYulCat
   , pureFn,staticFn, omniFn
+    -- $YulObject
   , YulObject (..), mkYulObject
-  , emptyCtor
   ) where
 
 -- base
@@ -28,13 +29,17 @@ import Ethereum.ContractABI.CoreType.NP
 import Ethereum.ContractABI.ExtendedType.SELECTOR
 --
 import YulDSL.Core.YulCat
-import YulDSL.Effects.Pure
 
--- | Existential yul function that is exported.
+
+------------------------------------------------------------------------------------------------------------------------
+-- $AnyExportedYulCat
+
+-- | Existential type wrapper for yul function that is exported.
 data AnyExportedYulCat where
   MkAnyExportedYulCat :: forall k { eff :: k } xs b. YulO2 (NP xs) b
                       => SELECTOR -> YulCatEffectClass -> NamedYulCat eff (NP xs) b -> AnyExportedYulCat
 
+-- | The function to process the content of 'AnyExportedYulCat'.
 withAnyExportedYulCat :: AnyExportedYulCat
   -> (forall k { eff :: k } xs b. (YulO2 (NP xs) b ) => NamedYulCat eff (NP xs) b -> a)
   -> a
@@ -81,6 +86,9 @@ show_fn_spec (SELECTOR (sel, fsig)) cat@(cid, _) =
   in "fn " <> fspec <> "(" <> abiTypeCanonName @(NP xs) <> ") -> " <> abiTypeCanonName @b <> "\n" <>
      show cat
 
+------------------------------------------------------------------------------------------------------------------------
+-- $YulObject
+
 -- | A Yul Object per spec.
 --
 -- Note:
@@ -108,6 +116,3 @@ mkYulObject name ctor afns = MkYulObject { yulObjectName = name
                                          , yulObjectSFns = afns
                                          , yulSubObjects = []
                                          }
-
-emptyCtor :: AnyYulCat
-emptyCtor = MkAnyYulCat (YulDis @Pure @())

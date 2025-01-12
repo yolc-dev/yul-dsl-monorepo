@@ -1,4 +1,5 @@
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE LinearTypes            #-}
 module Data.MPOrd where
 
 -- | Multi-parameter equality type class where boolean type is @b@

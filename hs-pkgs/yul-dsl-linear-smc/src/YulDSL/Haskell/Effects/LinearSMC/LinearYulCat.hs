@@ -1,5 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
-module YulDSL.Effects.LinearSMC.LinearYulCat
+module YulDSL.Haskell.Effects.LinearSMC.LinearYulCat
   ( -- * Linear Effect Kind
     -- $LinearEffectKind
     LinearEffectKind (PureInputVersionedOutput, VersionedInputOutput)
@@ -14,16 +14,18 @@ module YulDSL.Effects.LinearSMC.LinearYulCat
   , match'l
   ) where
 -- base
-import GHC.TypeLits                     (KnownNat, type (+))
-import Prelude                          qualified as BasePrelude
+import GHC.TypeLits                             (KnownNat, type (+))
+import Prelude                                  qualified as BasePrelude
 -- linear-base
-import Control.Category.Linear          (P, decode, discard, encode, ignore, split)
+import Control.Category.Linear                  (P, decode, discard, encode, ignore, split)
 import Prelude.Linear
-import Unsafe.Linear                    qualified as UnsafeLinear
+import Unsafe.Linear                            qualified as UnsafeLinear
 -- yul-dsl
 import YulDSL.Core
+-- yul-dsl-pure
+import YulDSL.Haskell.YulUtils
 --
-import YulDSL.Effects.LinearSMC.YulPort
+import YulDSL.Haskell.Effects.LinearSMC.YulPort
 
 
 ------------------------------------------------------------------------------------------------------------------------

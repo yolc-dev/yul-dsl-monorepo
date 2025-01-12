@@ -13,7 +13,7 @@ Portability : GHC2024
 This module provides yul monads that work with contract storage.
 
 -}
-module YulDSL.Effects.LinearSMC.Storage
+module YulDSL.Haskell.Effects.LinearSMC.Storage
   ( SReferenceable (sget, sput)
   , SGettableNP (sgetNP), sgetN, (<==)
   , SPuttableNP (sputNP), sputN
@@ -35,8 +35,8 @@ import Control.LinearlyVersionedMonad    (LVM (MkLVM))
 import Control.LinearlyVersionedMonad    qualified as LVM
 import Data.LinearContext                (contextualEmbed)
 --
-import YulDSL.Effects.LinearSMC.YulMonad
-import YulDSL.Effects.LinearSMC.YulPort
+import YulDSL.Haskell.Effects.LinearSMC.YulMonad
+import YulDSL.Haskell.Effects.LinearSMC.YulPort
 
 
 class SReferenceable v r a b | a -> v r, b -> v r where

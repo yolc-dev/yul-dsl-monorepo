@@ -1,13 +1,14 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
-module YulDSL.YulCatObj.Prelude.Linear.Num where
+module Data.Num.Linear.YulDSL where
 -- base
-import Prelude                      qualified as BasePrelude
+import Prelude                 qualified as BasePrelude
+-- yul-dsl-pure
+import YulDSL.Haskell.YulUtils ()
 -- linear-base
 import Prelude.Linear
-import Unsafe.Linear                qualified as UnsafeLinear
+import Unsafe.Linear           qualified as UnsafeLinear
 -- yul-dsl
 import YulDSL.Core
-import YulDSL.StdBuiltIns.ValueType ()
 
 
 --

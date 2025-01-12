@@ -1,3 +1,14 @@
+{-|
+Copyright   : (c) 2025 Miao, ZhiCheng
+License     : LGPL-3
+Maintainer  : hellwolf@yolc.dev
+Stability   : experimental
+
+= Description
+
+This module provides type class and data types for defining yul built-in functions.
+
+-}
 {-# LANGUAGE OverloadedStrings #-}
 module YulDSL.Core.YulBuiltIn
   ( YulBuiltInPrefix (yulB_prefix , yulB_fname, yulB_body, yulB_eval)
