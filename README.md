@@ -35,11 +35,10 @@ Yolc allows you to write safe code in production, a joyful experience for super 
 
 > [!CAUTION]
 >
-> 🚧 While this project is still work in progress 🚧, the good news is after pausing for the good part of 2024 due to
-> business reason, I am back to it. As of 2024 October, the end-to-end is working and I have adjusted the roadmap and
-> planned an exciting type system for the first release!
+> 🚧 While this project is still work in progress 🚧, currently it is of /technical preview/ version, read [the
+> introduction](https://yolc.dev/docs/getting-started/introduction/)
 >
-> Contact me at info@yolc.dev if you are interested in testing this project out soon!
+> Contact me at info@yolc.dev or join the [matrix room](https://matrix.to/#/#yolc:matrix.org) if you want to learn more!
 
 ------------------------------------------------------------------------------------------
 
@@ -119,8 +118,10 @@ Packages
 ========
 
 - [*eth-abi*](./hs-pkgs/eth-abi/README.md) - Ethereum contract ABI specification in Haskell
-- [*yul-dsl*](./hs-pkgs/yul-dsl/README.md) - A DSL for Solidity/Yul
-- [*yul-dsl-linear-smc*](./hs-pkgs/yul-dsl-linear-smc/README.md) - Embedding YulDSL in Haskell Using Linear Types
+- [*yul-dsl*](./hs-pkgs/yul-dsl/README.md) - A DSL targets Solidity/Yul
+- [*yul-dsl-pure*](#) - YulDSL/Haskell's support for pure effects
+- [*yul-dsl-linear-smc*](./hs-pkgs/yul-dsl-linear-smc/README.md) - YulDSL/Haskell's support for side effects using
+  linear types
 - [*yol-suite*](./hs-pkgs/yol-suite/README.md) - A Collection of YulDSL Programs for the New Pioneer of Ethereum Smart
   Contracts Development
   - **yolc**: the evil twin of "solc"; this is the compiler program for "YulDSL/Haskell".
@@ -140,7 +141,7 @@ For the ongoing feature development, here is the ccomplete [todo list](TODO.md).
 Milestones
 ----------
 
-- [ ] 🚧 Jan 6th, 2025: public announcement, with the first technical release (unversioned).
+- [x] Jan 6th, 2025: public announcement, with the first technical release (unversioned).
 - [ ] End of Jan 2025: version 0.0.1.0 with major features completion.
 - [ ] End of Feb 2025: version 0.0.2.0 with first live in production projects.
 - ...

@@ -13,4 +13,4 @@ multi-repl: true
 
 package linear-smc
   -- we don't want this external package to spew warnings out
-  ghc-options: -Wno-all
+  ghc-options: -Wno-all -Wno-deprecated-flags
