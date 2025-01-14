@@ -1,7 +1,9 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE OverloadedStrings   #-}
 module YulDSL.CodeGens.Yul.Internal.CodeGen
   ( -- $codegen_state
-    CGState
+    CodeGenConfig (..)
+  , CGState
   , gen_code
   , cg_reset_for_fn
   , cg_reset_for_object
@@ -13,6 +15,7 @@ module YulDSL.CodeGens.Yul.Internal.CodeGen
     -- $codegen_builtins
   , cg_use_builtin
   , cg_gen_builtin_codes
+  , cg_get_code_decor
   ) where
 
 -- base
@@ -35,9 +38,14 @@ import CodeGenUtils.Variable
 -- $codegen_state
 -- == CodeGen State
 
+data CodeGenConfig = MkCodeGenConfig
+  { cg_config_debug_level :: Int
+  }
+
 -- | CodeGen state data.
 data CGStateData = MkCGStateData
-  { var_gen        :: AutoVarGen
+  { cg_config      :: CodeGenConfig
+  , var_gen        :: AutoVarGen
   , dependent_cats :: Map.Map String AnyYulCat -- cat_id -> cat
   , builtin_used   :: Set.Set AnyYulBuiltIn
   }
@@ -46,16 +54,17 @@ data CGStateData = MkCGStateData
 type CGState = State CGStateData
 
 -- | Initial CodeGen state data.
-init_cg_state_data :: CGStateData
-init_cg_state_data = MkCGStateData
-  { var_gen = MkAutoVarGen 0
+init_cg_state_data :: CodeGenConfig -> CGStateData
+init_cg_state_data config = MkCGStateData
+  { cg_config = config
+  , var_gen = MkAutoVarGen 0
   , dependent_cats = Map.empty
   , builtin_used = Set.empty
   }
 
 -- | Generate code from the initial CodeGen state.
-gen_code :: CGState Code -> Code
-gen_code s = evalState s init_cg_state_data
+gen_code :: CodeGenConfig -> CGState Code -> Code
+gen_code config s = evalState s (init_cg_state_data config)
 
 -- | Reset the CodeGen for new function generation.
 cg_reset_for_fn :: CGState ()
@@ -116,3 +125,17 @@ cg_gen_builtin_codes ind = get >>= \(MkCGStateData{ builtin_used }) ->
                   in if Set.size s == Set.size s' then s
                   else go (Set.toList (Set.difference s' s)) s'
         get_deps b@(MkAnyYulBuiltIn b') = let (_,_,_,deps) = yulB_body b' in b:deps
+
+
+-- | Decorate code with a opening and closing titles for debugging purpose.
+decor_code :: Indenter -> String -> Code -> Code
+decor_code ind title code =
+  ind ("//dbg: +" <> T.pack title) <>
+  code <>
+  ind ("//dbg: -" <> T.pack title)
+
+cg_get_code_decor :: CGState (Indenter -> String -> Code -> Code)
+cg_get_code_decor = get >>= \(MkCGStateData { cg_config = MkCodeGenConfig { cg_config_debug_level = lvl } }) ->
+  if lvl > 0
+  then pure (decor_code)
+  else pure (\_ _ code -> code)

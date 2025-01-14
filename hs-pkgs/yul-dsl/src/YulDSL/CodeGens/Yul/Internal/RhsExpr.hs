@@ -1,11 +1,13 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE OverloadedStrings   #-}
 module YulDSL.CodeGens.Yul.Internal.RhsExpr
-  ( RhsExpr
-  , rhs_expr_to_code, spread_rhs
+  ( -- * Right-hand-side Expression
+    RhsExpr
+  , rhs_expr_to_code, spread_rhs, mk_rhs_vars, assign_vars
+    -- * Right-hand-side Expression Group
+    -- * Right-hand-side Expression Generator
   , RhsExprGen (..)
-  , mk_rhs_vars, build_rhs_aliases, build_inline_expr, build_code_block
-  , assign_vars
+  , build_rhs_aliases, build_inline_expr, build_code_block
   ) where
 -- text
 import Data.Text.Lazy                       qualified as T
@@ -17,6 +19,10 @@ import CodeGenUtils.Variable
 --
 import YulDSL.CodeGens.Yul.Internal.CodeGen
 
+
+------------------------------------------------------------------------------------------------------------------------
+-- RhsExpr
+------------------------------------------------------------------------------------------------------------------------
 
 -- | Types of right-hand-side (RHS) expressions.
 data RhsExpr = LetVar Var      -- ^ Declared let var
@@ -31,6 +37,30 @@ rhs_expr_to_code (SimpleExpr x) = x
 spread_rhs :: [RhsExpr] -> Code
 spread_rhs = T.intercalate ", " . fmap rhs_expr_to_code
 
+-- | Create LetVar RHS expressions from variables.
+mk_rhs_vars :: [Var] -> [RhsExpr]
+mk_rhs_vars = fmap LetVar
+
+-- | Assign variables to RHS expressions.
+assign_vars :: HasCallStack
+            => Indenter -> [Var] -> [RhsExpr] -> Code
+assign_vars ind vars rexprs = gen_assert_msg ("assign_vars" ++ show(length vars, length rexprs))
+                              (length vars == length rexprs) $ T.unlines $
+  zipWith
+  (\a b -> T.init $ ind $ a <> " := " <> b)
+  (fmap unVar vars)
+  (fmap rhs_expr_to_code rexprs)
+
+------------------------------------------------------------------------------------------------------------------------
+-- RhsExprGroup
+------------------------------------------------------------------------------------------------------------------------
+
+-- type RhsExprGroup = (Code, [RhsExpr])
+
+------------------------------------------------------------------------------------------------------------------------
+-- RhsExprGen
+------------------------------------------------------------------------------------------------------------------------
+
 -- | RHS expression generator.
 data RhsExprGen = MkRhsExprGen
   { -- ^ (nIns, nOuts)
@@ -38,10 +68,6 @@ data RhsExprGen = MkRhsExprGen
     -- ^ Generate from "nIns" of [RhsExpr] to a fragment of code and "nOuts" of [RhsExpr]
   , gen_rhs_exprs  :: Indenter -> (Code, [RhsExpr]) -> CGState (Code, [RhsExpr])
   }
-
--- | Create LetVar RHS expressions from variables.
-mk_rhs_vars :: [Var] -> [RhsExpr]
-mk_rhs_vars = fmap LetVar
 
 -- | Build RHS expression that are aliases of inputs.
 build_rhs_aliases :: forall a. (HasCallStack, YulO1 a)
@@ -74,13 +100,3 @@ build_code_block g = pure $
                              gen_assert_msg ("mk_code_block nOuts" ++ show (nb, length outs))
                              (length outs == nb)
                              pure (code', outs))
-
--- | Assign variables to RHS expressions.
-assign_vars :: HasCallStack
-            => Indenter -> [Var] -> [RhsExpr] -> Code
-assign_vars ind vars rexprs = gen_assert_msg ("assign_vars" ++ show(length vars, length rexprs))
-                              (length vars == length rexprs) $ T.unlines $
-  zipWith
-  (\a b -> T.init $ ind $ a <> " := " <> b)
-  (fmap unVar vars)
-  (fmap rhs_expr_to_code rexprs)

@@ -3,7 +3,7 @@ module CodeGenUtils.CodeFormatters
   ( Code
   , Indenter
   , add_indent, indent, init_ind
-  , cbracket_m, cbracket, cbracket1, decor_code
+  , cbracket_m, cbracket, cbracket1
   , HasCallStack, gen_assert_msg
   ) where
 -- base
@@ -44,13 +44,6 @@ cbracket ind prefix codegen = runIdentity $ cbracket_m ind prefix (pure . codege
 -- | Wrap a one liner in a pair of curly brackets.
 cbracket1 :: Indenter -> Code -> Code -> Code
 cbracket1 ind prefix oneliner = cbracket ind prefix ($ oneliner)
-
--- | Decorate code with a opening and closing titles for debugging purpose.
-decor_code :: Indenter -> T.Text -> Code -> Code
-decor_code ind title code =
-  ind ("//dbg: +" <> title) <>
-  code <>
-  ind ("//dbg: -" <> title)
 
 -- | Assert true or stop code generation with a message.
 gen_assert_msg :: HasCallStack => String -> Bool -> a -> a

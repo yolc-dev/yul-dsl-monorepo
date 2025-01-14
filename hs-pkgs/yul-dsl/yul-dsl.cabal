@@ -86,4 +86,5 @@ Test-Suite test-yul-dsl
   other-modules:
     TestCommon
     Eval_prop
+    YulGen_tests
   main-is: Main.hs

@@ -9,12 +9,15 @@ import YulDSL.Core.YulCat
 -- Pure effect for testing
 ------------------------------------------------------------------------------------------------------------------------
 
-data PureEffectKind = Pure
+data TestEffectKind = Pure | NonPure
 
 instance KnownYulCatEffect Pure where classifyYulCatEffect = PureEffect
 
-type instance IsEffectNotPure (eff :: PureEffectKind) = False
-type instance MayEffectWorld  (eff :: PureEffectKind) = False
+type instance IsEffectNotPure Pure = False
+type instance MayEffectWorld  Pure = False
+
+type instance IsEffectNotPure NonPure = True
+type instance MayEffectWorld  NonPure = True
 
 -- | Function without side effects, hence pure.
 type PureFn = Fn Pure

@@ -53,10 +53,11 @@ do_compile_cat (MkAnyYulCat (cat :: YulCat eff a b)) = go cat where
 go_comp :: forall eff a b c. (HasCallStack, YulO3 a b c)
         => YulCat eff c b -> YulCat eff a c -> CGState RhsExprGen
 go_comp cb ac = build_code_block @a @b $ \ind (code, a_ins) -> do
-    let title = T.pack $ "comp " ++
+    let title = "comp " ++
           "(" ++ abiTypeCompactName @a ++ ") -> " ++
           "(" ++ abiTypeCompactName @c ++ ") -> " ++
           "(" ++ abiTypeCompactName @b ++ ")"
+    decor_code <- cg_get_code_decor
     ac_gen <- do_compile_cat (MkAnyYulCat ac)
     cb_gen <- do_compile_cat (MkAnyYulCat cb)
     (code',  c_outs) <- gen_rhs_exprs ac_gen ind (code,  a_ins)
@@ -66,12 +67,13 @@ go_comp cb ac = build_code_block @a @b $ \ind (code, a_ins) -> do
 go_prod :: forall eff a b c d. (HasCallStack, YulO4 a b c d)
         => YulCat eff a b -> YulCat eff c d -> CGState RhsExprGen
 go_prod ab cd = build_code_block @(a, c) @(b, d) $ \ind (code, ac_ins) -> do
-    let title = T.pack $ "prod " ++
+    let title = "prod " ++
           ("(" ++ abiTypeCompactName @a ++ ", " ++ abiTypeCompactName @c ++ ") -> ") ++
           ("(" ++ abiTypeCompactName @b ++ ", " ++ abiTypeCompactName @d ++ ")")
         ca = length (abiTypeInfo @a)
         a_ins = take ca ac_ins
         c_ins = drop ca ac_ins
+    decor_code <- cg_get_code_decor
     ab_gen <- do_compile_cat (MkAnyYulCat ab)
     cd_gen <- do_compile_cat (MkAnyYulCat cd)
     (code',  b_outs) <- gen_rhs_exprs ab_gen ind (code,  a_ins)
@@ -81,17 +83,19 @@ go_prod ab cd = build_code_block @(a, c) @(b, d) $ \ind (code, ac_ins) -> do
 go_swap :: forall a b. (HasCallStack, YulO2 a b)
         => CGState RhsExprGen
 go_swap = build_code_block @(a, b) @(b, a) $ \ind (code, ab_ins) -> do
-  let title = T.pack $ "swap " ++ ("(" ++ abiTypeCompactName @a ++ ", " ++ abiTypeCompactName @b ++ ")")
+  let title = "swap " ++ ("(" ++ abiTypeCompactName @a ++ ", " ++ abiTypeCompactName @b ++ ")")
       ca = length (abiTypeInfo @a)
       (va, vb) = splitAt ca ab_ins
+  decor_code <- cg_get_code_decor
   pure (decor_code ind title code, vb ++ va)
 
 go_fork :: forall eff a b c. (HasCallStack, YulO3 a b c)
         => YulCat eff a b -> YulCat eff a c -> CGState RhsExprGen
 go_fork ab ac = build_code_block @a @(b, c) $ \ind (code, a_ins) -> do
-  let title = T.pack $ "fork " ++
+  let title = "fork " ++
         "(" ++ abiTypeCompactName @a ++ ") -> " ++
         "(" ++ abiTypeCompactName @b ++ ", " ++ abiTypeCompactName @c ++ ")"
+  decor_code <- cg_get_code_decor
   ab_gen <- do_compile_cat (MkAnyYulCat ab)
   ac_gen <- do_compile_cat (MkAnyYulCat ac)
   (code',  b_outs) <- gen_rhs_exprs ab_gen ind (code,  a_ins)
@@ -101,27 +105,30 @@ go_fork ab ac = build_code_block @a @(b, c) $ \ind (code, a_ins) -> do
 
 go_extract :: forall a b. (HasCallStack, YulO2 a b)
            => Bool -> CGState RhsExprGen
-go_extract extractLeft =
-  let title = T.pack $ ("extract" <> if extractLeft then "L " else "R ") ++
+go_extract extractLeft = do
+  let title = ("extract" <> if extractLeft then "L " else "R ") ++
               ("(" ++ abiTypeCompactName @a ++ ", " ++ abiTypeCompactName @b ++ ")")
       na = length (abiTypeInfo @a)
-  in if extractLeft
-     then build_code_block @(a, b) @a $
-          \ind (code, ab_ins) -> pure (decor_code ind title code, take na ab_ins)
-     else build_code_block @(a, b) @b $
-          \ind (code, ab_ins) -> pure (decor_code ind title code, drop na ab_ins)
+  decor_code <- cg_get_code_decor
+  if extractLeft
+    then build_code_block @(a, b) @a $
+         \ind (code, ab_ins) -> pure (decor_code ind title code, take na ab_ins)
+    else build_code_block @(a, b) @b $
+         \ind (code, ab_ins) -> pure (decor_code ind title code, drop na ab_ins)
 
 go_dis :: forall a. (HasCallStack, YulO1 a)
        => CGState RhsExprGen
-go_dis = build_code_block @a @() $ \ind (code, _) ->
-  let title = T.pack $ "dis " ++ "(" ++ abiTypeCompactName @a ++ ")"
-  in  pure (decor_code ind title code, [])
+go_dis = build_code_block @a @() $ \ind (code, _) -> do
+  let title =  "dis " ++ "(" ++ abiTypeCompactName @a ++ ")"
+  decor_code <- cg_get_code_decor
+  pure (decor_code ind title code, [])
 
 go_dup :: forall a. (HasCallStack, YulO1 a)
        => CGState RhsExprGen
-go_dup = build_code_block @a @(a, a) $ \ind (code, a_ins) ->
-  let title = T.pack $ "dup (" ++ abiTypeCompactName @a ++ ")"
-  in pure (decor_code ind title code, a_ins ++ a_ins)
+go_dup = build_code_block @a @(a, a) $ \ind (code, a_ins) -> do
+  let title = "dup (" ++ abiTypeCompactName @a ++ ")"
+  decor_code <- cg_get_code_decor
+  pure (decor_code ind title code, a_ins ++ a_ins)
 
 go_emb :: forall a b. (HasCallStack, YulO2 a b)
        => b -> CGState RhsExprGen
@@ -135,8 +142,9 @@ go_emb b =
 go_ite :: forall eff a b. (HasCallStack, YulO2 a b)
        => YulCat eff a b -> YulCat eff a b -> CGState RhsExprGen
 go_ite ct cf = build_code_block @(BOOL, a) @b $ \ind (code, ba_ins) -> do
-  let title = T.pack $ "ite (" ++ abiTypeCompactName @a ++ ")"
+  let title = "ite (" ++ abiTypeCompactName @a ++ ")"
       a_ins = drop 1 ba_ins
+  decor_code <- cg_get_code_decor
   b_vars <- cg_create_vars @b
   ct_gen <- do_compile_cat (MkAnyYulCat ct)
   cf_gen <- do_compile_cat (MkAnyYulCat cf)
@@ -185,12 +193,13 @@ go_jmp fname = do
 go_call :: forall a b. (HasCallStack, YulO2 a b)
         => Char -> SELECTOR -> CGState RhsExprGen
 go_call effCode sel = build_code_block @((ADDR, U256), a) @b $ \ind (code, a_ins) -> do
-  let title = T.pack $ "cal" ++ effCode:" " ++ abiTypeCompactName @a ++ " -> " ++ abiTypeCompactName @b
+  let title = "cal" ++ effCode:" " ++ abiTypeCompactName @a ++ " -> " ++ abiTypeCompactName @b
       addrExpr = a_ins !! 0
       weiExpr = a_ins !! 1
       dataSize = length (abiTypeInfo @b) * 32
       abienc_builtin = MkYulBuiltIn @"__abienc_from_stack_c_" @(U256, a) @U256
       abidec_builtin = MkYulBuiltIn @"__abidec_from_memory_c_" @(U256, U256) @b
+  decor_code <- cg_get_code_decor
   b_vars <- cg_create_vars @b
   when (length a_ins > 2) $ cg_use_builtin (MkAnyYulBuiltIn abienc_builtin)
   unless (null b_vars) $ cg_use_builtin (MkAnyYulBuiltIn abidec_builtin)
