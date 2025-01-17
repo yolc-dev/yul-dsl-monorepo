@@ -14,7 +14,7 @@ type RunYolResult = Either T.Text T.Text
 -- yul modes
 
 yulFnMode :: forall eff f. YulO2 (NP (UncurryNP'Fst f)) (UncurryNP'Snd f)
-            => Fn eff f -> IO RunYolResult
+          => Fn eff f -> IO RunYolResult
 yulFnMode = pure . Right . YulCodeGen.compileFn . unFn
 
 yulObjectMode :: YulObject -> IO RunYolResult
@@ -25,11 +25,17 @@ yulProjectMode = YOLCBuilder.buildManifest
 
 -- show modes
 
-showFnMode :: Show a => a -> IO RunYolResult
+showFnMode :: Fn eff f -> IO RunYolResult
 showFnMode = pure . Right . T.pack . show
 
-showObjectMode :: Show a => a -> IO RunYolResult
-showObjectMode = showFnMode
+showObjectMode :: YulObject -> IO RunYolResult
+showObjectMode = pure . Right . T.pack . show
 
-showProjectMode :: Show a => a -> IO RunYolResult
-showProjectMode = showFnMode
+showProjectMode :: Manifest -> IO RunYolResult
+showProjectMode = pure . Right . T.pack . show
+
+-- lisp modes
+
+lispFnMode :: forall eff f. YulO2 (NP (UncurryNP'Fst f)) (UncurryNP'Snd f)
+           => Fn eff f -> IO RunYolResult
+lispFnMode = pure . Right . yulCatToUntypedLisp . snd . unFn

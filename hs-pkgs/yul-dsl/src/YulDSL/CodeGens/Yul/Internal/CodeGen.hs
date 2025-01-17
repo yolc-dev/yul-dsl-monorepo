@@ -40,6 +40,7 @@ import CodeGenUtils.Variable
 
 data CodeGenConfig = MkCodeGenConfig
   { cg_config_debug_level :: Int
+  , cg_config_dummy       :: Bool -- for testing
   }
 
 -- | CodeGen state data.

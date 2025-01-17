@@ -26,7 +26,7 @@ yolc, the YulDSL commandline transpiler.
 
 Usage: yolc [options] yol_module_spec...
 
--m [codegen_mode] Valid codegen modes: yul (default), show, yul_and_show
+-m [codegen_mode] Valid codegen modes: yul (default), show, lisp, yul_and_show
 -v                Output more information about what is going on
 -h                Display this help and exit
 
@@ -69,7 +69,7 @@ main() {
       m)
         codegen_name=$OPTARG
         case "$OPTARG" in
-          yul | show)
+          yul | show | lisp)
             ;;
           yul_and_show)
             codegen_name=yul

@@ -35,26 +35,29 @@ module YulDSL.Core.YulCat
   , (>.>), (<.<)
   , yulIfThenElse
     -- * YulCat Stringify Functions
-  , yulCatCompactShow, yulCatFingerprint
+  , yulCatCompactShow, yulCatToUntypedLisp, yulCatFingerprint
     -- * Misc
   , locId
   ) where
 -- base
-import Data.Kind              (Constraint)
-import GHC.TypeError          (Assert, ErrorMessage (Text), TypeError)
-import Text.Printf            (printf)
+import Data.Kind                   (Constraint)
+import GHC.TypeError               (Assert, ErrorMessage (Text), TypeError)
+import Text.Printf                 (printf)
 -- template-haskell
-import Language.Haskell.TH    qualified as TH
+import Language.Haskell.TH         qualified as TH
 -- bytestring
-import Data.ByteString        qualified as BS
-import Data.ByteString.Char8  qualified as BS_Char8
+import Data.ByteString             qualified as BS
+import Data.ByteString.Char8       qualified as BS_Char8
 -- memory
-import Data.ByteArray         qualified as BA
+import Data.ByteArray              qualified as BA
 -- crypton
-import Crypto.Hash            qualified as Hash
+import Crypto.Hash                 qualified as Hash
+-- text
+import Data.Text.Lazy              qualified as T
 -- eth-abi
 import Ethereum.ContractABI
 --
+import CodeGenUtils.CodeFormatters
 import YulDSL.Core.YulBuiltIn
 import YulDSL.Core.YulCatObj
 
@@ -303,6 +306,46 @@ yulCatCompactShow = go
     abi_type_name2 = abi_type_name @a ++ abi_type_name @b
     -- TODO escape the value of x
     -- escape = show
+
+yulCatToUntypedLisp :: forall eff a b. YulCat eff a b -> Code
+yulCatToUntypedLisp = go init_ind
+  where
+    go :: forall m n. Indenter -> YulCat eff m n -> Code
+    go _ YulReduceType        = T.empty
+    go _ YulExtendType        = T.empty
+    go _ YulCoerceType        = T.empty
+    go _ YulSplit             = T.empty
+    --
+    go _ YulId                = T.empty
+    go ind (YulComp cb ac)    = go ind ac <> go ind cb -- flip the order for readability
+    go ind (YulProd ab cd)    = g2 ind "prod" ab cd
+    go ind YulSwap            = ind $ T.pack "swap"
+    go ind (YulFork ab ac)    = g2 ind "fork" ab ac
+    go ind YulExl             = ind $ T.pack "exl"
+    go ind YulExr             = ind $ T.pack "exr"
+    go ind YulDis             = ind $ T.pack "dis"
+    go ind YulDup             = ind $ T.pack "dup"
+    go ind (YulEmb x)         = ind $ T.pack (show x)
+    go ind (YulITE a b)       = g2 ind "ite" a b
+    go ind (YulJmpU (cid, _)) = ind $ T.pack ("(jmpu " ++ cid ++ ")")
+    go ind (YulJmpB p)        = ind $ T.pack ("(jmpb " ++ yulB_fname p ++ ")")
+    go ind (YulCall sel)      = ind $ T.pack ("(call " ++ showSelectorOnly sel ++ ")")
+    go ind YulSGet            = ind $ T.pack "sget"
+    go ind YulSPut            = ind $ T.pack "sput"
+    --
+    g2 :: Indenter -> String -> YulCat eff m n -> YulCat eff p q -> Code
+    g2 ind op c1 c2 =
+      let op' = T.pack "(" <> T.pack op
+          ind' = indent ind
+          s1 = go ind' c1
+          s2 = go ind' c2
+      in if T.null s1 && T.null s2
+         then T.empty
+         else if T.null s1
+              then ind (op' <> T.pack " id (") <> s2 <> ind (T.pack "))")
+              else if T.null s2
+                   then ind (op' <> T.pack " (") <> s1 <> ind' (T.pack ") id)")
+                   else ind (op' <> T.pack " (") <> s1 <> ind' (T.pack ")(") <> s2 <> ind (T.pack "))")
 
 -- | Obtain the sha1 finger print of a 'YulCat'.
 yulCatFingerprint :: YulCat eff a b -> String

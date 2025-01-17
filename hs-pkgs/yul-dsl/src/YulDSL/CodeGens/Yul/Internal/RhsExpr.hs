@@ -13,6 +13,8 @@ module YulDSL.CodeGens.Yul.Internal.RhsExpr
 import Data.Text.Lazy                       qualified as T
 -- yul-dsl
 import YulDSL.Core
+-- containers
+import Data.Map.Lazy                        qualified as Map
 -- CodeGenUtils
 import CodeGenUtils.CodeFormatters
 import CodeGenUtils.Variable
@@ -55,7 +57,9 @@ assign_vars ind vars rexprs = gen_assert_msg ("assign_vars" ++ show(length vars,
 -- RhsExprGroup
 ------------------------------------------------------------------------------------------------------------------------
 
--- type RhsExprGroup = (Code, [RhsExpr])
+-- type RhsExprGroup = ([(RhsExpr, Int)], Map.Map Int (Maybe Code))
+
+-- rhsgrp_take_vars =
 
 ------------------------------------------------------------------------------------------------------------------------
 -- RhsExprGen

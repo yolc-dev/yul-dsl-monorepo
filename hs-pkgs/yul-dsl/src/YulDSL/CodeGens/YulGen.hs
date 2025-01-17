@@ -30,7 +30,10 @@ import YulDSL.CodeGens.Yul.Internal.ObjectGen   (compile_object)
 
 
 defaultCodeGenConfig :: CodeGenConfig
-defaultCodeGenConfig = MkCodeGenConfig { cg_config_debug_level = 1 }
+defaultCodeGenConfig = MkCodeGenConfig
+  { cg_config_debug_level = 1
+  , cg_config_dummy = True
+  }
 
 -- | Compiling a unamed yul function
 compileCatWithConfig :: forall eff a b. YulO2 a b => CodeGenConfig -> YulCat eff a b -> Code
@@ -40,7 +43,7 @@ compileCatWithConfig config cat = gen_code config $ do
   compile_cat init_ind cat (vars_a, vars_b)
 
 compileCat :: forall eff a b. YulO2 a b => YulCat eff a b -> Code
-compileCat cat = compileCatWithConfig defaultCodeGenConfig cat
+compileCat = compileCatWithConfig defaultCodeGenConfig
 
 -- | Compiling a named yul function.
 compileFn :: forall eff a b. YulO2 a b => NamedYulCat eff a b -> Code
