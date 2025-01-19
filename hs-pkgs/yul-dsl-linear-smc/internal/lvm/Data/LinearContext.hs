@@ -1,6 +1,6 @@
 {-|
 
-Copyright   : (c) 2024 Miao, ZhiCheng
+Copyright   : (c) 2024-2025 Miao, ZhiCheng
 License     : LGPL-3
 
 Maintainer  : hellwolf@yolc.dev
@@ -15,6 +15,7 @@ Type classes required by the linear context that works with the 'Control.Linearl
 module Data.LinearContext
   ( ContextualConsumable (contextualConsume)
   , ContextualDupable (contextualDup), contextualDupTupleN
+  , ContextualSeqable (contextualSeq), contextualSeqN
   , ContextualEmbeddable (contextualEmbed)
   ) where
 -- linear-base
@@ -31,10 +32,10 @@ import Data.TupleN
 -- | Providing a linear context @ctx@ for consuming @a@.
 class ContextualConsumable ctx a where
   -- | Consume @a@ linearly.
-  contextualConsume :: ctx ⊸ a ⊸ ctx
+  contextualConsume :: forall. ctx ⊸ a ⊸ ctx
 
 instance ContextualConsumable ctx () where
-  contextualConsume ctx x = lseq x ctx
+  contextualConsume ctx u = lseq u ctx
 
 instance ContextualConsumable ctx (NP '[]) where
   contextualConsume ctx Nil = ctx
@@ -43,7 +44,8 @@ instance ( ContextualConsumable ctx x
          , ContextualConsumable ctx (NP xs)
          ) => ContextualConsumable ctx (NP (x:xs)) where
   contextualConsume ctx (x :* xs) = let ctx' = contextualConsume ctx x
-                                    in contextualConsume ctx' xs
+                                        ctx'' = contextualConsume ctx' xs
+                                    in ctx''
 
 --------------------------------------------------------------------------------
 -- ContextualDupable
@@ -65,14 +67,44 @@ instance ( ContextualDupable ctx x
                                 in (ctx'', (x' :* xs', x'' :* xs''))
 
 -- | Utility function to contextually duplicate a TupleN.
-contextualDupTupleN :: forall ctx tpl.
-                       ( ConvertibleTupleN tpl
-                       , ContextualDupable ctx (TupleNtoNP (tpl))
-                       )
-                    => ctx ⊸ tpl ⊸ (ctx, (tpl, tpl))
-contextualDupTupleN ctx tpl = let np = fromTupleNtoNP tpl
-                                  !(ctx', (np1, np2)) = contextualDup ctx np
-                              in (ctx', (fromNPtoTupleN np1, fromNPtoTupleN np2))
+contextualDupTupleN :: forall ctx aN.
+  ( ConvertibleTupleN aN
+  , ContextualDupable ctx (TupleNtoNP (aN))
+  ) => ctx ⊸ aN ⊸ (ctx, (aN, aN))
+contextualDupTupleN ctx aN = let aNP = fromTupleNtoNP aN
+                                 !(ctx', (aNP1, aNP2)) = contextualDup ctx aNP
+                              in (ctx', (fromNPtoTupleN aNP1, fromNPtoTupleN aNP2))
+
+--------------------------------------------------------------------------------
+-- ContextualSeqable
+--------------------------------------------------------------------------------
+
+class ContextualSeqable ctx a b where
+  contextualSeq :: ctx ⊸ a ⊸ b ⊸ (ctx, b)
+
+instance ContextualConsumable ctx a => ContextualSeqable ctx a () where
+  contextualSeq ctx a b = (contextualConsume ctx a, b)
+
+instance ContextualConsumable ctx a => ContextualSeqable ctx a (NP '[]) where
+  contextualSeq ctx a Nil = (contextualConsume ctx a, Nil)
+
+instance ( ContextualConsumable ctx a
+         , ContextualDupable ctx a
+         , ContextualSeqable ctx a x
+         , ContextualSeqable ctx a (NP xs)
+         ) => ContextualSeqable ctx a (NP (x:xs)) where
+  contextualSeq ctx a (x :* xs) = let !(ctx', (a1, a2)) = contextualDup ctx a
+                                      !(ctx'', x') = contextualSeq ctx' a1 x
+                                      !(ctx''', xs') = contextualSeq ctx'' a2 xs
+                                  in (ctx''', x' :* xs')
+
+contextualSeqN :: forall ctx a bN.
+  ( ConvertibleTupleN bN
+  , ContextualSeqable ctx a (TupleNtoNP (bN))
+  ) => ctx ⊸ a ⊸ bN ⊸ (ctx, bN)
+contextualSeqN ctx a bN = let bNP = fromTupleNtoNP bN
+                              !(ctx', bNP') = contextualSeq ctx a bNP
+                          in (ctx', fromNPtoTupleN bNP')
 
 --------------------------------------------------------------------------------
 -- ContextualEmbeddable

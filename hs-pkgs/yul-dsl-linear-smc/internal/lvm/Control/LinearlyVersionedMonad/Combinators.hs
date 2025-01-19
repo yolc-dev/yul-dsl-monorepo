@@ -51,19 +51,21 @@ tossToUnit x = MkLVM \ctx -> (Dict, contextualConsume ctx x, ())
 toss :: forall ctx v a m.
   (ContextualConsumable ctx a, ContextualEmbeddable ctx m ())
   => a ⊸ LVM ctx v v (m ())
-toss x = MkLVM \ctx -> let ctx' = contextualConsume ctx x
-                           !(ctx'', mu) = contextualEmbed ctx' ()
-                       in (Dict, ctx'', mu)
+toss x = MkLVM \ctx ->
+  let ctx' = contextualConsume ctx x
+      !(ctx'', mu) = contextualEmbed ctx' ()
+  in (Dict, ctx'', mu)
 
 -- | Toss a TupleN into a contextual unit.
-tossN :: forall ctx v tpl m.
-  ( ConvertibleTupleN tpl
-  , ContextualConsumable ctx (TupleNtoNP tpl)
+tossN :: forall ctx v aN m.
+  ( ConvertibleTupleN aN
+  , ContextualConsumable ctx (TupleNtoNP aN)
   , ContextualEmbeddable ctx m ()
-  ) => tpl ⊸ LVM ctx v v (m ())
-tossN tpl = MkLVM \ctx -> let ctx' = contextualConsume ctx (fromTupleNtoNP tpl)
-                              !(ctx'', mu) = contextualEmbed ctx' ()
-                          in (Dict, ctx'', mu)
+  ) => aN ⊸ LVM ctx v v (m ())
+tossN aN = MkLVM \ctx ->
+  let ctx' = contextualConsume ctx (fromTupleNtoNP aN)
+      !(ctx'', mu) = contextualEmbed ctx' ()
+  in (Dict, ctx'', mu)
 
 --------------------------------------------------------------------------------
 -- pass
@@ -71,38 +73,45 @@ tossN tpl = MkLVM \ctx -> let ctx' = contextualConsume ctx (fromTupleNtoNP tpl)
 
 -- | Pass the copied data to the next process, then pass both the original data and the result to the next stage.
 pass :: forall ctx va vb a b.
-  (ContextualDupable ctx a)
-  => a ⊸ (a ⊸ LVM ctx va vb b) ⊸ LVM ctx va vb (a, b)
+  ( ContextualDupable ctx a
+  , ContextualDupable ctx b, ContextualSeqable ctx b a
+  ) => a ⊸ (a ⊸ LVM ctx va vb b) ⊸ LVM ctx va vb (a, b)
 pass a mb = MkLVM \ctx ->
   let !(ctx', (a1, a2)) = contextualDup ctx a
       !(alteb, ctx'', b) = unLVM (mb a1) ctx'
-  in (alteb, ctx'', (a2, b))
+      !(ctx''', (b1, b2)) = contextualDup ctx'' b
+      !(ctx'''', a3) = contextualSeq ctx''' b1 a2
+  in (alteb, ctx'''', (a3, b2))
 
 -- | Pass the copied data to the next process, then pass the original data to the next stage and discard the restart.
 pass_ :: forall ctx va vb a b.
-  (ContextualDupable ctx a, ContextualConsumable ctx b)
-  => a ⊸ (a ⊸ LVM ctx va vb b) ⊸ LVM ctx va vb a
+  ( ContextualDupable ctx a
+  , ContextualSeqable ctx b a
+  ) => a ⊸ (a ⊸ LVM ctx va vb b) ⊸ LVM ctx va vb a
 pass_ a mb = MkLVM \ctx ->
   let !(ctx', (a1, a2)) = contextualDup ctx a
       !(alteb, ctx'', b) = unLVM (mb a1) ctx'
-      ctx''' = contextualConsume ctx'' b
-  in (alteb, ctx''', a2)
+      !(ctx''', a3) = contextualSeq ctx'' b a2
+  in (alteb, ctx''', a3)
 
 -- | Combinator 'pass' for TupleN.
-passN :: forall ctx va vb tpl b.
-  (ConvertibleTupleN tpl, ContextualDupable ctx (TupleNtoNP tpl))
-  => tpl ⊸ (tpl ⊸ LVM ctx va vb b) ⊸ LVM ctx va vb (tpl, b)
-passN tpl mb = MkLVM \ctx ->
-  let !(ctx', (tpl1, tpl2)) = contextualDupTupleN ctx tpl
-      !(alteb, ctx'', b) = unLVM (mb tpl1) ctx'
-  in (alteb, ctx'', (tpl2, b))
+passN :: forall ctx va vb aN b.
+  ( ConvertibleTupleN aN, ContextualDupable ctx (TupleNtoNP aN)
+  , ContextualDupable ctx b, ContextualSeqable ctx b (TupleNtoNP aN)
+  ) => aN ⊸ (aN ⊸ LVM ctx va vb b) ⊸ LVM ctx va vb (aN, b)
+passN aN mb = MkLVM \ctx ->
+  let !(ctx', (aN1, aN2)) = contextualDupTupleN ctx aN
+      !(alteb, ctx'', b) = unLVM (mb aN1) ctx'
+      !(ctx''', (b1, b2)) = contextualDup ctx'' b
+      !(ctx'''', aN3) = contextualSeqN ctx''' b1 aN2
+  in (alteb, ctx'''', (aN3, b2))
 
 -- | Combinator 'pass_' for TupleN.
-passN_ :: forall ctx va vb tpl b.
-  ( ConvertibleTupleN tpl, ContextualDupable ctx (TupleNtoNP tpl)
-  , ContextualConsumable ctx b
-  ) => tpl ⊸ (tpl ⊸ LVM ctx va vb b) ⊸ LVM ctx va vb tpl
-passN_ tpl mb = passN tpl mb >>= (\(tpl', b) -> tossToUnit b >> pure tpl')
+passN_ :: forall ctx va vb aN b.
+  ( ConvertibleTupleN aN, ContextualDupable ctx (TupleNtoNP aN)
+  , ContextualDupable ctx b, ContextualConsumable ctx b, ContextualSeqable ctx b (TupleNtoNP aN)
+  ) => aN ⊸ (aN ⊸ LVM ctx va vb b) ⊸ LVM ctx va vb aN
+passN_ aN mb = passN aN mb >>= (\(aN', b) -> tossToUnit b >> pure aN')
 
 --------------------------------------------------------------------------------
 -- with

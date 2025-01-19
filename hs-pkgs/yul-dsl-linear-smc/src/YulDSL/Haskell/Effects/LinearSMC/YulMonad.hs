@@ -11,15 +11,15 @@ module YulDSL.Haskell.Effects.LinearSMC.YulMonad
   , Control.Functor.Linear.fmap
   ) where
 -- linear-base
-import Control.Category.Linear                    (discard, ignore, mkUnit, split)
+import Control.Category.Linear                       (discard, ignore, mkUnit, split)
 import Control.Functor.Linear qualified
 import Prelude.Linear
-import Unsafe.Linear                              qualified as UnsafeLinear
+import Unsafe.Linear                                 qualified as UnsafeLinear
 -- yul-dsl
 import YulDSL.Core
 -- linearly-versioned-monad
-import Control.LinearlyVersionedMonad             (LVM, runLVM)
-import Control.LinearlyVersionedMonad             qualified as LVM
+import Control.LinearlyVersionedMonad                (LVM, runLVM)
+import Control.LinearlyVersionedMonad                qualified as LVM
 import Control.LinearlyVersionedMonad.Combinators
 import Data.LinearContext
 --
@@ -67,7 +67,14 @@ ud_gulp x (MkUnitDumpster u) = let u' = ignore u (UnsafeLinear.coerce (discard x
 newtype YulMonadCtx r = MkYulMonadCtx (UnitDumpster r)
 
 instance YulO2 r a => ContextualConsumable (YulMonadCtx r) (P'x eff r a) where
+
   contextualConsume (MkYulMonadCtx ud) x = MkYulMonadCtx (ud_gulp x ud)
+
+instance YulO3 r a b => ContextualSeqable (YulMonadCtx r) (P'x eff1 r a) (P'x eff2 r b) where
+  contextualSeq (MkYulMonadCtx ud) a b = let ud' = ud_gulp a ud
+                                             !(ud'', u') = ud_dupu ud'
+                                             b' = ignore u' b
+                                         in (MkYulMonadCtx ud'', b')
 
 instance YulO2 r a => ContextualDupable (YulMonadCtx r) (P'x eff r a) where
   contextualDup ctx x = (ctx, dup2'l x)
