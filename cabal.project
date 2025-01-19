@@ -8,6 +8,9 @@ packages:
   hs-pkgs/yol-suite/testsuite
   examples/demo
 
+-- only tested with 9.10.1
+with-compiler: ghc-9.10.1
+
 -- doc: https://cabal.readthedocs.io/en/stable/cabal-commands.html#cmdoption-enable-multi-repl
 multi-repl: true
 
