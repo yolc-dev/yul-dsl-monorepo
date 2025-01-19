@@ -28,7 +28,7 @@ CABAL_COVERAGE = $(CABAL) --builddir=$(TEST_COVERAGE_BUILDDIR)
 CABAL_DOCS     = $(CABAL) --builddir=$(DOCS_BUILDDIR)
 
 # Misc
-DEV_TARGETS = test-all-modules build-all-modules test-yol-suite lint
+DEV_TARGETS = test-all-modules build-all-modules test-yol-suite test-demo-foundry lint
 
 ########################################################################################################################
 # TARGETS

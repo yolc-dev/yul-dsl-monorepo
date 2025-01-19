@@ -13,8 +13,6 @@ module YulDSL.CodeGens.Yul.Internal.RhsExpr
 import Data.Text.Lazy                       qualified as T
 -- yul-dsl
 import YulDSL.Core
--- containers
-import Data.Map.Lazy                        qualified as Map
 -- CodeGenUtils
 import CodeGenUtils.CodeFormatters
 import CodeGenUtils.Variable
@@ -29,6 +27,7 @@ import YulDSL.CodeGens.Yul.Internal.CodeGen
 -- | Types of right-hand-side (RHS) expressions.
 data RhsExpr = LetVar Var      -- ^ Declared let var
              | SimpleExpr Code -- ^ Simple expression that can be used directly in place of a let var
+  deriving Show
 
 -- | Render RHS expression to code.
 rhs_expr_to_code :: RhsExpr -> Code

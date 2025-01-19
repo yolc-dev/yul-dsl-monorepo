@@ -167,7 +167,7 @@ go_ite ct cf = build_code_block @(BOOL, a) @b $ \ind (code, ba_ins) -> do
 go_jmpu :: forall eff a b. (HasCallStack, YulO2 a b)
         => NamedYulCat eff a b -> CGState RhsExprGen
 go_jmpu (cid, cat) = cg_insert_dependent_cat cid (MkAnyYulCat cat)
-                       >> go_jmp @a @b ("u$" ++ cid)
+                     >> go_jmp @a @b 'u' ("u$" ++ cid)
 
 go_jmpb :: forall a b p.
   ( HasCallStack
@@ -175,13 +175,16 @@ go_jmpb :: forall a b p.
   , YulBuiltInPrefix p a b
   ) => YulBuiltIn p a b -> CGState RhsExprGen
 go_jmpb p = cg_use_builtin (MkAnyYulBuiltIn p)
-            >> go_jmp @a @b (yulB_fname p)
+            >> go_jmp @a @b 'b' (yulB_fname p)
 
 go_jmp :: forall a b. (HasCallStack, YulO2 a b)
-       => String -> CGState RhsExprGen
-go_jmp fname = do
+       => Char -> String -> CGState RhsExprGen
+go_jmp t fname = do
   let callExpr a_ins = T.pack fname <> "(" <> T.intercalate ", " (fmap rhs_expr_to_code a_ins) <> ")"
-  if length (abiTypeInfo @b) <= 1
+  -- for built-in functions, inline form may also be used to make code look more compact
+  -- for internal functions though, we don't want to assume they don't produce any side effect
+  if t == 'b' && length (abiTypeInfo @b) <= 1
+    -- NOTE only build inline expr if it is pure effect and outputs only one variable
     then build_inline_expr @a (pure . callExpr)
     else build_code_block @a @b $ \ind (code, a_ins) -> do
     b_vars <- cg_create_vars @b
@@ -241,13 +244,16 @@ go_call effCode sel = build_code_block @((ADDR, U256), a) @b $ \ind (code, a_ins
            [ "}" ])
        , mk_rhs_vars b_vars )
 
-go_sget :: forall a. (HasCallStack, YulO1 a)
+go_sget :: forall a. (HasCallStack, YulO1 a, ABIWordValue a)
         => CGState RhsExprGen
 go_sget = build_code_block @ADDR @a $
-          \ind (code, ins) -> pure
-          ( code <>
-            ind ("sload(" <> rhs_expr_to_code (ins !! 0) <> ")")
-          , [])
+          \ind (code, ins) -> do
+            a_vars <- cg_create_vars @a
+            gen_assert_msg "go_sget expect word value" (length a_vars == 1)
+              pure ( code <>
+                     declare_vars ind a_vars <>
+                     ind (spread_vars a_vars <> " := sload(" <> rhs_expr_to_code (ins !! 0) <> ")")
+                   , mk_rhs_vars a_vars)
 
 go_sput :: forall a. (HasCallStack, YulO1 a)
         => CGState RhsExprGen
