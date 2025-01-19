@@ -317,7 +317,7 @@ yulCatToUntypedLisp = go init_ind
     go _ YulSplit             = T.empty
     --
     go _ YulId                = T.empty
-    go ind (YulComp cb ac)    = go ind ac <> go ind cb -- flip the order for readability
+    go ind (YulComp cb ac)    = gcomp ind cb ac
     go ind (YulProd ab cd)    = g2 ind "prod" ab cd
     go ind YulSwap            = ind $ T.pack "swap"
     go ind (YulFork ab ac)    = g2 ind "fork" ab ac
@@ -333,6 +333,12 @@ yulCatToUntypedLisp = go init_ind
     go ind YulSGet            = ind $ T.pack "sget"
     go ind YulSPut            = ind $ T.pack "sput"
     --
+    gcomp :: Indenter -> YulCat eff c' b' -> YulCat eff a' c' -> Code
+    gcomp ind cb ac = let c1 = go ind ac
+                          c2 = go ind cb
+                      in if T.null c1 || T.null c2
+                         then c1 <> c2
+                         else c1 <> ind (T.pack ";;") <> c2
     g2 :: Indenter -> String -> YulCat eff m n -> YulCat eff p q -> Code
     g2 ind op c1 c2 =
       let op' = T.pack "(" <> T.pack op
@@ -345,7 +351,7 @@ yulCatToUntypedLisp = go init_ind
               then ind (op' <> T.pack " id (") <> s2 <> ind (T.pack "))")
               else if T.null s2
                    then ind (op' <> T.pack " (") <> s1 <> ind' (T.pack ") id)")
-                   else ind (op' <> T.pack " (") <> s1 <> ind' (T.pack ")(") <> s2 <> ind (T.pack "))")
+                   else ind (op' <> T.pack " (") <> s1 <> ind' (T.pack ") (") <> s2 <> ind (T.pack "))")
 
 -- | Obtain the sha1 finger print of a 'YulCat'.
 yulCatFingerprint :: YulCat eff a b -> String
