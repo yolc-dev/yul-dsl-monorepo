@@ -47,7 +47,7 @@ do_compile_cat (MkAnyYulCat (cat :: YulCat eff a b)) = go cat where
   go (YulJmpB b)            = go_jmpb b
   go (YulCall @_ @m @n sel) = go_call @m @n 'O' sel
   -- - storage effects
-  go (YulSGet)              = go_sget
+  go (YulSGet @_ @m)        = go_sget @m
   go (YulSPut @_ @m)        = go_sput @m
 
 go_comp :: forall eff a b c. (HasCallStack, YulO3 a b c)
@@ -241,10 +241,13 @@ go_call effCode sel = build_code_block @((ADDR, U256), a) @b $ \ind (code, a_ins
            [ "}" ])
        , mk_rhs_vars b_vars )
 
-go_sget :: HasCallStack
+go_sget :: forall a. (HasCallStack, YulO1 a)
         => CGState RhsExprGen
-go_sget = build_inline_expr @ADDR $
-          \ins -> pure ("sload(" <> rhs_expr_to_code (ins !! 0) <> ")")
+go_sget = build_code_block @ADDR @a $
+          \ind (code, ins) -> pure
+          ( code <>
+            ind ("sload(" <> rhs_expr_to_code (ins !! 0) <> ")")
+          , [])
 
 go_sput :: forall a. (HasCallStack, YulO1 a)
         => CGState RhsExprGen
