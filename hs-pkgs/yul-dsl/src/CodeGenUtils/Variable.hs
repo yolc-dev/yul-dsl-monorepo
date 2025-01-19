@@ -14,7 +14,7 @@ import CodeGenUtils.CodeFormatters
 
 
 -- | A variable represented by its name.
-newtype Var = MkVar { unVar :: Code }
+newtype Var = MkVar { unVar :: Code } deriving Show
 
 -- | Variable generator state.
 newtype AutoVarGen = MkAutoVarGen Int
