@@ -12,7 +12,8 @@ Project manifest builder.
 
 -}
 module YolSuite.YOLC.Builder
-  ( buildManifest
+  ( getCodeGenConfig
+  , buildManifest
   ) where
 
 -- base
@@ -20,6 +21,7 @@ import Data.Either                               (partitionEithers)
 import Data.Functor                              ((<&>))
 import Data.Maybe                                (fromJust, fromMaybe, mapMaybe)
 import Data.String                               (fromString)
+import System.Environment                        (lookupEnv)
 -- text
 import Data.Text.Lazy                            qualified as T
 import Data.Text.Lazy.Encoding                   (decodeUtf8, encodeUtf8)
@@ -44,17 +46,24 @@ import YolSuite.YOLC.Templates.SingletonContract
 
 type BuildResult = Either T.Text T.Text
 
+getCodeGenConfig :: IO CodeGenConfig
+getCodeGenConfig = pure defaultCodeGenConfig
+  >>= \config -> lookupEnv "YOLC_DEBUG_LEVEL" >>=
+                 \case Nothing -> pure config
+                       Just dbglvl -> pure (config { cg_config_debug_level = read dbglvl })
+
 -- | Compile a YulObject to bytecode.
 compile_main_object :: YulObject -> IO BuildResult
 compile_main_object mo = do
   let oname = yulObjectName mo
   solc <- get_solc
+  cg_config <- getCodeGenConfig
   (Just hin, Just hout, _, _) <- createProcess (proc solc ["--standard-json"])
                                  { std_in = CreatePipe, std_out = CreatePipe }
   hPutStr hin (T.unpack . decodeUtf8 . Aeson.encode $ Aeson.object
                [ "language" .= ("Yul" :: String)
                , "sources"  .= Aeson.object [
-                   "main.yul" .= Aeson.object [ "content" .= compileYulObject mo ]
+                   "main.yul" .= Aeson.object [ "content" .= compileYulObject cg_config mo ]
                    ]
                , "settings" .= Aeson.object [
                    "evmVersion" .= ("paris" :: String),

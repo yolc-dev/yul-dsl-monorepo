@@ -15,10 +15,14 @@ type RunYolResult = Either T.Text T.Text
 
 yulFnMode :: forall eff f. YulO2 (NP (UncurryNP'Fst f)) (UncurryNP'Snd f)
           => Fn eff f -> IO RunYolResult
-yulFnMode = pure . Right . YulCodeGen.compileFn . unFn
+yulFnMode fn = do
+  config <- YOLCBuilder.getCodeGenConfig
+  pure . Right . YulCodeGen.compileFn config . unFn $ fn
 
 yulObjectMode :: YulObject -> IO RunYolResult
-yulObjectMode = pure . Right . YulCodeGen.compileYulObject
+yulObjectMode obj = do
+  config <- YOLCBuilder.getCodeGenConfig
+  pure . Right . YulCodeGen.compileYulObject config $ obj
 
 yulProjectMode :: Manifest -> IO RunYolResult
 yulProjectMode = YOLCBuilder.buildManifest

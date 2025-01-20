@@ -14,7 +14,6 @@ Generate solidity/yul code for Fn, YulCat, and YulObject.
 module YulDSL.CodeGens.YulGen
   ( Code
   , CodeGenConfig (..), defaultCodeGenConfig
-  , compileCatWithConfig
   , compileCat
   , compileFn
   , compileYulObject
@@ -35,22 +34,18 @@ defaultCodeGenConfig = MkCodeGenConfig
   , cg_config_dummy = True
   }
 
--- | Compiling a unamed yul function
-compileCatWithConfig :: forall eff a b. YulO2 a b => CodeGenConfig -> YulCat eff a b -> Code
-compileCatWithConfig config cat = gen_code config $ do
+compileCat :: forall eff a b. YulO2 a b => CodeGenConfig -> YulCat eff a b -> Code
+compileCat config cat =  gen_code config $ do
   vars_a <- cg_create_vars @a
   vars_b <- cg_create_vars @b
   compile_cat init_ind cat (vars_a, vars_b)
 
-compileCat :: forall eff a b. YulO2 a b => YulCat eff a b -> Code
-compileCat = compileCatWithConfig defaultCodeGenConfig
-
 -- | Compiling a named yul function.
-compileFn :: forall eff a b. YulO2 a b => NamedYulCat eff a b -> Code
-compileFn fn = gen_code defaultCodeGenConfig $ do
+compileFn :: forall eff a b. YulO2 a b => CodeGenConfig -> NamedYulCat eff a b -> Code
+compileFn config fn = gen_code config $ do
   compile_named_cat init_ind fn
 
 -- | Compiling the yul object.
-compileYulObject :: YulObject -> Code
-compileYulObject obj = gen_code defaultCodeGenConfig $ do
+compileYulObject :: CodeGenConfig -> YulObject -> Code
+compileYulObject config obj = gen_code config $ do
   compile_object init_ind obj
