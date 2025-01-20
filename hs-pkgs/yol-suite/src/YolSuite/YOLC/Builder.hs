@@ -47,10 +47,10 @@ import YolSuite.YOLC.Templates.SingletonContract
 type BuildResult = Either T.Text T.Text
 
 getCodeGenConfig :: IO CodeGenConfig
-getCodeGenConfig = pure defaultCodeGenConfig
-  >>= \config -> lookupEnv "YOLC_DEBUG_LEVEL" >>=
-                 \case Nothing -> pure config
-                       Just dbglvl -> pure (config { cg_config_debug_level = read dbglvl })
+getCodeGenConfig = (\config -> lookupEnv "YOLC_DEBUG_LEVEL" >>=
+                     \case Nothing -> pure config
+                           Just dbglvl -> pure (config { cg_config_debug_level = read dbglvl }))
+                   defaultCodeGenConfig
 
 -- | Compile a YulObject to bytecode.
 compile_main_object :: YulObject -> IO BuildResult

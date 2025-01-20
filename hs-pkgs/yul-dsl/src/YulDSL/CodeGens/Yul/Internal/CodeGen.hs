@@ -26,7 +26,7 @@ import Control.Monad.State.Lazy    (MonadState (..), State, evalState, modify)
 -- text
 import Data.Text.Lazy              qualified as T
 -- containers
-import Data.Map.Lazy               qualified as Map
+import Data.Map.Strict             qualified as Map
 import Data.Set                    qualified as Set
 --
 import YulDSL.Core
