@@ -135,9 +135,8 @@ data YulCat (eff :: k) a b where
   YulCoerceType :: forall eff a b. (YulO2 a b, ABITypeCoercible a b) => YulCat eff a b
   -- ^ Split the head and tail of a n-ary product where n >= 1.
   YulSplit :: forall eff xs. YulO1 (NP xs) => YulCat eff (NP xs) (Head xs, NP (Tail xs))
-  -- ^ Leave the effect conversion to the professionals.
 
-  -- * SMC Primitives
+  -- * SMC
   --
   -- ** Category
   YulId   :: forall eff a.     YulO2 a a   => YulCat eff a a

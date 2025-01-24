@@ -116,8 +116,8 @@ ifunc_name _ = Nothing
 -- Compile interface of the build unit.
 build_interface :: BuildUnit -> IO BuildResult
 build_interface (MkBuildUnit { mainObject = MkYulObject
-                               { yulObjectName = oname
-                               , yulObjectSFns = sfns
+                               { yulObjectName    = oname
+                               , yulObjectExports = sfns
                                } }) =
   let iname = "I" ++ oname ++ "Program"
   in pure $ Right

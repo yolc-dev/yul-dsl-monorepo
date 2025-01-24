@@ -94,16 +94,16 @@ show_fn_spec (SELECTOR (sel, fsig)) cat@(cid, _) =
 -- Note:
 --   * Do not confuse this with YulObj which is an "object" in the category of YulCat.
 --   * Specification: https://docs.soliditylang.org/en/latest/yul.html#specification-of-yul-object
-data YulObject = MkYulObject { yulObjectName :: String
-                             , yulObjectCtor :: AnyYulCat  -- FIXME support constructor
-                             , yulObjectSFns :: [AnyExportedYulCat] -- scoped functions
-                             , yulSubObjects :: [YulObject]
+data YulObject = MkYulObject { yulObjectName    :: String              -- ^ object name
+                             , yulObjectCtor    :: AnyYulCat           -- ^ constructor
+                             , yulObjectExports :: [AnyExportedYulCat] -- ^ list of exported yul functions
+                             , yulSubObjects    :: [YulObject]         -- ^ dependent objects
                              -- , TODO support object data
                              }
 
 instance Show YulObject where
   show o = "-- Functions:\n\n"
-           <> intercalate "\n\n" (fmap show (yulObjectSFns  o))
+           <> intercalate "\n\n" (fmap show (yulObjectExports  o))
            <> "\n\n-- Init code:\n\n"
            <> (show . yulObjectCtor) o
 
@@ -111,8 +111,8 @@ mkYulObject :: String
             -> AnyYulCat
             -> [AnyExportedYulCat]
             -> YulObject
-mkYulObject name ctor afns = MkYulObject { yulObjectName = name
-                                         , yulObjectCtor = ctor
-                                         , yulObjectSFns = afns
-                                         , yulSubObjects = []
+mkYulObject name ctor afns = MkYulObject { yulObjectName    = name
+                                         , yulObjectCtor    = ctor
+                                         , yulObjectExports = afns
+                                         , yulSubObjects    = []
                                          }

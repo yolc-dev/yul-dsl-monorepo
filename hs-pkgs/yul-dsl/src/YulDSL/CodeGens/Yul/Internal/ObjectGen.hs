@@ -69,10 +69,10 @@ compile_deps ind fidFilter = do
 
 compile_object :: HasCallStack
                => Indenter -> YulObject -> CGState Code
-compile_object ind (MkYulObject { yulObjectName = oname
-                                , yulObjectCtor = (MkAnyYulCat ctor)
-                                , yulObjectSFns = sfns
-                                , yulSubObjects = subobjs
+compile_object ind (MkYulObject { yulObjectName    = oname
+                                , yulObjectCtor    = (MkAnyYulCat ctor)
+                                , yulObjectExports = fns
+                                , yulSubObjects    = subobjs
                                 }) = do
   cbracket_m ind ("object \"" <> T.pack oname <> "\"") $ \ind' -> do
     -- object init code
@@ -90,13 +90,13 @@ compile_object ind (MkYulObject { yulObjectName = oname
     code_runtime <- cbracket_m ind' "object \"runtime\"" $ \ind'' -> do
       cbracket_m ind'' "code" $ \ind''' -> do
         -- dispatcher
-        code_dispatcher <- compile_dispatchers ind''' sfns
+        code_dispatcher <- compile_dispatchers ind''' fns
 
         -- exported functions
-        code_fns <- mapM (compile_exported_fn ind''') sfns
+        code_fns <- mapM (compile_exported_fn ind''') fns
 
         -- dependencies
-        deps_codes <- compile_deps ind''' (not . (`elem` map (`withAnyExportedYulCat` fst) sfns))
+        deps_codes <- compile_deps ind''' (not . (`elem` map (`withAnyExportedYulCat` fst) fns))
 
         builtin_codes <- cg_gen_builtin_codes ind'''
 

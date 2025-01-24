@@ -88,7 +88,7 @@ instance ABITypeable a => YulBuiltInPrefix "__keccak_c_" a B32 where
          , " hash := keccak256(memPos, sub(memEnd, memPos))"
          ]
        , [ MkAnyYulBuiltIn abienc_builtin ])
-  yulB_eval b = error ("NoImpl: yulB_eval " ++ yulB_prefix b)
+  yulB_eval b = error ("TODO: yulB_eval " ++ yulB_prefix b)
 
 ------------------------------------------------------------------------------------------------------------------------
 
