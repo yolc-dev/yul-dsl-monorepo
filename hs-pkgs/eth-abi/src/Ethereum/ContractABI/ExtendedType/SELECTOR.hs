@@ -53,7 +53,7 @@ mkTypedSelector :: forall a. ABITypeable a => String -> SELECTOR
 mkTypedSelector fname = SELECTOR (bytesnFromWord8s bs4bytes, Just (MkFuncSig @a fname))
   where
     sig = show (MkFuncSig @a fname)
-    bs4bytes = take 4 (unBYTESn (stringKeccak256 sig))
+    bs4bytes = take 4 (bytesnToWords (stringKeccak256 sig))
 
 -- | Create a selector from a raw 'U32' value.
 mkRawSelector :: B4 -> SELECTOR

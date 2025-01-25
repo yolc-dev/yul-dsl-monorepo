@@ -35,9 +35,6 @@ class ABITypeable a where
   -- | Convert @a@ to the ABI core type it derives from.
   type ABITypeDerivedOf a
 
-  -- | Byte-size of the value for the ABI type; for reference types, they should be 32.
-  type ABITypeValueSize a :: Nat
-
   -- | Returns a list of core types represented by this type.
   --
   -- Invariant: @abi_type_info a == abi_type_info \@(ABITypeDerivedOf a)@

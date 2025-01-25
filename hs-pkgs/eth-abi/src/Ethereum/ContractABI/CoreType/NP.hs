@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-|
 
-Copyright   : (c) 2024 Miao, ZhiCheng
+Copyright   : (c) 2024-2025 Miao, ZhiCheng
 License     : MIT
 
 Maintainer  : hellwolf@yolc.dev
@@ -32,13 +32,11 @@ import Ethereum.ContractABI.ABITypeCodec (ABITypeCodec (..))
 
 instance ABITypeable (NP '[]) where
   type instance ABITypeDerivedOf (NP '[]) = NP '[]
-  type instance ABITypeValueSize (NP '[]) = 32
   abiTypeInfo = []
 
 instance ( ABITypeable x, ABITypeable (NP xs)
          ) => ABITypeable (NP (x : xs)) where
   type instance ABITypeDerivedOf (NP (x : xs)) = NP (x : xs)
-  type instance ABITypeValueSize (NP (x : xs)) = 32
   abiTypeInfo = abiTypeInfo @x <> abiTypeInfo @(NP xs)
 
 instance ABITypeCodec (NP '[]) where
@@ -54,26 +52,3 @@ instance ( ABITypeable x, ABITypeCodec x, ABITypeCodec (NP xs)
     x <- abiDecoder
     xs <- abiDecoder
     pure (x :* xs)
-
---
--- ABITypeable instances: (), (a, b)
---
-
--- | ABI typeable unit.
-instance ABITypeable () where
-  type instance ABITypeDerivedOf () = NP '[]
-  type instance ABITypeValueSize () = 0
-  abiToCoreType () = Nil
-  abiFromCoreType Nil = ()
-
--- | ABI typeable tuple.
-instance (ABITypeable a1, ABITypeable a2) => ABITypeable (a1, a2) where
-  type instance ABITypeDerivedOf (a1, a2) = NP '[a1, a2]
-  type instance ABITypeValueSize (a1, a2) = 32 -- not a value type anymore
-  abiToCoreType (x1, x2) = x1 :* x2 :* Nil
-  abiFromCoreType (x1 :* x2 :* Nil) = (x1, x2)
-
-instance ABITypeCodec () where
-
-instance ( ABITypeCodec a1, ABITypeCodec a2
-         ) => ABITypeCodec (a1, a2)

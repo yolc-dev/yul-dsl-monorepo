@@ -40,7 +40,6 @@ false = BOOL False
 
 instance ABITypeable BOOL where
   type instance ABITypeDerivedOf BOOL = BOOL
-  type instance ABITypeValueSize BOOL = 1
   abiTypeInfo = [BOOL']
 
 instance ABITypeCodec BOOL where

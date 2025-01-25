@@ -93,7 +93,6 @@ intxSafeCast (INT x) = fromInteger x
 
 instance forall s n. ValidINTx s n => ABITypeable (INTx s n) where
   type instance ABITypeDerivedOf (INTx s n) = INTx s n
-  type instance ABITypeValueSize (INTx s n) = n
   abiTypeInfo = [INTx' (boolSing @s) (natSing @n)]
 
 instance forall s n. ValidINTx s n => ABITypeCodec (INTx s n) where

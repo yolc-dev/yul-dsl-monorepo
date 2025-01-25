@@ -1,4 +1,5 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE TemplateHaskell     #-}
 {-|
 
 Copyright   : (c) 2024 Miao, ZhiCheng
@@ -18,7 +19,7 @@ module Ethereum.ContractABI.ABICoreType
   ( ABICoreType (..)
   -- for working with INTx, BYTEn
   , SNat, Nat, natSing, natVal, fromSNat
-  , ValidINTn, withSomeValidINTx
+  , ValidINTn, fromValidINTn, withSomeValidINTx
   -- ABI type names
   , abiCoreTypeCanonName
   , abiCoreTypeCompactName, decodeAbiCoreTypeCompactName
@@ -82,6 +83,10 @@ instance Eq ABICoreType where
 -- | A constraint that restricts what Nat values are valid for 'INTx' and 'BYTESn'.
 --   Note: It is valid from 1 to 32.
 type ValidINTn n = (KnownNat n, ValidINTn_ n)
+
+-- | From ValidINTn to Int value.
+fromValidINTn :: forall n. ValidINTn n => Int
+fromValidINTn = fromInteger . fromSNat $ natSing @n
 
 -- | A helper constraint to avoid KnownNat to be super class which may cause issues when unsafeAxiom.
 class ValidINTn_ n

@@ -1,7 +1,8 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 module Ethereum.ContractABI.CoreType.BYTESn
-  ( BYTESn (unBYTESn)
-  , bytesnNBytes, bytesnToInteger, bytesnFromWord8s
+  ( BYTESn (BYTESn)
+  , bytesnToInteger, bytesnToWords
+  , bytesnFromWord8s
   , stringKeccak256
   , B1, B2, B3, B4, B5, B6, B7, B8
   , B9, B10, B11, B12, B13, B14, B15, B16
@@ -10,42 +11,51 @@ module Ethereum.ContractABI.CoreType.BYTESn
   ) where
 
 -- base
-import Control.Exception                 (assert)
-import Data.Word                         (Word8)
-import Numeric                           (showHex)
+import Control.Exception                  (assert)
+import Data.Word                          (Word8)
+import Numeric                            (showHex)
 -- bytestring
-import Data.ByteString                   qualified as BS
+import Data.ByteString                    qualified as BS
 import Data.ByteString.Char8 qualified
 -- memory
-import Data.ByteArray                    qualified as BA
+import Data.ByteArray                     qualified as BA
 -- crypton
-import Crypto.Hash                       qualified as Hash
+import Crypto.Hash                        qualified as Hash
 -- cereal
-import Data.Serialize                    qualified as S
+import Data.Serialize                     qualified as S
 --
 import Ethereum.ContractABI.ABICoreType
 import Ethereum.ContractABI.ABITypeable
 import Ethereum.ContractABI.ABITypeCodec
+import Ethereum.ContractABI.CoreType.INTx (INTx)
 
 
 -- | BYTESn is a new type of list of 'Word8' with number of bytes tagged, and with least-significant byte first.
-newtype BYTESn n = BYTESn { unBYTESn :: [Word8] } deriving (Eq, Ord)
+newtype BYTESn n = BYTESn Integer deriving (Eq, Ord)
 
-bytesnNBytes :: forall n. ValidINTn n => Int
-bytesnNBytes = fromInteger . fromSNat $ natSing @n
-
+-- | Convert from BYTESn to an integer value.
 bytesnToInteger :: forall n. ValidINTn n => BYTESn n -> Integer
-bytesnToInteger bn =
-  foldl' (\b (i, w) -> b + toInteger w * (2 ^ i)) 0 (zip [0 .. bytesnNBytes @n] (unBYTESn bn))
+bytesnToInteger (BYTESn n) = n
+
+-- | Convert from BYTESn to a list of word8.
+bytesnToWords :: forall n. ValidINTn n => BYTESn n -> [Word8]
+bytesnToWords (BYTESn v) = let (v', ws) = foldl'
+                                          (\(v'', ws') _ -> (v'' `div` 256, fromInteger (v'' `rem` 256) : ws'))
+                                          (v, [])
+                                          [0 .. fromValidINTn @n]
+                           in assert (v' == 0) (dropWhile (== 0) ws)
 
 -- | Create BYTESn from a list of 'Word8'.
 bytesnFromWord8s :: forall n. ValidINTn n => [Word8] -> BYTESn n
-bytesnFromWord8s ws = assert (toInteger (length ws) == fromSNat (natSing @n)) (BYTESn ws)
+bytesnFromWord8s ws = assert (toInteger (length ws) == fromSNat (natSing @n)) (BYTESn (g 0 (reverse ws)))
+  where g :: Int -> [Word8] -> Integer
+        g _ []     = 0
+        g i (x:xs) = (toInteger x) * (2 ^ i) + g (i + 8) xs
 
 -- | Keccack256 of a string value.
 stringKeccak256:: String -> BYTESn 32
 stringKeccak256 s = let hash = Hash.hash (Data.ByteString.Char8.pack s) :: Hash.Digest Hash.Keccak_256
-                    in BYTESn $ BS.unpack (BA.convert hash :: BS.ByteString)
+                    in bytesnFromWord8s (BS.unpack (BA.convert hash :: BS.ByteString))
 
 --
 -- Instances
@@ -53,27 +63,21 @@ stringKeccak256 s = let hash = Hash.hash (Data.ByteString.Char8.pack s) :: Hash.
 
 instance (ValidINTn n) => ABITypeable (BYTESn n) where
   type instance ABITypeDerivedOf (BYTESn n) = BYTESn n
-  type instance ABITypeValueSize (BYTESn n) = n
   abiTypeInfo = [BYTESn' (natSing @n)]
 
 instance (ValidINTn n) => ABITypeCodec (BYTESn n) where
   abiDecoder = fmap BYTESn S.get
-  abiEncoder = S.put . unBYTESn
+  abiEncoder = S.put . bytesnToWords
 
-instance Show (BYTESn n) where
-  show (BYTESn ws) = "0x" ++ concatMap show_word8 ws
+instance ValidINTn n => Show (BYTESn n) where
+  show b = "0x" ++ concatMap show_word8 (bytesnToWords b)
 
 instance ValidINTn n => Bounded (BYTESn n) where
-  minBound = BYTESn $ replicate (bytesnNBytes @n) minBound
-  maxBound = BYTESn $ replicate (bytesnNBytes @n) maxBound
+  minBound = BYTESn 0
+  maxBound = BYTESn $ toInteger (minBound @(INTx False n))
 
 instance ValidINTn n => ABIWordValue (BYTESn n) where
-  fromWord w = let v = wordToInteger w
-                   (v', ws) = foldl'
-                                (\(v'', ws') _ -> (v'' `div` 256, fromInteger (v'' `rem` 256) : ws'))
-                                (v, [])
-                                [0 .. bytesnNBytes @n]
-               in if v' == 0 then Just (BYTESn ws) else Nothing
+  fromWord w = Just $ BYTESn (wordToInteger w)
   toWord = integerToWord . bytesnToInteger
 
 --
