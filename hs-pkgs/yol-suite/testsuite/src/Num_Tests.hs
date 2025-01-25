@@ -6,6 +6,11 @@ import Prelude.YulDSL
 -- comparitors
 --
 
+type CmpResult = (BOOL, BOOL, BOOL, BOOL, BOOL)
+
+cmp_uint256 = fn @(U256 -> U256 -> CmpResult) $locId
+  \x y -> undefined -- inCase (x < y, x <= y, x == y, x >= y, x > y)
+
 -- TODO: hmm, need to use returning TupleN for testing full cmp booleans:
 lt_uint256 = fn @(U256 -> U256 -> BOOL) $locId \x y -> x < y
 lt_uint192 = fn @(U192 -> U192 -> BOOL) $locId \x y -> x < y

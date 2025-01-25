@@ -14,11 +14,11 @@ The template haskell code for TupleN and NP utilities.
 module Data.TupleN.TH
   ( -- | Define TupleNtoNP closed type family using template haskell.
     TupleNtoNP
-  -- | Convert a TupleN to its corresponding NP.
+    -- | Convert a TupleN to its corresponding NP.
   , FromTupleNtoNP (fromTupleNtoNP)
-  -- | Define NPtoTupleN closed type family using template haskell.
+    -- | Define NPtoTupleN closed type family using template haskell.
   , NPtoTupleN
-  -- | Convert a NP to its corresponding tupleN.
+    -- | Convert a NP to its corresponding tupleN.
   , FromNPtoTupleN (fromNPtoTupleN)
   ) where
 

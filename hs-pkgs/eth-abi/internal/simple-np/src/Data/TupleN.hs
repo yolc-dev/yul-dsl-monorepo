@@ -16,8 +16,8 @@ It supports up to 64-ary tuple.
 
 -}
 module Data.TupleN
-  ( module Data.TupleN.TH
-  , Solo (MkSolo)
+  ( Solo (MkSolo)
+  , TupleNtoNP, FromTupleNtoNP (fromTupleNtoNP), NPtoTupleN, FromNPtoTupleN (fromNPtoTupleN)
   , ConvertibleTupleN
   ) where
 
