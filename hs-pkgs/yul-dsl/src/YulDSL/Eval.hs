@@ -41,7 +41,6 @@ evalYulCat' :: (HasCallStack, YulO2 a b) => YulCat eff a b -> a -> EvalState b
 evalYulCat' YulReduceType a = pure $ fromJust . abiDecode . abiEncode $ a
 evalYulCat' YulExtendType a = pure $ fromJust . abiDecode . abiEncode $ a
 evalYulCat' YulCoerceType a = pure $ fromJust . abiDecode . abiEncode $ a
-evalYulCat' YulSplit  a = pure $ fromJust . abiDecode . abiEncode $ a
 -- category
 evalYulCat' YulId     a = pure a
 evalYulCat' (YulComp n m) a = evalYulCat' m a >>= evalYulCat' n

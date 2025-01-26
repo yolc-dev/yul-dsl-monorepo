@@ -9,7 +9,6 @@ module YulDSL.Haskell.YulUtils
     -- * YulCat Control Flows
   , module Control.IfThenElse
   , module Control.PatternMatchable
-  , PatternMatchableYulCat
   , Referenceable (yulRefGet, yulRefPut)
     -- * Extra Yul Object Helpers
   , emptyCtor
@@ -18,19 +17,20 @@ module YulDSL.Haskell.YulUtils
 import Ethereum.ContractABI
 -- yul-dsl
 import YulDSL.Core
-import YulDSL.StdBuiltIns.ABICodec    ()
-import YulDSL.StdBuiltIns.Exception   ()
-import YulDSL.StdBuiltIns.ValueType   ()
+import YulDSL.StdBuiltIns.ABICodec     ()
+import YulDSL.StdBuiltIns.Exception    ()
+import YulDSL.StdBuiltIns.ValueType    ()
 -- (control-extra)
 import Control.IfThenElse
 import Control.PatternMatchable
 import Data.MPOrd
 --
 import YulDSL.Haskell.Effects.Pure
+--
 import YulDSL.Haskell.YulCatObj.Maybe
+import YulDSL.Haskell.YulCatObj.NP     ()
+import YulDSL.Haskell.YulCatObj.TUPLEn ()
 
--- | Type alias of 'PatternMatchable' p for 'YulCat' objects.
-type PatternMatchableYulCat eff p a = PatternMatchable (YulCat eff (p a)) (p a) (p (YulCat eff (p a) a)) YulCatObj
 
 -- | Revert without any message.
 yulRevert :: forall eff a b. (YulO2 a b) => YulCat eff a b

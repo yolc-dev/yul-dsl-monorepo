@@ -20,8 +20,10 @@ TEST_OPTIONS ?= \
     --test-show-details=$(TEST_SHOW_DETAILS_MODE) \
     --test-options="--maximum-generated-tests=$(TEST_PROP_NUM_RUNS)"
 
+CABAL_VERBOSITY ?= 1
+
 # Cabal flavors
-CABAL ?= cabal
+CABAL ?= cabal -v$(CABAL_VERBOSITY)
 CABAL_BUILD    = $(CABAL)
 CABAL_TEST     = $(CABAL)
 CABAL_COVERAGE = $(CABAL) --builddir=$(TEST_COVERAGE_BUILDDIR)

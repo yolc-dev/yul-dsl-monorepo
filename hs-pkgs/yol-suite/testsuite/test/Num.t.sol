@@ -20,36 +20,76 @@ contract NumTest is Test {
   // cmp
   ////////////////////////////////////////////////////////////////////////////////
 
-  function test_lt(uint256 x, uint256 y) external view {
-    assertEq(p.lt_uint256(x, y), x < y);
+  function test_cmp(uint256 x, uint256 y) external view {
+    (bool lt, bool le, bool eq, bool ge, bool gt) = p.cmp_uint256(x, y);
+    assertEq(lt, x  < y, "lt");
+    assertEq(le, x <= y, "le");
+    assertEq(eq, x == y, "eq");
+    assertEq(ge, x >= y, "ge");
+    assertEq(gt, x  > y, "gt");
   }
 
-  function test_lt(uint192 x, uint192 y) external view {
-    assertEq(p.lt_uint192(x, y), x < y);
+  function test_cmp(uint192 x, uint192 y) external view {
+    (bool lt, bool le, bool eq, bool ge, bool gt) = p.cmp_uint192(x, y);
+    assertEq(lt, x  < y, "lt");
+    assertEq(le, x <= y, "le");
+    assertEq(eq, x == y, "eq");
+    assertEq(ge, x >= y, "ge");
+    assertEq(gt, x  > y, "gt");
   }
 
-  function test_lt(uint128 x, uint128 y) external view {
-    assertEq(p.lt_uint128(x, y), x < y);
+  function test_cmp(uint128 x, uint128 y) external view {
+    (bool lt, bool le, bool eq, bool ge, bool gt) = p.cmp_uint128(x, y);
+    assertEq(lt, x  < y, "lt");
+    assertEq(le, x <= y, "le");
+    assertEq(eq, x == y, "eq");
+    assertEq(ge, x >= y, "ge");
+    assertEq(gt, x  > y, "gt");
   }
 
-  function test_lt(uint32 x, uint32 y) external view {
-    assertEq(p.lt_uint32(x, y), x < y);
+  function test_cmp(uint32 x, uint32 y) external view {
+    (bool lt, bool le, bool eq, bool ge, bool gt) = p.cmp_uint32(x, y);
+    assertEq(lt, x  < y, "lt");
+    assertEq(le, x <= y, "le");
+    assertEq(eq, x == y, "eq");
+    assertEq(ge, x >= y, "ge");
+    assertEq(gt, x  > y, "gt");
   }
 
-  function test_lt(int256 x, int256 y) external view {
-    assertEq(p.lt_int256(x, y), x < y);
+  function test_cmp(int256 x, int256 y) external view {
+    (bool lt, bool le, bool eq, bool ge, bool gt) = p.cmp_int256(x, y);
+    assertEq(lt, x  < y, "lt");
+    assertEq(le, x <= y, "le");
+    assertEq(eq, x == y, "eq");
+    assertEq(ge, x >= y, "ge");
+    assertEq(gt, x  > y, "gt");
   }
 
-  function test_lt(int192 x, int192 y) external view {
-    assertEq(p.lt_int192(x, y), x < y);
+  function test_cmp(int192 x, int192 y) external view {
+    (bool lt, bool le, bool eq, bool ge, bool gt) = p.cmp_int192(x, y);
+    assertEq(lt, x  < y, "lt");
+    assertEq(le, x <= y, "le");
+    assertEq(eq, x == y, "eq");
+    assertEq(ge, x >= y, "ge");
+    assertEq(gt, x  > y, "gt");
   }
 
-  function test_lt(int128 x, int128 y) external view {
-    assertEq(p.lt_int128(x, y), x < y);
+  function test_cmp(int128 x, int128 y) external view {
+    (bool lt, bool le, bool eq, bool ge, bool gt) = p.cmp_int128(x, y);
+    assertEq(lt, x  < y, "lt");
+    assertEq(le, x <= y, "le");
+    assertEq(eq, x == y, "eq");
+    assertEq(ge, x >= y, "ge");
+    assertEq(gt, x  > y, "gt");
   }
 
-  function test_lt(int32 x, int32 y) external view {
-    assertEq(p.lt_int32(x, y), x < y);
+  function test_cmp(int32 x, int32 y) external view {
+    (bool lt, bool le, bool eq, bool ge, bool gt) = p.cmp_int32(x, y);
+    assertEq(lt, x  < y, "lt");
+    assertEq(le, x <= y, "le");
+    assertEq(eq, x == y, "eq");
+    assertEq(ge, x >= y, "ge");
+    assertEq(gt, x  > y, "gt");
   }
 
   ////////////////////////////////////////////////////////////////////////////////

@@ -8,19 +8,15 @@ import Prelude.YulDSL
 
 type CmpResult = (BOOL, BOOL, BOOL, BOOL, BOOL)
 
-cmp_uint256 = fn @(U256 -> U256 -> CmpResult) $locId
-  \x y -> undefined -- inCase (x < y, x <= y, x == y, x >= y, x > y)
+cmp_uint256 = fn @(U256 -> U256 -> CmpResult) $locId \x y -> be (x < y, x <= y, x == y, x >= y, x > y)
+cmp_uint192 = fn @(U192 -> U192 -> CmpResult) $locId \x y -> be (x < y, x <= y, x == y, x >= y, x > y)
+cmp_uint128 = fn @(U128 -> U128 -> CmpResult) $locId \x y -> be (x < y, x <= y, x == y, x >= y, x > y)
+cmp_uint32  = fn @(U32  -> U32  -> CmpResult) $locId \x y -> be (x < y, x <= y, x == y, x >= y, x > y)
 
--- TODO: hmm, need to use returning TupleN for testing full cmp booleans:
-lt_uint256 = fn @(U256 -> U256 -> BOOL) $locId \x y -> x < y
-lt_uint192 = fn @(U192 -> U192 -> BOOL) $locId \x y -> x < y
-lt_uint128 = fn @(U128 -> U128 -> BOOL) $locId \x y -> x < y
-lt_uint32  = fn @(U32  -> U32  -> BOOL) $locId \x y -> x < y
-
-lt_int256 = fn @(I256 -> I256 -> BOOL) $locId \x y -> x < y
-lt_int192 = fn @(I192 -> I192 -> BOOL) $locId \x y -> x < y
-lt_int128 = fn @(I128 -> I128 -> BOOL) $locId \x y -> x < y
-lt_int32  = fn @(I32  -> I32  -> BOOL) $locId \x y -> x < y
+cmp_int256 = fn @(I256 -> I256 -> CmpResult) $locId \x y -> be (x < y, x <= y, x == y, x >= y, x > y)
+cmp_int192 = fn @(I192 -> I192 -> CmpResult) $locId \x y -> be (x < y, x <= y, x == y, x >= y, x > y)
+cmp_int128 = fn @(I128 -> I128 -> CmpResult) $locId \x y -> be (x < y, x <= y, x == y, x >= y, x > y)
+cmp_int32  = fn @(I32  -> I32  -> CmpResult) $locId \x y -> be (x < y, x <= y, x == y, x >= y, x > y)
 
 --
 -- add
@@ -86,7 +82,7 @@ add_maybe_int96 = fn @(Maybe I96 -> Maybe I96 -> Maybe I96) $locId
   \x y -> x + y
 
 add_int96_with_default = fn @(I96 -> I96 -> I96 -> I96) $locId
-  \x y def -> match (inCase (Just x) + inCase (Just y)) \case
+  \x y def -> match (be (Just x) + be (Just y)) \case
     Nothing -> def
     Just z  -> z
 
@@ -97,15 +93,15 @@ add_maybe_int96_with_default = fn @(Maybe I96 -> Maybe I96 -> I96 -> I96) $locId
 
 object :: YulObject
 object = mkYulObject "NumTests" emptyCtor
-  [ pureFn "lt_uint256" lt_uint256
-  , pureFn "lt_uint192" lt_uint192
-  , pureFn "lt_uint128" lt_uint128
-  , pureFn "lt_uint32"  lt_uint32
+  [ pureFn "cmp_uint256" cmp_uint256
+  , pureFn "cmp_uint192" cmp_uint192
+  , pureFn "cmp_uint128" cmp_uint128
+  , pureFn "cmp_uint32"  cmp_uint32
 
-  , pureFn "lt_int256" lt_int256
-  , pureFn "lt_int192" lt_int192
-  , pureFn "lt_int128" lt_int128
-  , pureFn "lt_int32"  lt_int32
+  , pureFn "cmp_int256" cmp_int256
+  , pureFn "cmp_int192" cmp_int192
+  , pureFn "cmp_int128" cmp_int128
+  , pureFn "cmp_int32"  cmp_int32
 
   , pureFn "add_uint256" add_uint256
   , pureFn "add_uint192" add_uint192

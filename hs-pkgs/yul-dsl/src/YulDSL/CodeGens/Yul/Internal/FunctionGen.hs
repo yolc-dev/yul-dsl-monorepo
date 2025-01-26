@@ -29,7 +29,6 @@ do_compile_cat (MkAnyYulCat (cat :: YulCat eff a b)) = go cat where
   go (YulExtendType)        = build_rhs_aliases @a
   go (YulReduceType)        = build_rhs_aliases @a
   go (YulCoerceType)        = build_rhs_aliases @a
-  go (YulSplit)             = build_rhs_aliases @a
   -- - categorical
   go (YulId)                = build_rhs_aliases @a
   go (YulComp cb ac)        = go_comp cb ac

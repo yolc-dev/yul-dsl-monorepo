@@ -1,34 +1,67 @@
 {-# LANGUAGE FunctionalDependencies #-}
+{-|
 
-module Control.PatternMatchable (PatternMatchable (inCase, match)) where
+Copyright   : (c) 2024-2025 Miao, ZhiCheng
+License     : LGPL-3
 
--- | Pattern matching type class for the pattern @p@ and its cases @c@.
+Maintainer  : hellwolf@yolc.dev
+Stability   : experimental
+Portability : GHC2024
+
+-}
+module Control.PatternMatchable (PatternMatchable (be, match)) where
+-- | Pattern matching type class for the pattern @m p@ and its cases @c@.
 --
--- Additionally:
+-- == How To Use
 --
--- 1. @m@ can be used to limit @p@ and @b@ to same category @k@.
+-- 1. The 'match' function takes a pattern @m p@ and a case analysis function @c -> m b@, then returns @m b@.
 --
--- 2. In comparison, @c@ is left alone, to give the flexibility of how it is related to @m p@ to their
--- 'PatternMatchable' instance. For example, a @m BOOL@ might prefer @c = Bool@, instead.
+-- 2. The 'be' function create the pattern @m p@ from a case of @c@.
 --
--- 3. @\mp -> match mp inCase ≅ id{k} @
+-- 3. Functional dependencies of @m -> m -> k@ limit @b@ to the category @k@ and the result of the case analysis
+-- function to @m b@.
 --
--- >>> :type \mp -> match mp inCase
--- \mp -> match mp inCase
+-- 4. @c@ is left for the 'PatternMatchable' instance to define as a bijective functional dependency of @m p@. For
+-- example, a @m BOOL@ might prefer @c = Bool@, instead.
+--
+-- == Apply Yoneda Embedding
+--
+-- In many situations, it is not possible to construct directly the inverse of 'be' function, say @caseOf@:
+--
+--   @caseOf :: forall. m p -> c@
+--
+-- However, by applying the yoneda embedding @forall x. (a -> x) -> (b -> x) ≅ b -> a@, we have:
+--
+--   @(c -> m b) -> (m p -> m b) ≅ m p -> c@
+--
+-- Upon closer inspection, the 'match' function flips the arguments from the yoneda embedded version for the syntactical
+-- reason:
+--
+--   @
+--   m p -> c ≅ (c -> m b) -> (m p -> m b) -- remove irrelevant pair of brackets; flip arguments.
+--             ≅ m p -> (c -> m b) -> m b
+--             ≅ match
+--   @
+--
+--   @mach pat \case (CaseX x) of -> _; (CaseY y) -> _; ...@
+--
+-- == Pattern Matching Law
+--
+-- A lawful instance of 'PatternMatchable' should respect the following instance law:
+--
+--   @\pat -> match pat be ≅ id {∀ m b k. k b => m b}@
+--
+-- Thanks to parametricity, this is also a free theorem:
+--
+-- >>> :type \pat -> match pat be
+-- \pat -> match pat be
 --   :: forall {k1} {k2 :: k1 -> Constraint} {b :: k1} {m :: k1 -> *}
---             {c} {p :: k1}.
---      (k2 b, PatternMatchable m b c k2, PatternMatchable m p c k2) =>
---      m p -> m b
-class PatternMatchable m p c k | m -> k, m p -> c, c -> m p where
-  -- | Create the pattern @m p@ in the case of @c@.
-  inCase :: forall. c -> m p
-
-  -- | Match pattern @m p@ with case analysis function @c -> m b@ that returns a @m b@.
-  --
-  -- In many cases, it is not possible to construct: @fromCases :: forall. m p -> c@.
-  -- However, applying the yoneda embedding @forall x. (a -> x) -> (b -> x) ≅ b -> a@,
-  -- then we have: @(c -> m b) -> (m p -> m b) ≅ m p -> c@.
-  --
-  -- The'match' function flips the arguments from yoneda embedding for the syntactical reason:
-  -- @mach p (\c -> case c of -> _)@
+--             {c}.
+--      (k2 b, PatternMatchable m k2 b c) =>
+--      m b -> m b
+class PatternMatchable m k p c | m -> k, m p -> c, c -> m p where
+  -- | Match pattern @m p@ with case analysis function @c -> m b@ that returns the same @m b@.
   match :: forall b. k b => m p -> (c -> m b) -> m b
+
+  -- | Be the case @c@ of the pattern @m p@.
+  be :: forall. c -> m p

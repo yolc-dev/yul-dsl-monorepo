@@ -133,8 +133,6 @@ data YulCat (eff :: k) a b where
   YulExtendType :: forall eff a b. (YulO2 a b, a ~ ABITypeDerivedOf b) => YulCat eff a b
   -- ^ Convert between coercible yul objects.
   YulCoerceType :: forall eff a b. (YulO2 a b, ABITypeCoercible a b) => YulCat eff a b
-  -- ^ Split the head and tail of a n-ary product where n >= 1.
-  YulSplit :: forall eff xs. YulO1 (NP xs) => YulCat eff (NP xs) (Head xs, NP (Tail xs))
 
   -- * SMC
   --
@@ -240,7 +238,7 @@ instance forall x xs b g r eff.
          ) => UncurryingNP (x -> g) (x:xs) b (YulCat eff r) (YulCat eff r) (YulCat eff r) (YulCat eff r) Many where
   uncurryingNP f xxs = uncurryingNP @g @xs @b @(YulCat eff r) @(YulCat eff r) @(YulCat eff r) @(YulCat eff r) @Many
                        (f x) xs
-    where xxs' = xxs  >.> YulSplit
+    where xxs' = xxs  >.> YulCoerceType
           x    = xxs' >.> YulExl
           xs   = xxs' >.> YulExr
 
@@ -278,7 +276,6 @@ yulCatCompactShow = go
     go (YulReduceType @_ @a @b)    = "Tr" <> abi_type_name2 @a @b
     go (YulExtendType @_ @a @b)    = "Te" <> abi_type_name2 @a @b
     go (YulCoerceType @_ @a @b)    = "Tc" <> abi_type_name2 @a @b
-    go (YulSplit @_ @xs)           = "Ts" <> abi_type_name @(NP xs)
     --
     go (YulId @_ @a)               = "id" <> abi_type_name @a
     go (YulComp cb ac)             = "(" <> go ac <> ");(" <> go cb <> ")"
@@ -313,7 +310,6 @@ yulCatToUntypedLisp = go init_ind
     go _ YulReduceType        = T.empty
     go _ YulExtendType        = T.empty
     go _ YulCoerceType        = T.empty
-    go _ YulSplit             = T.empty
     --
     go _ YulId                = T.empty
     go ind (YulComp cb ac)    = gcomp ind cb ac

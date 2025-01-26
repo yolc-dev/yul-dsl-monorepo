@@ -1,4 +1,6 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE AllowAmbiguousTypes    #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE UndecidableInstances   #-}
 module YulDSL.Haskell.Effects.LinearSMC.LinearYulCat
   ( -- * Linear Effect Kind
     -- $LinearEffectKind
@@ -7,11 +9,12 @@ module YulDSL.Haskell.Effects.LinearSMC.LinearYulCat
     -- * Yul Port Diagrams
     -- $YulPortDiagrams
   , YulCat'LVV (MkYulCat'LVV), YulCat'LPV (MkYulCat'LPV), YulCat'LPP (MkYulCat'LPP)
-  , decode'lvv, decode'lpv, encode'lvv, encode'lpp
+  , DecodableYulPortDiagram (decode'l)
+  , EncodableYulPortDiagram (encode'l)
   , uncurry'lvv, uncurry'lpv
     -- * Pattern Matching Of Yul Ports
     -- $PatternMatching
-  , match'l
+  , LinearMatcheable (match'l)
   ) where
 -- base
 import GHC.TypeLits                             (KnownNat, type (+))
@@ -82,39 +85,69 @@ newtype YulCat'LPV vn r a b = MkYulCat'LPV (P'P r a ⊸ P'V vn r b)
 -- | Yul port diagram for pure input and pure outputs.
 newtype YulCat'LPP r a b = MkYulCat'LPP (P'P r a ⊸ P'P r b)
 
-decode'lvv :: forall a b vd. YulO2 a b
-  => (forall r. YulO1 r => P'V 0 r a ⊸ P'V vd r b)
-  -> YulCat (VersionedInputOutput vd) a b
-decode'lvv f = decode (h f) -- an intermediate function to fight the multiplicity hell
-  where h :: (forall r. YulO1 r => P'V 0 r a ⊸ P'V vn r b)
-          ⊸ (forall r. YulO1 r => P (YulCat oe) r a ⊸ P (YulCat oe) r b)
-        h = UnsafeLinear.coerce {- using Unsafe coerce to convert effect after type-checking -}
+-- | Decodable yul port diagrams.
+class DecodableYulPortDiagram ie oe eff | ie oe -> eff where
+  decode'l :: forall a b. YulO2 a b
+    => (forall r. YulO1 r => P'x ie r a ⊸ P'x oe r b)
+    -> YulCat eff a b
 
-decode'lpv :: forall a b vd. YulO2 a b
-  => (forall r. YulO1 r => P'P r a ⊸ P'V vd r b)
-  -> YulCat (PureInputVersionedOutput vd) a b
-decode'lpv f = decode (h f) -- an intermediate function to fight the multiplicity hell
-  where h :: (forall r. YulO1 r => P'P r a ⊸ P'V vd r b)
-          ⊸ (forall r. YulO1 r => P (YulCat oe) r a ⊸ P (YulCat oe) r b)
-        h = UnsafeLinear.coerce {- using Unsafe coerce to convert effect after type-checking -}
+instance DecodableYulPortDiagram (VersionedPort 0) (VersionedPort vd) (VersionedInputOutput vd) where
+  decode'l f = decode (h f) -- an intermediate function to fight the multiplicity hell
+    where h :: forall oe a b. oe ~ VersionedInputOutput vd
+            => (forall r. YulO1 r => P'V 0 r a ⊸ P'V vd r b)
+            ⊸ (forall r. YulO1 r => P (YulCat oe) r a ⊸ P (YulCat oe) r b)
+          h = UnsafeLinear.coerce {- using Unsafe coerce to convert effect after type-checking -}
 
-encode'lvv :: forall a b c r v1 vd. YulO3 a b r
-  => YulCat (VersionedInputOutput vd) a b
-  -> (P'V (v1 + vd) r b ⊸ c)
-  -> (P'V v1 r a ⊸ c)
-encode'lvv cat f x = -- ghc can infer it; annotating for readability and double checking expected types
-  let cat' = UnsafeLinear.coerce cat :: YulCat (VersionedPort v1) a b
-      b = UnsafeLinear.coerce @(P'V v1 r b) @(P'V (v1 + vd) r b) (encode cat' x)
-  in f b
+instance DecodableYulPortDiagram PurePort (VersionedPort vd) (PureInputVersionedOutput vd) where
+  decode'l f = decode (h f) -- an intermediate function to fight the multiplicity hell
+    where h :: forall oe a b. oe ~ PureInputVersionedOutput vd
+            => (forall r. YulO1 r => P'P r a ⊸ P'V vd r b)
+            ⊸ (forall r. YulO1 r => P (YulCat oe) r a ⊸ P (YulCat oe) r b)
+          h = UnsafeLinear.coerce {- using Unsafe coerce to convert effect after type-checking -}
 
-encode'lpp :: forall a b c r eff. YulO3 a b r
-  => YulCat (eff :: PureEffectKind) a b
-  -> (P'P r b ⊸ c)
-  -> (P'P r a ⊸ c)
-encode'lpp cat f x = -- ghc can infer it; annotating for readability and double checking expected types
-  let cat' = UnsafeLinear.coerce cat :: YulCat PurePort a b
-      b = UnsafeLinear.coerce @(P'P r b) @(P'P r b) (encode cat' x)
-  in f b
+instance DecodableYulPortDiagram PurePort PurePort Pure where
+  decode'l f = decode (h f) -- an intermediate function to fight the multiplicity hell
+    where h :: forall oe a b. oe ~ Pure
+            => (forall r. YulO1 r => P'P r a ⊸ P'P r b)
+            ⊸ (forall r. YulO1 r => P (YulCat oe) r a ⊸ P (YulCat oe) r b)
+          h = UnsafeLinear.coerce {- using Unsafe coerce to convert effect after type-checking -}
+
+-- | Encodable yul port diagrams.
+class EncodableYulPortDiagram eff ie oe | eff ie -> oe where
+  encode'l :: forall r a b c. YulO3 r a b
+    => YulCat eff a b
+    -> (P'x oe r b ⊸ c)
+    -> (P'x ie r a ⊸ c)
+
+instance va + vd ~ vb => EncodableYulPortDiagram (VersionedInputOutput vd) (VersionedPort va) (VersionedPort vb) where
+  encode'l :: forall r a b c. YulO3 r a b
+    => YulCat (VersionedInputOutput vd) a b
+    -> (P'x (VersionedPort vb) r b ⊸ c)
+    -> (P'x (VersionedPort va) r a ⊸ c)
+  encode'l cat f x = -- ghc can infer it; annotating for readability and double checking expected types
+    let cat' = UnsafeLinear.coerce cat :: YulCat (VersionedPort va) a b
+        b = UnsafeLinear.coerce @(P'V va r b) @(P'V vb r b) (encode cat' x)
+    in f b
+
+instance EncodableYulPortDiagram (PureInputVersionedOutput v) PurePort (VersionedPort v) where
+  encode'l :: forall r a b c. YulO3 r a b
+    => YulCat (PureInputVersionedOutput v) a b
+    -> (P'x (VersionedPort v) r b ⊸ c)
+    -> (P'P r a ⊸ c)
+  encode'l cat f x = -- ghc can infer it; annotating for readability and double checking expected types
+    let cat' = UnsafeLinear.coerce cat :: YulCat PurePort a b
+        b = UnsafeLinear.coerce @(P'P r b) @(P'V v r b) (encode cat' x)
+    in f b
+
+instance EncodableYulPortDiagram (eff :: PureEffectKind) PurePort PurePort where
+  encode'l :: forall r a b c. YulO3 r a b
+    => YulCat eff a b
+    -> (P'P r b ⊸ c)
+    -> (P'P r a ⊸ c)
+  encode'l cat f x = -- ghc can infer it; annotating for readability and double checking expected types
+    let cat' = UnsafeLinear.coerce cat :: YulCat PurePort a b
+        b = UnsafeLinear.coerce @(P'P r b) @(P'P r b) (encode cat' x)
+    in f b
 
 ------------------------------------------------------------------------------------------------------------------------
 -- (P'V v1 r x1 ⊸ P'V v1 r x2 ⊸ ... P'V vn r b) <=> YulCat'LVV v1 vn r (NP xs) b
@@ -266,21 +299,29 @@ instance forall x xs b r a.
 -- $PatternMatching
 ------------------------------------------------------------------------------------------------------------------------
 
-match'l :: forall p r a b va vd.
-  ( YulO4 r a b (p a)
-  , BasePrelude.Functor p
-  , PatternMatchableYulCat (VersionedInputOutput 0) p a
-  )
-  => P'V va r (p a)
-  ⊸ (forall r1. YulO1 r1 => p (P'V va r1 (p a) ⊸ P'V va r1 a) ⊸ (P'V 0 r1 (p a) ⊸ P'V vd r1 b))
-  -> P'V (va + vd) r b
-match'l p f = let c = match (YulId :: YulCat (VersionedInputOutput 0) (p a) (p a))
-                      \cats -> UnsafeLinear.coerce
-                             @(YulCat (VersionedInputOutput vd) (p a) b)
-                             @(YulCat (VersionedInputOutput 0) (p a) b)
-                             (decode'lvv (f (BasePrelude.fmap (`encode'lvv` id) cats)))
-                  c' = UnsafeLinear.coerce
-                       @(YulCat (VersionedInputOutput 0) (p a) b)
-                       @(YulCat (VersionedInputOutput vd) (p a) b)
-                       c
-              in encode'lvv c' id p
+-- Linearly matechable yul port.
+class LinearMatcheable ioe eff | ioe -> eff where
+  -- | Pattern match a yul port and outputs another yul port.
+  match'l :: forall p c b r m.
+    ( YulO3 r p b
+    , YulCat eff p ~ m
+    , PatternMatchable m YulCatObj p c
+    ) => P'x ioe r p -> (c -> m b) -> P'x ioe r b
+
+instance LinearMatcheable (VersionedPort v) (VersionedInputOutput 0) where
+  match'l :: forall p c b r m.
+    ( YulO3 r p b
+    , YulCat (VersionedInputOutput 0) p ~ m
+    , PatternMatchable m YulCatObj p c
+    ) => P'V v r p -> (c -> m b) -> P'V v r b
+  match'l p f = let mb = match (YulId :: YulCat (VersionedInputOutput 0) p p) f
+                in encode'l mb id p
+
+instance LinearMatcheable PurePort Pure where
+  match'l :: forall p c b r m.
+    ( YulO3 r p b
+    , YulCat Pure p ~ m
+    , PatternMatchable m YulCatObj p c
+    ) => P'P r p -> (c -> m b) -> P'P r b
+  match'l p f = let mb = match (YulId :: YulCat Pure p p) f
+                in encode'l mb id p

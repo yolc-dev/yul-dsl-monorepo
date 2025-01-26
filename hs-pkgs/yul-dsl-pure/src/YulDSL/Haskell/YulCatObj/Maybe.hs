@@ -1,7 +1,7 @@
-{-# LANGUAGE AllowAmbiguousTypes  #-}
-{-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# OPTIONS_HADDOCK hide #-}
+{-# LANGUAGE AllowAmbiguousTypes  #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-|
 
 Copyright   : (c) 2023-2025 Miao, ZhiCheng
@@ -17,8 +17,6 @@ This module defines the 'Num' instance from base library for Maybe 'YulNum' obje
 module YulDSL.Haskell.YulCatObj.Maybe
   ( MaybeYulNum
   ) where
--- eth-abi
-import Ethereum.ContractABI
 -- yul-dsl
 import YulDSL.Core
 import YulDSL.StdBuiltIns.ValueType ()
@@ -64,8 +62,8 @@ instance (YulO1 r, ValidINTx s n) => Num (YulCat eff r (Maybe (INTx s n))) where
 
 instance ( YulCat eff r ~ m
          , YulO2 r a, YulCatObj (ABITypeDerivedOf a), MaybeYulNum a
-         ) => PatternMatchable m (Maybe a) (Maybe (m a)) YulCatObj where
-  inCase = \case
+         ) => PatternMatchable m YulCatObj (Maybe a) (Maybe (m a)) where
+  be = \case
     Just a  -> YulFork (YulEmb true) (a >.> YulReduceType)
                >.> YulReduceType
                >.> YulExtendType -- @_ @(NP [BOOL, ABITypeDerivedOf a]) @(Maybe a)
@@ -73,10 +71,12 @@ instance ( YulCat eff r ~ m
                >.> YulReduceType
                >.> YulExtendType
 
-  match mp f = let mp' = mp >.> YulReduceType >.> YulSplit
-                   b   = mp' >.> YulExl
-                   n   = mp' >.> YulExr
-                         >.> YulCoerceType @_ @(NP '[ABITypeDerivedOf a]) @(ABITypeDerivedOf a, NP '[])
-                         >.> YulExl @_ @(ABITypeDerivedOf a) @_
-                         >.> YulExtendType
-                 in yulIfThenElse b (f (Just n)) (f Nothing)
+  match pat f =
+    let pat' = pat >.> YulReduceType >.> YulCoerceType
+        b    = pat' >.> YulExl
+        n    = pat'
+               >.> YulExr
+               >.> YulCoerceType @_ @(NP '[ABITypeDerivedOf a]) @(ABITypeDerivedOf a, NP '[])
+               >.> YulExl @_ @(ABITypeDerivedOf a) @_
+              >.> YulExtendType
+    in yulIfThenElse b (f (Just n)) (f Nothing)

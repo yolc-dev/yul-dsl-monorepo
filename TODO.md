@@ -30,7 +30,7 @@ TODO
   - [ ] 🟠 BYTES
   - [ ] 🟠 STRING
 - ExtendedType
-  - [ ] 🟠 TUPLEn
+  - [x] TUPLEn
   - [ ] 🟢 REF, storage or memory raw reference with `constRef, keyRef`.
   - [ ] 🟢 SELECTOR
 - ABICodec
@@ -68,29 +68,30 @@ TODO
     - [x] __validate_t_
   - Integer comparators
     - [x] eq, ne, lt, le, gt, ge
-    - [ ] 🟢 testsuite
   - Safe integer arithmetic
     - [x] Safe number operation wrappers for checked numbers and maybe numbers.
     - [x] add, mull, sub, abs
     - [ ] 🟢 sig, abs
     - [ ] 🟢 divMod, quotRem
-    - [ ] 🟢 testsuite
+    - [ ] 🟢 complete testsuite
   - Safe value casting
     - [ ] 🟢 Casting integers
     - [ ] 🟢 Casting ADDR to U160
     - [ ] 🟢 Casting BYTESn n to uINTn
-    - [ ] 🟢 testsuite
+    - [ ] 🟢 complete testsuite
   - ABICodec
     - [x] __abidec_dispatcher_c_, __abidec_from_calldata_t_
     - [x] __abidec_from_memory_c_, __abidec_from_memory_t_
     - [x] __abienc_from_stack_c_, __abienc_from_stack_t_
     - [x] __keccak_c_ for supported types.
       - [ ] 🟢 __keccak_c_ evaluation function using ABICodec from eth-abi.
+    - [ ] 🟢 support dispatcher decoding tuples
+    - [ ] 🟢 complete testsuite
   - Exceptions
     - [x] `__const_revert0_c_`; solidity-equivalent of `revert()`
     - [ ] 🟢 `revertWithMessage`
     - [ ] 🟢 `revertWithError`
-    - [ ] 🟢 testsuite
+    - [ ] 🟢 complete testsuite
 
 - CodeGen
   - Function Gen:
@@ -132,9 +133,9 @@ TODO
   - [x] Call functions linearly with `callFn'l`, `callFn'lpp`.
     - [ ] 🟢 `callFnN'l` to call function via N-tuple, in order to support calling 0-ary functions.
 - Working with _data ports_
-  - [ ] 🟢 ifThenElse through pattern matching on BOOL data port.
-  - [ ] 🟠 matchM for pattern matching data ports with yulMonad (replacing `match'l`)
+  - [x] match data port and outputs new data port.
   - [ ] 🟢 Num classes for data ports: mul, abs, sig, etc.
+  - [ ] 🟠 ifThenElse through pattern matching on BOOL data port.
 - Working with _versioned data port_ through `YulMonad`, a "Linearly Versioned Monad."
   - [ ] 🟢 Build YulMonad functions: `$yulMonadV` for versioned inputs, and `$yulMonadP` for pure inputs.
 - Working with storage:

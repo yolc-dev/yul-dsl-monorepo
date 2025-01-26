@@ -27,8 +27,8 @@ foo4 = lfn "foo4" $
 maybe_fn = lfn "maybe_fn" $
   uncurry'lvv @(Maybe U256 -> U256)
   \x1 -> match'l x1 \case
-    Just g -> \v -> g v
-    Nothing -> emb'l 0
+    Just c  -> c
+    Nothing -> 0
 
 bar3 = lfn "bar3" $ yulmonad'p @(U256 -> U256 -> U256 -> U256)
   \x1 x2 x3 -> ypure (ver'l x1 + ver'l x2 + ver'l x3)

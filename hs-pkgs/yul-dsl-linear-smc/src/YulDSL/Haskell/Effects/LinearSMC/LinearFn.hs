@@ -51,10 +51,10 @@ class CreateLinearFn (iEff :: PortEffect) (oEff :: PortEffect) (fnEff :: LinearE
     -> Fn fnEff (CurryNP (NP xs) b)
 
 instance CreateLinearFn (VersionedPort 0) (VersionedPort vd) (VersionedInputOutput vd) where
-  lfn cid f = MkFn (cid, decode'lvv f)
+  lfn cid f = MkFn (cid, decode'l f)
 
 instance CreateLinearFn PurePort (VersionedPort vd) (PureInputVersionedOutput vd) where
-  lfn cid f = MkFn (cid, decode'lpv f)
+  lfn cid f = MkFn (cid, decode'l f)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- callFn'l
@@ -91,7 +91,7 @@ instance CallFnLinearly (VersionedInputOutput vd) vd where
   callFn'l (MkFn t) x =
     mkUnit x
     & \(x', u) -> curryingNP @xs @b @(P'V v1 r) @(P'V vn r) @(YulCat'LVV v1 v1 r ()) @One
-    $ \(MkYulCat'LVV fxs) -> encode'lvv (YulJmpU t) id
+    $ \(MkYulCat'LVV fxs) -> encode'l (YulJmpU t) id
     $ cons'l x' (fxs u)
 
 instance CallFnLinearly (PureInputVersionedOutput vd) vd
@@ -113,7 +113,7 @@ callFn'lpp :: forall f x xs b r eff.
 callFn'lpp (MkFn t) x =
   mkUnit x
   & \(x', u) -> curryingNP @_ @_ @(P'P r) @(P'P r) @(YulCat'LPP r ()) @One
-  $ \(MkYulCat'LPP fxs) -> encode'lpp (YulJmpU t) id
+  $ \(MkYulCat'LPP fxs) -> encode'l (YulJmpU t) id
   $ cons'l x' (fxs u)
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -134,13 +134,16 @@ externalCall :: forall f x xs b b' r v1 addrEff.
 externalCall (MkExternalFn sel) addr x =
   mkUnit x
   & \(x', u) -> curryingNP @_ @_ @(P'V v1 r) @(YulMonad v1 (v1 + 1) r) @(YulCat'LVV v1 v1 r ()) @One
-  $ \(MkYulCat'LVV fxs) -> encode'lvv @_ @_ @(YulMonad v1 (v1 + 1) r b') @r @v1 @1
+  $ \(MkYulCat'LVV fxs) -> encode'l @(VersionedInputOutput 1) @(VersionedPort v1) @_
+                                    @_ @_ @_ {- r a b -}
+                                    @(YulMonad v1 (v1 + 1) r b')
                            YulId
                            (\(b' :: P'V (v1 + 1) r b) -> let mb = LVM.pure b' :: YulMonad (v1 + 1) (v1 + 1) r b'
                                                          in UnsafeLinear.coerce mb)
   $ go (cons'l x' (fxs u))
   where go :: forall. P'x (VersionedPort v1) r (NP (x : xs)) ⊸ P'V v1 r b
         go args = let !(args', u) = mkUnit args
-                  in encode'lvv @_ @_ @_ @r @v1 @0 (YulCall sel)
+                  in encode'l @(VersionedInputOutput 0) @(VersionedPort v1)
+                     (YulCall sel)
                      id
                      (merge (merge (UnsafeLinear.coerce addr, emb'l 0 u), args'))

@@ -20,6 +20,7 @@ copyright:      (c) 2023-2025 Miao, ZhiCheng
 common basic-options
   default-language:   GHC2024
   default-extensions: TypeFamilies
+                      BlockArguments
   ghc-options:        -Wall
                       -Wunused-packages
   build-depends:      base >= 4.20.0.0 && < 666
@@ -27,7 +28,8 @@ common basic-options
 library
   import:             basic-options
   hs-source-dirs:     src
-  build-depends:      eth-abi ^>= 0.1.0.0,
+  build-depends:      template-haskell >= 2.19.0,
+                      eth-abi ^>= 0.1.0.0,
                       yul-dsl
   -- modules
   exposed-modules:
@@ -35,6 +37,8 @@ library
     YulDSL.Haskell.YulUtils
     YulDSL.Haskell.Effects.Pure
     YulDSL.Haskell.YulCatObj.Maybe
+    YulDSL.Haskell.YulCatObj.NP
+    YulDSL.Haskell.YulCatObj.TUPLEn
     -- Extra control patterns
     Data.MPOrd
     Control.PatternMatchable
