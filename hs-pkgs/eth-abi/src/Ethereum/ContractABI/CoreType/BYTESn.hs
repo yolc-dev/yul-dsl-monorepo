@@ -77,6 +77,7 @@ instance ValidINTn n => Bounded (BYTESn n) where
   maxBound = BYTESn $ toInteger (minBound @(INTx False n))
 
 instance ValidINTn n => ABIWordValue (BYTESn n) where
+  type instance ABIWordNBytes (BYTESn n) = n
   fromWord w = Just $ BYTESn (wordToInteger w)
   toWord = integerToWord . bytesnToInteger
 

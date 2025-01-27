@@ -2,7 +2,7 @@
 {-# LANGUAGE TemplateHaskell     #-}
 {-|
 
-Copyright   : (c) 2024 Miao, ZhiCheng
+Copyright   : (c) 2024-2025 Miao, ZhiCheng
 License     : MIT
 
 Maintainer  : hellwolf@yolc.dev
@@ -24,7 +24,8 @@ module Ethereum.ContractABI.ABICoreType
   , abiCoreTypeCanonName
   , abiCoreTypeCompactName, decodeAbiCoreTypeCompactName
   -- EVM word representations
-  , WORD, integerToWord, wordToInteger, defWord, maxWord, ABIWordValue (toWord, fromWord)
+  , WORD, integerToWord, wordToInteger, defWord, maxWord
+  , ABIWordValue (ABIWordNBytes, toWord, fromWord)
   ) where
 
 -- base
@@ -175,7 +176,9 @@ maxWord = WORD (2 ^ (256 :: Int) - 1)
 
 -- | ABI values that can be stored in one word.
 class Bounded a => ABIWordValue a where
+  -- | Number of bytes the ABI word requires.
+  type family ABIWordNBytes a :: Nat
   -- | Convert from a storage value to an ABI typed value.
   fromWord :: WORD -> Maybe a
   -- | Convert from a ABI typed value to a storage value.
-  toWord   :: a -> WORD
+  toWord :: a -> WORD

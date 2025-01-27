@@ -68,6 +68,7 @@ instance ABITypeCodec ADDR where
   abiDecoder = fmap ADDR S.get
 
 instance ABIWordValue ADDR where
+  type instance ABIWordNBytes ADDR = 20
   fromWord = integerToMaybeAddr . wordToInteger
   toWord (ADDR a) = integerToWord a
 

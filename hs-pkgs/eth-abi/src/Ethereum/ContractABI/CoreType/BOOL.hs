@@ -51,6 +51,7 @@ instance Bounded BOOL where
   maxBound = true
 
 instance ABIWordValue BOOL where
+  type instance ABIWordNBytes BOOL = 1
   fromWord w = case wordToInteger w of
     0 -> Just false
     1 -> Just true

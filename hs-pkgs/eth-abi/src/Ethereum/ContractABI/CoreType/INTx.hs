@@ -176,6 +176,7 @@ instance ValidINTx s n => Integral (INTx s n) where
 --
 
 instance ValidINTx s n => ABIWordValue (INTx s n) where
+  type instance ABIWordNBytes (INTx s n) = n
   fromWord w = let maxVal = coerce (maxBound @(INTx s n))
                    -- min = coerce (minBound @(INTx s n))
                    a  = wordToInteger w
