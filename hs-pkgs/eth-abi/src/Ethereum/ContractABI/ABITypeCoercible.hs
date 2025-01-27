@@ -11,7 +11,9 @@ Portability : GHC2024
 module Ethereum.ContractABI.ABITypeCoercible
   ( SameABICoreType, ABITypeCoercible
   ) where
-
+-- (simple-np)
+import Data.TupleN                      (Solo)
+--
 import Ethereum.ContractABI.ABITypeable
 import Ethereum.ContractABI.CoreType.NP
 
@@ -19,6 +21,10 @@ import Ethereum.ContractABI.CoreType.NP
 type SameABICoreType a a' = ABITypeDerivedOf a ~ ABITypeDerivedOf a'
 
 class ABITypeCoercible a b
+
+-- Solo Tuple
+instance forall a. ABITypeCoercible a (Solo a)
+instance forall a. ABITypeCoercible (Solo a) a
 
 -- unitor coercion instances
 instance forall a. ABITypeCoercible a (a, ())

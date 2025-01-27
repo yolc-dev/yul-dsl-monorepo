@@ -24,10 +24,15 @@ import YulDSL.Core
 import Control.PatternMatchable
 
 
-instance ( YulCat eff r ~ m
-         , YulO1 r
+instance ( YulO1 r
+         , YulO1 a
+         ) => PatternMatchable (YulCat eff r) YulCatObj (Solo a) (YulCat eff r a) where
+  be a = a >.> YulCoerceType
+  match a f = f (a >.> YulCoerceType)
+
+instance ( YulO1 r
          , YulO1 a1, YulO1 a2
-         ) => PatternMatchable m YulCatObj (a1, a2) (m a1, m a2) where
+         ) => PatternMatchable (YulCat eff r) YulCatObj (a1, a2) (YulCat eff r a1, YulCat eff r a2) where
   be (x1, x2) = YulFork x1 x2
   match pat f =
     let x1 = pat >.> YulExl
@@ -36,18 +41,19 @@ instance ( YulCat eff r ~ m
 
 do
   let mk_tuple_n_t xs = foldl' TH.appT (TH.tupleT (length xs)) (map TH.varT xs)
-  let mk_mtuple_n_t m xs = foldl' (\b x -> b `TH.appT` (TH.varT m `TH.appT` x))
+  let mk_mtuple_n_t m xs = foldl' (\b x -> b `TH.appT` (pure m `TH.appT` x))
                            (TH.tupleT (length xs)) (map TH.varT xs)
   insts <- mapM (\n -> do
-    m <- TH.newName "m"
+    r <- TH.newName "r"
     x <- TH.newName "a"
     xs' <- replicateM (n - 1) (TH.newName "a")
+    m <- [t| YulCat $(TH.varT =<< TH.newName "eff") $(TH.varT r) |]
     let xs = x : xs'
     let tpl  = mk_tuple_n_t xs
     let mtpl = mk_mtuple_n_t m xs
     let clist = foldr (\a b -> b `TH.appT` (TH.conT ''YulO1 `TH.appT` TH.varT a)) (TH.tupleT n) xs
-    [d| instance ( YulCat eff r ~ $(TH.varT m), YulO1 r, $(clist)
-                 ) => PatternMatchable $(TH.varT m) YulCatObj $(tpl) $(mtpl) where
+    [d| instance ( YulO1 $(TH.varT r), $(clist)
+                 ) => PatternMatchable $(pure m) YulCatObj $(tpl) $(mtpl) where
           -- be (x1, x2, x3) = YulFork x1 (be (x2, x3) >.> YulReduceType)
           be $(TH.tupP (fmap TH.varP xs)) =
             YulFork $(TH.varE x) ($(TH.varE 'be `TH.appE` TH.tupE (fmap TH.varE xs')) >.> YulReduceType)
