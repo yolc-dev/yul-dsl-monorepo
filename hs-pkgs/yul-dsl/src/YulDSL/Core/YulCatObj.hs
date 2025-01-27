@@ -53,3 +53,5 @@ do
     -- NOTE! Haskell2010 only demands the Show instance to support up to Tuple15
     [d| instance $(clist) => YulCatObj $(tpl) |]) [3..15]
   pure (concat insts)
+-- REF
+instance YulCatObj a => YulCatObj (REF a)

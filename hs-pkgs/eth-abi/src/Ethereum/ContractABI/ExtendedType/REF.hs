@@ -22,6 +22,8 @@ module Ethereum.ContractABI.ExtendedType.REF
 -- base
 import GHC.TypeLits
 --
+import Ethereum.ContractABI.ABITypeable     (ABITypeable (..))
+import Ethereum.ContractABI.ABITypeCodec    (ABITypeCodec (..))
 import Ethereum.ContractABI.CoreType.BYTESn
 
 
@@ -38,3 +40,10 @@ constRef slot = REF (fromSNat (SNat @slot))
 -- | Create a reference at a string key (to be keccak256).
 keyRef :: forall a. String -> REF a
 keyRef = REF . bytesnToInteger . stringKeccak256
+
+instance ABITypeable a => ABITypeable (REF a) where
+  type instance ABITypeDerivedOf (REF a) = B32
+  abiToCoreType (REF n) = BYTESn n
+  abiFromCoreType (BYTESn n) = REF n
+
+instance ABITypeable a => ABITypeCodec (REF a)

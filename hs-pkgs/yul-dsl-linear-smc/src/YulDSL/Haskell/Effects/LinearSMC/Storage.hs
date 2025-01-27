@@ -1,4 +1,3 @@
-{-# LANGUAGE FunctionalDependencies #-}
 {-|
 
 Copyright   : (c) 2024-2025 Miao, ZhiCheng
@@ -20,32 +19,37 @@ module YulDSL.Haskell.Effects.LinearSMC.Storage
   , StorageAssignment ((:=)), NonEmpty ((:|)), sassign, sputs
   ) where
 -- base
-import Data.List.NonEmpty                (NonEmpty ((:|)))
-import GHC.TypeLits                      (type (+))
+import Data.List.NonEmpty                        (NonEmpty ((:|)))
+import GHC.TypeLits                              (type (+))
 -- constraints
-import Data.Constraint.Unsafe            (unsafeAxiom)
+import Data.Constraint.Unsafe                    (unsafeAxiom)
 -- linear-base
 import Control.Category.Linear
-import Prelude.Linear                    ((&), (.))
-import Unsafe.Linear                     qualified as UnsafeLinear
+import Prelude.Linear                            ((&), (.))
+import Unsafe.Linear                             qualified as UnsafeLinear
 -- yul-dsl
 import YulDSL.Core
 -- linearly-versioned-monad
-import Control.LinearlyVersionedMonad    (LVM (MkLVM))
-import Control.LinearlyVersionedMonad    qualified as LVM
-import Data.LinearContext                (contextualEmbed)
+import Control.LinearlyVersionedMonad            (LVM (MkLVM))
+import Control.LinearlyVersionedMonad            qualified as LVM
+import Data.LinearContext                        (contextualEmbed)
 --
 import YulDSL.Haskell.Effects.LinearSMC.YulMonad
 import YulDSL.Haskell.Effects.LinearSMC.YulPort
 
 
-class SReferenceable v r a b | a -> v r, b -> v r where
-  sget :: forall. a ⊸ YulMonad v v r b
-  sput :: forall. a ⊸ b ⊸ YulMonad v (v + 1) r (P'V (v + 1) r ())
+class YulO2 a b => SReferenceable v r a b where
+  sget :: forall. YulO1 r => P'V v r a ⊸ YulMonad v v r (P'V v r b)
+  sput :: forall. YulO1 r => P'V v r a ⊸ P'V v r b ⊸ YulMonad v (v + 1) r (P'V (v + 1) r ())
 
-instance (YulO2 r b, ABIWordValue b) => SReferenceable v r (P'V v r B32) (P'V v r b) where
+instance (YulO1 b, ABIWordValue b) => SReferenceable v r B32 b where
   sget a = ypure (encode YulSGet a)
   sput to x = encode YulSPut (merge (to, x))
+              & \u -> MkLVM (unsafeAxiom, , UnsafeLinear.coerce u)
+
+instance (YulO1 a, ABIWordValue a) => SReferenceable v r (REF a) a where
+  sget a = ypure (encode YulSGet (reduceType'l a))
+  sput to x = encode YulSPut (merge (reduceType'l to, x))
               & \u -> MkLVM (unsafeAxiom, , UnsafeLinear.coerce u)
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -61,7 +65,7 @@ instance SGettableNP v r (NP '[]) (NP '[]) where
 instance ( YulO1 r
          , SReferenceable v r a b
          , SGettableNP v r (NP as) (NP bs)
-         ) => SGettableNP v r (NP (a : as)) (NP (b : bs)) where
+         ) => SGettableNP v r (NP (P'V v r a : as)) (NP (P'V v r b : bs)) where
   sgetNP (a :* as) = LVM.do
     b <- sget a
     bs <- sgetNP as
@@ -95,7 +99,7 @@ instance (YulO1 r) => SPuttableNP v r (NP '[]) where
 instance ( YulO1 r
          , SReferenceable v r a b
          , SPuttableNP v r (NP xs)
-         ) => SPuttableNP v r (NP ((a, b):xs)) where
+         ) => SPuttableNP v r (NP ((P'V v r a, P'V v r b):xs)) where
   sputNP ((a, b) :* xs) = let x' = sput a b :: YulMonad v (v + 1) r (P'V (v + 1) r ())
                               x'' = UnsafeLinear.coerce x' :: YulMonad v v r (P'V (v + 1) r ())
                               xs' = sputNP xs :: YulMonad v (v + 1) r (P'V (v + 1) r ())
@@ -111,9 +115,9 @@ sputN tpl = sputNP (fromTupleNtoNP tpl)
 -- sputs
 ------------------------------------------------------------------------------------------------------------------------
 
-data StorageAssignment v r = forall a. (YulO1 a, ABIWordValue a) => P'V v r B32 := P'V v r a
+data StorageAssignment v r = forall a b. SReferenceable v r a b => P'V v r a := P'V v r b
 
-sassign :: forall v r. (YulO1 r) => StorageAssignment v r ⊸ YulMonad v (v + 1) r (P'V (v + 1) r ())
+sassign :: forall v r. YulO1 r => StorageAssignment v r ⊸ YulMonad v (v + 1) r (P'V (v + 1) r ())
 sassign (to := x) = sput to x
 
 sputs :: forall v r. YulO1 r => NonEmpty (StorageAssignment v r) ⊸ YulMonad v (v + 1) r (P'V (v + 1) r ())

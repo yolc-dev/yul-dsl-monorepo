@@ -49,6 +49,7 @@ TODO
     - [ ] 🟠 `YulArrayLen, YulMapArray`, array length and tight-loop primitives.
   - Side Effects
     - [x] `YulSGet`, `YulSPut` for raw storage operations.
+      - [ ] 🟢 Support storage offset.
     - [x] `YulCall`, external function calls.
     - [ ] 🟢 `YulStaticCall`, static external function calls.
     - [ ] 🟢 `YulDelegateCall`, delegate external function calls.
@@ -118,7 +119,6 @@ TODO
   - [ ] Type-safe upCast, and safeCast to optional values.
 - Data
   - [x] MPOrd
-  - [ ] 🟢 SHMap - Storage Hash Map.
 - Working with pure effect
   - [x] Build pure functions `fn`.
     - [ ] 🟠 to be replaced with `$fn` using template haskell for generating automatic unique function id
@@ -141,6 +141,7 @@ TODO
 - Working with storage:
   - [x] Assorted storage functions: `SReferenceable(sget, sput), sgetN, (<==), sputN, (:|), (:=), sputs`.
   - [ ] 🟠 Storage functions working with `Referenceable` types.
+  - [ ] 🟢 SHMap - Storage Hash Map.
 
 ### yol-suite
 

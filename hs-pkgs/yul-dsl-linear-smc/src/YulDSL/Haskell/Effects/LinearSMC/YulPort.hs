@@ -4,7 +4,7 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
     PortEffect (PurePort, VersionedPort), EffectVersionDelta, P'x, P'V, P'P
     -- * General Yul Port Operations
     -- $GeneralOps
-  , ver'l, emb'l, const'l, dup2'l
+  , ver'l, emb'l, const'l, dup2'l, yulKeccak256'l
     -- * Type Operations
     -- $TypeOps
   , coerceType'l, reduceType'l, extendType'l, cons'l, uncons'l
@@ -16,6 +16,7 @@ import Unsafe.Linear                       qualified as UnsafeLinear
 import Control.Category.Linear
 -- yul-dsl
 import YulDSL.Core
+import YulDSL.StdBuiltIns.ABICodec         ()
 import YulDSL.StdBuiltIns.ValueType        ()
 -- yul-dsl-pure
 import YulDSL.Haskell.Effects.Pure
@@ -77,6 +78,9 @@ const'l = flip (ignore . discard)
 dup2'l :: forall a eff r. YulO2 a r
        => P'x eff r a ⊸ (P'x eff r a, P'x eff r a)
 dup2'l = split . copy
+
+yulKeccak256'l :: forall a eff r. YulO2 r a => P'x eff r a ⊸ P'x eff r B32
+yulKeccak256'l = encode (YulJmpB (MkYulBuiltIn @"__keccak_c_" @a @B32))
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $TypeOps

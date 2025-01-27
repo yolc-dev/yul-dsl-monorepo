@@ -52,17 +52,20 @@ library
                       yul-dsl-linear-smc:linearly-versioned-monad
   -- modules
   exposed-modules:
-    -- YulDSL's LinearSMC Effect
+    -- YulDSL/Haskell's LinearSMC Effect
     YulDSL.Haskell.Effects.LinearSMC.YulPort
     YulDSL.Haskell.Effects.LinearSMC.YulMonad
     YulDSL.Haskell.Effects.LinearSMC.LinearYulCat
     YulDSL.Haskell.Effects.LinearSMC.LinearFn
     YulDSL.Haskell.Effects.LinearSMC.Storage
     YulDSL.Haskell.Effects.LinearSMC
-    -- YulDSL's linear-smc instances
+    -- YulDSL/Haskell's data types
+    YulDSL.Haskell.Data.SHMap
+    -- YulDSL/Haskell's linear-smc instances
     Control.Category.Constrained.YulDSL
-    -- Prelude
+    -- YulDSL/Haskell's linear-base instances
     Data.Num.Linear.YulDSL
+    -- Prelude
     Prelude.YulDSL
   reexported-modules:
     Data.LinearContext,

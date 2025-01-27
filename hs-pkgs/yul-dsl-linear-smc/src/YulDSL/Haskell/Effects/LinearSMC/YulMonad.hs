@@ -79,7 +79,7 @@ instance YulO3 r a b => ContextualSeqable (YulMonadCtx r) (P'x eff1 r a) (P'x ef
 instance YulO2 r a => ContextualDupable (YulMonadCtx r) (P'x eff r a) where
   contextualDup ctx x = (ctx, dup2'l x)
 
-instance YulO2 r a => ContextualEmbeddable (YulMonadCtx r) (P'V v r) a where
+instance YulO2 r a => ContextualEmbeddable (YulMonadCtx r) (P'x eff r) a where
   contextualEmbed (MkYulMonadCtx ud) x'p = let !(ud', u') = ud_dupu ud
                                                x'v = emb'l x'p u'
                                            in (MkYulMonadCtx ud', x'v)
