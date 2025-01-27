@@ -60,7 +60,7 @@ erc20_transfer = lfn $locId $ yulmonad'p @(ADDR -> ADDR -> U256 -> BOOL)
   -- update storages
   sputs $
     senderBalanceRef   := newSenderBalance   :|
-    receiverBalanceRef := newReceiverBalance : []
+    receiverBalanceRef := newReceiverBalance :[]
   -- always return true as a silly urban-legendary ERC20 convention
   embed true
 
