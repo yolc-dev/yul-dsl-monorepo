@@ -47,7 +47,7 @@ bytesnToWords (BYTESn v) = let (v', ws) = foldl'
 
 -- | Create BYTESn from a list of 'Word8'.
 bytesnFromWord8s :: forall n. ValidINTn n => [Word8] -> BYTESn n
-bytesnFromWord8s ws = assert (toInteger (length ws) == fromSNat (natSing @n)) (BYTESn (g 0 (reverse ws)))
+bytesnFromWord8s ws = assert (toInteger (length ws) <= fromSNat (natSing @n)) (BYTESn (g 0 (reverse ws)))
   where g :: Int -> [Word8] -> Integer
         g _ []     = 0
         g i (x:xs) = (toInteger x) * (2 ^ i) + g (i + 8) xs
