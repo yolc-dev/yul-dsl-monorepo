@@ -9,7 +9,6 @@ module YulDSL.Haskell.YulUtils
     -- * YulCat Control Flows
   , module Control.IfThenElse
   , module Control.PatternMatchable
-  , Referenceable (yulRefGet, yulRefPut)
     -- * Extra Yul Object Helpers
   , emptyCtor
   ) where
@@ -39,11 +38,6 @@ yulRevert = YulDis >.> YulJmpB (MkYulBuiltIn @"__const_revert0_c_" @() @b)
 -- | Wrapper for built-in keccak256 yul function.
 yulKeccak256 :: forall eff a r. YulO2 r a => YulCat eff r a -> YulCat eff r B32
 yulKeccak256 x = x >.> YulJmpB (MkYulBuiltIn @"__keccak_c_" @a @B32)
-
--- | Type class for building referenceable values.
-class Referenceable a where
-  yulRefGet :: REF a -> YulCat eff B32 a
-  yulRefPut :: REF a -> YulCat eff (B32, a) ()
 
 -- | Empty object constructor.
 emptyCtor :: AnyYulCat
