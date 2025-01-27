@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copyright   : (c) 2023 Miao, ZhiCheng
+# Copyright   : (c) 2023-2025 Miao, ZhiCheng
 # License     : LGPL-3
 # Maintainer  : hellwolf@yolc.dev
 # Synopsis    : yolc, the YulDSL commandline compiler
@@ -12,13 +12,13 @@
 # Main Program, Utilities & Global Variables
 #-----------------------------------------------------------------------------------------------------------------------
 
-opt_verbose=; function when_verbose() { [[ -n "$opt_verbose" ]]; }
+opt_verbose=; function is_verbose() { [[ -n "$opt_verbose" ]]; }
 is_nix_dist=
 dist_path=
 codegen_name=
 show_output_always=
 out_dir="$PWD"/build
-declare -a runyol_extra_opts=(-O0)
+build_dir=$out_dir/yolc
 
 help() {
   cat <<EOF
@@ -48,14 +48,15 @@ debug() {
 }
 
 runyol() {
-  if when_verbose; then
-    debug "+ runyol" "$@"
-    cabal build "${runyol_extra_opts[@]}" runyol "$@" >&2 && \
-      cabal run "${runyol_extra_opts[@]}" runyol "$@"
+  local CABAL=(cabal --builddir="$build_dir")
+  if is_verbose; then
+    debug "+ runyol" "${CABAL[@]}" "$@"
+    "${CABAL[@]}" "$@" -v1 build runyol >&2 && \
+      "${CABAL[@]}"  "$@" -v0 list-bin runyol | xargs -- sh -c
   else
     # silent the stdout of the build process
-    cabal build "${runyol_extra_opts[@]}" runyol "$@" >/dev/null && \
-      cabal run "${runyol_extra_opts[@]}" runyol "$@"
+    "${CABAL[@]}" "$@" -v0 build runyol >/dev/null && \
+      "${CABAL[@]}" "$@" -v0 list-bin runyol | xargs -- sh -c
   fi
 }
 
@@ -69,7 +70,10 @@ main() {
       m)
         codegen_name=$OPTARG
         case "$OPTARG" in
-          yul | show | lisp)
+          yul)
+          ;;
+          lisp | show)
+            show_output_always=1
             ;;
           yul_and_show)
             codegen_name=yul
@@ -96,17 +100,19 @@ main() {
   # detect distribution mode
   [[ -z "${PROGRAM_PATH##/nix/store}" ]] && is_nix_dist=1
   if [[ -n "$is_nix_dist" ]]; then
-    dist_path=$(nix metadata --json | jq -r .path)
+    ## FIXME support nix-distribution mode
+    die "Nix-distribution mode not supported"
   else
     dist_path=$(readlink -f "$(dirname "$PROGRAM_PATH")"/../../..)
+    cabal_package_db=$(cabal -v0 --builddir="$build_dir" path --output-format=json |
+                       jq -r '."store-dir" + "/" + .compiler.id + "-inplace/package.db"')
+    dist_package_db=$(readlink -f "${dist_path}"/build/dist-yolc/*/package.db)
   fi
-  ## TODO support nix-distribution mode
-  [[ -n "$is_nix_dist" ]] && die "Nix-distribution mode not supported"
 
-  when_verbose && {
-    debug "Distribution path: $dist_path"
-    debug "Codegen mode: $codegen_name"
-    debug "Output directory: $out_dir"
+  is_verbose && {
+    debug "Distribution path : $dist_path"
+    debug "Codegen mode      : $codegen_name"
+    debug "Output directory  : $out_dir"
     debug
   }
 
@@ -130,7 +136,7 @@ build_yol_module() {
 
   local mod_spec
   mod_spec=$1
-  when_verbose && debug "=== Building yol module: $mod_spec"
+  is_verbose && debug "=== Building yol module: $mod_spec"
 
   # parse pkg_path, cabal_path, pkg_name
   local rest pkg_path cabal_path pkg_name
@@ -171,14 +177,14 @@ build_yol_module() {
   mkdir -p "$yol_dir"
   mkdir -p "$yol_dir/contracts"
 
-  when_verbose && {
-    debug "Package path: $pkg_path"
-    debug "Cabal file: $cabal_path"
-    debug "Package name: $pkg_name"
-    debug "Module name: $mod_name"
-    debug "Codegen mode: $codegen_mode"
-    [ -n "$cmpl_syms" ] && debug "Custom compilation symbols: $cmpl_syms"
-    debug "Yol module build directory: $yol_dir"
+  is_verbose && {
+    debug "Package path   : $pkg_path"
+    debug "Cabal file     : $cabal_path"
+    debug "Yol path       : $yol_dir"
+    [ -n "$cmpl_syms" ] && \
+    debug "Package name   : $pkg_name"
+    debug "Module name    : $mod_name"
+    debug "Target symbols : $cmpl_syms"
   }
 
   #
@@ -187,22 +193,15 @@ build_yol_module() {
 
   # prepare cabal build files and build
   cat > "$yol_dir"/cabal.project <<EOF
+package-dbs: clear, global, ${cabal_package_db}, ${dist_package_db}
+
 packages:
-  $dist_path/3rd-parties/linear-smc-2.2.3
-  $dist_path/hs-pkgs/eth-abi
-  $dist_path/hs-pkgs/yul-dsl
-  $dist_path/hs-pkgs/yul-dsl-pure
-  $dist_path/hs-pkgs/yul-dsl-linear-smc
-  $dist_path/hs-pkgs/yol-suite
   $cabal_path
   $yol_dir/runyol.cabal
 
 package linear-smc
   ghc-options: -Wno-all
 EOF
-
-  # install cabal freeze file
-  cp -f "$dist_path"/cabal.project.freeze "$yol_dir"
 
   # instantiate runyol.cabal template
   {
@@ -219,7 +218,7 @@ EOF
         -e "s|%COMPILE_ACTIONS%|${actions}|g"
   } < "$dist_path"/hs-pkgs/yol-suite/templates/RunYol.hs > "$yol_dir"/RunYol.hs
 
-  when_verbose && {
+  is_verbose && {
     debug
     debug "=== BEGIN cabal.project"
     cat "$yol_dir"/cabal.project >&2
@@ -236,15 +235,15 @@ EOF
 
   # run yol
   runyol --project-dir="$yol_dir" \
-         --builddir="$out_dir/yolc" > "${yol_output_file:-/dev/stdout}" || {
+         > "${yol_output_file:-/dev/stdout}" || {
     [ -f "${yol_output_file}" ] && rm "${yol_output_file}"
     die "=== Failed to build yol module: $mod_spec"
   }
 
   # print output if needed
-  when_verbose || [ -n "$show_output_always" ] && [  -f "${yol_output_file}" ] && cat "${yol_output_file}"
+  is_verbose || [ -n "$show_output_always" ] && [  -f "${yol_output_file}" ] && cat "${yol_output_file}"
 
-  when_verbose && {
+  is_verbose && {
     debug "=== Done with yol module: $mod_spec"
   }
 }
