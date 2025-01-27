@@ -106,7 +106,7 @@ main() {
     dist_path=$(readlink -f "$(dirname "$PROGRAM_PATH")"/../../..)
     cabal_package_db=$(cabal -v0 --builddir="$build_dir" path --output-format=json |
                        jq -r '."store-dir" + "/" + .compiler.id + "-inplace/package.db"')
-    dist_package_db=$(readlink -f "${dist_path}"/build/dist-yolc/*/package.db)
+    dist_package_db=$(readlink -f "${dist_path}"/build/yolc/packagedb/ghc-9.10.1)
   fi
 
   is_verbose && {

@@ -10,7 +10,6 @@ LINEAR_SMC_PATH_FILE = 3rd-parties/linear-smc-$(LINEAR_SMC_VERSION).patch
 DEFAULT_BUILDDIR ?= $(PWD)/build/yolc
 TEST_COVERAGE_BUILDDIR ?= $(PWD)/build/dist-coverage
 DOCS_BUILDDIR ?= $(PWD)/build/dist-docs
-DIST_INSTALLDIR ?= $(PWD)/build/dist-yolc
 
 # Build options
 BUILD_OPTIONS ?=
@@ -31,11 +30,6 @@ CABAL_PACKAGE_DB = $(shell $(CABAL) -v0 --builddir=$(DEFAULT_BUILDDIR) path --ou
 										 jq -r '."store-dir" + "/" + .compiler.id + "-inplace/package.db"')
 
 CABAL_BUILD    = $(CABAL) --builddir=$(DEFAULT_BUILDDIR) build
-CABAL_INSTALL  = $(CABAL) --builddir=$(DEFAULT_BUILDDIR) \
-                          --store-dir=$(DIST_INSTALLDIR) \
-                          --package-db=$(CABAL_PACKAGE_DB) \
-                          --package-env=$(DIST_INSTALLDIR)/package-env \
-                          install
 CABAL_TEST     = $(CABAL) --builddir=$(DEFAULT_BUILDDIR) test $(TEST_OPTIONS)
 CABAL_COVERAGE = $(CABAL) --builddir=$(TEST_COVERAGE_BUILDDIR) coverage
 CABAL_DOCS     = $(CABAL) --builddir=$(DOCS_BUILDDIR) haddock
@@ -45,7 +39,7 @@ CABAL_DOCS     = $(CABAL) --builddir=$(DOCS_BUILDDIR) haddock
 export YOLC_DEBUG_LEVEL ?= 0
 
 # Misc
-DEV_TARGETS = test-all-modules build-all-modules test-yol-suite test-demo-foundry lint
+DEV_TARGETS = test-all-modules test-yol-suite test-demo-foundry lint
 
 ########################################################################################################################
 # TARGETS
@@ -72,16 +66,12 @@ build-docs-and-display: build-docs
 
 build-patches: $(LINEAR_SMC_PATH_FILE)
 
-install-dist: build-all-modules
-	rm -f "$(DIST_INSTALLDIR)/package-env"
-	$(CABAL_INSTALL) --lib eth-abi yul-dsl yul-dsl-pure yul-dsl-linear-smc
-
 clean:
 	rm -rf build cache out dist-*
 
 test: test-all-modules test-yol-suite test-demo
 
-test-all-modules: test-eth-abi test-yul-dsl test-yul-dsl-pure test-yul-dsl-linear-smc
+test-all-modules: build-all-modules test-eth-abi test-yul-dsl test-yul-dsl-pure test-yul-dsl-linear-smc
 
 test-eth-abi:
 	$(CABAL_TEST) eth-abi
@@ -95,11 +85,11 @@ test-yul-dsl-pure:
 test-yul-dsl-linear-smc:
 	$(CABAL_TEST) yul-dsl-linear-smc
 
-test-yol-suite: install-dist
+test-yol-suite:
 	yolc -m yul hs-pkgs/yol-suite/testsuite
 	cd hs-pkgs/yol-suite/testsuite && forge test -vvv
 
-test-demo: install-dist test-demo-show test-demo-yul test-demo-foundry
+test-demo: test-demo-show test-demo-yul test-demo-foundry
 
 test-demo-show:
 	time yolc -m show "examples/demo:ERC20"
@@ -114,7 +104,7 @@ test-demo-foundry:
 dev:
 	nodemon -w hs-pkgs -w yol-demo -w examples -e "hs sol cabal" -x "make $(DEV_TARGETS) || exit 1"
 
-.PHONY: all build-* install-* lint clean test test-* dev
+.PHONY: all lint build build-* clean install-* test test-* dev
 
 $(LINEAR_SMC_PATH_FILE):
 	[ -d 3rd-parties/linear-smc ] || exit 1
