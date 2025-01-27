@@ -109,7 +109,7 @@ instance forall x xs b g v1 vn r a.
   uncurryingNP f (MkYulCat'LVV h) = MkYulCat'LVM
     \xxs ->
       dup2'l xxs
-    & \(xxs1, xxs2) -> split (coerce'l @(NP (x:xs)) @(x, NP xs) (h xxs1))
+    & \(xxs1, xxs2) -> split (coerceType'l @(NP (x:xs)) @(x, NP xs) (h xxs1))
     & \(x, xs) -> let !(MkYulCat'LVM g) =
                         (uncurryingNP
                           @g @xs @(P'V vn r b)
@@ -123,7 +123,7 @@ instance forall x v1 vn r a.
          ( YulO3 x r a
          , LiftFunction (CurryNP (NP '[]) x) (P'V v1 r) (YulMonad v1 vn r) One ~ YulMonad v1 vn r x
          ) => CurryingNP '[] (P'V vn r x) (P'V v1 r) (YulMonad v1 vn r) (YulCat'LVV v1 v1 r a) One where
-  curryingNP cb = cb (MkYulCat'LVV (\a -> coerce'l (discard a)))
+  curryingNP cb = cb (MkYulCat'LVV (\a -> coerceType'l (discard a)))
 
 instance forall x xs b r a v1 vn.
          ( YulO5 x (NP xs) b r a
@@ -168,7 +168,7 @@ instance forall x v1 vn r a.
          (P'P r) (YulMonad v1 vn r)
          (YulCat'LPP r a) (YulCat'LPM v1 vn r a) One where
   uncurryingNP x (MkYulCat'LPP h) = MkYulCat'LPM
-    \a -> tossToUnit (UnsafeLinear.coerce @_ @(P'V v1 r x) (h a & coerce'l @_ @())) LVM.>> x
+    \a -> tossToUnit (UnsafeLinear.coerce @_ @(P'V v1 r x) (h a & coerceType'l @_ @())) LVM.>> x
 
 instance forall x xs b g v1 vn r a.
          ( YulO5 x (NP xs) b r a
@@ -179,7 +179,7 @@ instance forall x xs b g v1 vn r a.
   uncurryingNP f (MkYulCat'LPP h) = MkYulCat'LPM
     \xxs ->
       dup2'l xxs
-    & \(xxs1, xxs2) -> split (coerce'l @(NP (x:xs)) @(x, NP xs) (h xxs1))
+    & \(xxs1, xxs2) -> split (coerceType'l @(NP (x:xs)) @(x, NP xs) (h xxs1))
     & \(x, xs) -> let !(MkYulCat'LPM g) =
                         (uncurryingNP
                           @g @xs @(P'V vn r b)

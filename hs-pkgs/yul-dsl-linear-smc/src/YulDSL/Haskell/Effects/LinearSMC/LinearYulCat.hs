@@ -159,7 +159,7 @@ instance forall x v1 vn r a.
          ) => UncurryingNP (x) '[] x (P'V v1 r) (P'V vn r) (YulCat'LVV v1 v1 r a) (YulCat'LVV v1 vn r a) One where
   uncurryingNP x (MkYulCat'LVV h) = MkYulCat'LVV
     (\a -> h a &                 -- :: P'V v1 (NP '[])
-           coerce'l @_ @() &     -- :: P'V v1 ()
+           coerceType'l @_ @() &     -- :: P'V v1 ()
            UnsafeLinear.coerce & -- :: P'V vn ()
            \u -> ignore u x)     -- :: P'V vn x
 
@@ -170,7 +170,7 @@ instance forall x xs b g v1 vn r a.
   uncurryingNP f (MkYulCat'LVV h) = MkYulCat'LVV
     (\xxs ->
         dup2'l xxs
-      & \(xxs1, xxs2) -> split (coerce'l @(NP (x:xs)) @(x, NP xs) (h xxs1))
+      & \(xxs1, xxs2) -> split (coerceType'l @(NP (x:xs)) @(x, NP xs) (h xxs1))
       & \(x, xs) -> let !(MkYulCat'LVV g) =
                           (uncurryingNP
                             @g @xs @b
@@ -205,7 +205,7 @@ instance forall x v1 vn r a.
          ( YulO3 x r a
          , LiftFunction (CurryNP (NP '[]) x) (P'V v1 r) (P'V vn r) One ~ P'V vn r x
          ) => CurryingNP '[] x (P'V v1 r) (P'V vn r) (YulCat'LVV v1 v1 r a) One where
-  curryingNP cb = cb (MkYulCat'LVV (\a -> coerce'l (discard a)))
+  curryingNP cb = cb (MkYulCat'LVV (\a -> coerceType'l (discard a)))
 
 instance forall x xs b r a v1 vn.
          ( YulO5 x (NP xs) b r a
@@ -223,7 +223,7 @@ instance forall x vd r a.
          , LiftFunction x (P'P r) (P'V vd r) One ~ P'V vd r x
          ) => UncurryingNP (x) '[] x (P'P r) (P'V vd r) (YulCat'LPP r a) (YulCat'LPV vd r a) One where
   uncurryingNP x (MkYulCat'LPP h) = MkYulCat'LPV (\a -> h a &                -- :: P'P (NP '[])
-                                                       coerce'l @_ @() &     -- :: P'P ()
+                                                       coerceType'l @_ @() &     -- :: P'P ()
                                                        UnsafeLinear.coerce & -- :: P'V vn ()
                                                        \u -> ignore u x)     -- :: P'V vn x
 
@@ -234,7 +234,7 @@ instance forall x xs b g vd r a.
   uncurryingNP f (MkYulCat'LPP h) = MkYulCat'LPV
     (\xxs ->
         dup2'l xxs
-      & \(xxs1, xxs2) -> split (coerce'l @(NP (x:xs)) @(x, NP xs) (h xxs1))
+      & \(xxs1, xxs2) -> split (coerceType'l @(NP (x:xs)) @(x, NP xs) (h xxs1))
       & \(x, xs) -> let !(MkYulCat'LPV g) =
                           (uncurryingNP
                            @g @xs @b
@@ -269,7 +269,7 @@ instance forall x v1 vn r a.
          ( YulO3 x r a
          , LiftFunction (CurryNP (NP '[]) x) (P'P r) (P'V vn r) One ~ P'V vn r x
          ) => CurryingNP '[] x (P'P r) (P'V vn r) (YulCat'LVV v1 v1 r a) One where
-  curryingNP cb = cb (MkYulCat'LVV (\a -> coerce'l (discard a)))
+  curryingNP cb = cb (MkYulCat'LVV (\a -> coerceType'l (discard a)))
 
 instance forall x xs b r a v1 vn.
          ( YulO5 x (NP xs) b r a
@@ -286,7 +286,7 @@ instance forall x r a.
          ( YulO3 x r a
          , LiftFunction (CurryNP (NP '[]) x) (P'P r) (P'P r) One ~ P'P r x
          ) => CurryingNP '[] x (P'P r) (P'P r) (YulCat'LPP r a) One where
-  curryingNP cb = cb (MkYulCat'LPP (\a -> coerce'l (discard a)))
+  curryingNP cb = cb (MkYulCat'LPP (\a -> coerceType'l (discard a)))
 
 instance forall x xs b r a.
          ( YulO5 x (NP xs) b r a

@@ -7,7 +7,7 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
   , ver'l, emb'l, const'l, dup2'l
     -- * Type Operations
     -- $TypeOps
-  , coerce'l, cons'l, uncons'l
+  , coerceType'l, reduceType'l, extendType'l, cons'l, uncons'l
   ) where
 -- linear-base
 import Prelude.Linear
@@ -83,19 +83,27 @@ dup2'l = split . copy
 ------------------------------------------------------------------------------------------------------------------------
 
 -- | Coerce input yul port to an ABI coercible output yul port.
-coerce'l :: forall a b eff r. (YulO3 a b r, ABITypeCoercible a b)
+coerceType'l :: forall a b eff r. (YulO3 a b r, ABITypeCoercible a b)
          => P'x eff r a ⊸ P'x eff r b
-coerce'l = encode YulCoerceType
+coerceType'l = encode YulCoerceType
+
+reduceType'l :: forall a eff r. (YulO3 a (ABITypeDerivedOf a) r)
+         => P'x eff r a ⊸ P'x eff r (ABITypeDerivedOf a)
+reduceType'l = encode YulReduceType
+
+extendType'l :: forall a eff r. (YulO3 a (ABITypeDerivedOf a) r)
+         => P'x eff r (ABITypeDerivedOf a) ⊸ P'x eff r a
+extendType'l = encode YulExtendType
 
 -- | Prepend an element to a 'NP'.
 cons'l :: forall x xs eff r. YulO3 x (NP xs) r
        => P'x eff r x ⊸ P'x eff r (NP xs) ⊸ P'x eff r (NP (x:xs))
-cons'l x xs = coerce'l (merge (x, xs))
+cons'l x xs = coerceType'l (merge (x, xs))
 
 -- | Split a 'NP' into its first element and the rest.
 uncons'l :: forall x xs eff r. YulO3 x (NP xs) r
          => P'x eff r (NP (x:xs)) ⊸ (P'x eff r x, P'x eff r (NP xs))
-uncons'l = split . coerce'l
+uncons'l = split . coerceType'l
 
 ------------------------------------------------------------------------------------------------------------------------
 
