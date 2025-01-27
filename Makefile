@@ -91,13 +91,13 @@ test-yol-suite:
 
 test-demo: test-demo-show test-demo-yul test-demo-foundry
 
-test-demo-show:
+test-demo-show: build-all-modules
 	time yolc -m show "examples/demo:ERC20"
 
-test-demo-yul:
+test-demo-yul: build-all-modules
 	time yolc -m yul "examples/demo:ERC20"
 
-test-demo-foundry:
+test-demo-foundry: build-all-modules
 	time yolc -m yul "examples/demo"
 	cd examples/demo && forge test -vvv
 
