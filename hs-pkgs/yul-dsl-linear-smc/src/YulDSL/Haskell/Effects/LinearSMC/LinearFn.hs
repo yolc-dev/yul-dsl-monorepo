@@ -132,7 +132,7 @@ externalCall :: forall f x xs b b' r v1 addrEff.
 externalCall (MkExternalFn sel) addr x =
   mkUnit'l x
   & \(x', u) -> curryingNP @_ @_ @(P'V v1 r) @(YulMonad v1 (v1 + 1) r) @(YulCat'LVV v1 v1 r ()) @One
-  $ \(MkYulCat'LVV fxs) -> encode'l @(VersionedInputOutput 1) @(VersionedPort v1) @_
+  $ \(MkYulCat'LVV fxs) -> encode'l @(VersionedInputOutput 1) @(VersionedPort v1) @(VersionedPort (v1 + 1))
                                     @_ @_ @_ {- r a b -}
                                     @(YulMonad v1 (v1 + 1) r b')
                            YulId
@@ -140,7 +140,7 @@ externalCall (MkExternalFn sel) addr x =
   $ go (cons'l x' (fxs u))
   where go :: forall. P'x (VersionedPort v1) r (NP (x : xs)) ⊸ P'V v1 r b
         go args = let !(args', u) = mkUnit'l args
-                  in encode'l @(VersionedInputOutput 0) @(VersionedPort v1)
+                  in encode'l @(VersionedInputOutput 0) @(VersionedPort v1) @(VersionedPort v1)
                      (YulCall sel)
                      id
                      (merge'l (merge'l (unsafeCoerceYulPort addr, emb'l 0 u), args'))

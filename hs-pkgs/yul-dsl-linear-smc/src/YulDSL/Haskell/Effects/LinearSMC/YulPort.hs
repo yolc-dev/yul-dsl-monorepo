@@ -37,7 +37,6 @@ data PortEffect = PurePort          -- ^ Pure port that does not need to be vers
 type instance IsEffectNotPure PortEffect = True
 type instance MayEffectWorld  PortEffect = True
 
-
 -- | Linear port of yul categories with the port effect kind, aka. yul ports.
 newtype P'x (eff :: PortEffect) r a = MkP'x (P (YulCat PortEffect) r a)
 

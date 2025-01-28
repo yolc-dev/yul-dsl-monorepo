@@ -12,13 +12,11 @@ module YulDSL.Haskell.Effects.LinearSMC.LinearYulCat
   , DecodableYulPortDiagram (decode'l)
   , EncodableYulPortDiagram (encode'l)
   , uncurry'lvv, uncurry'lpv
-    -- * Pattern Matching Of Yul Ports
-    -- $PatternMatching
-  , LinearMatcheable (match'l)
   ) where
 -- base
 import GHC.TypeLits                             (KnownNat, type (+))
 import Prelude                                  qualified as BasePrelude
+-- linear-base
 import Prelude.Linear
 -- yul-dsl
 import YulDSL.Core
@@ -108,7 +106,7 @@ class EncodableYulPortDiagram eff ie oe | eff ie -> oe where
         b = unsafeCoerceYulPort (encode'x cat' x)
     in f b
 
-instance va + vd ~ vb => EncodableYulPortDiagram (VersionedInputOutput vd) (VersionedPort va) (VersionedPort vb)
+instance (va + vd ~ vb) => EncodableYulPortDiagram (VersionedInputOutput vd) (VersionedPort va) (VersionedPort vb)
 instance EncodableYulPortDiagram (PureInputVersionedOutput v) PurePort (VersionedPort v)
 instance EncodableYulPortDiagram (eff :: PureEffectKind) PurePort PurePort
 
@@ -257,34 +255,3 @@ instance forall x xs b r a.
          ) => CurryingNP (x:xs) b (P'P r) (P'P r) (YulCat'LPP r a) One where
   curryingNP cb x = curryingNP @xs @b @(P'P r) @(P'P r) @(YulCat'LPP r a) @One
                     (\(MkYulCat'LPP fxs) -> cb (MkYulCat'LPP (\a -> (cons'l (unsafeCoerceYulPort x) (fxs a)))))
-
-------------------------------------------------------------------------------------------------------------------------
--- $PatternMatching
-------------------------------------------------------------------------------------------------------------------------
-
--- Linearly matechable yul port.
-class LinearMatcheable ioe eff | ioe -> eff where
-  -- | Pattern match a yul port and outputs another yul port.
-  match'l :: forall p c b r m.
-    ( YulO3 r p b
-    , YulCat eff p ~ m
-    , PatternMatchable m YulCatObj p c
-    ) => P'x ioe r p -> (c -> m b) -> P'x ioe r b
-
-instance LinearMatcheable (VersionedPort v) (VersionedInputOutput 0) where
-  match'l :: forall p c b r m.
-    ( YulO3 r p b
-    , YulCat (VersionedInputOutput 0) p ~ m
-    , PatternMatchable m YulCatObj p c
-    ) => P'V v r p -> (c -> m b) -> P'V v r b
-  match'l p f = let mb = match (YulId :: YulCat (VersionedInputOutput 0) p p) f
-                in encode'l mb id p
-
-instance LinearMatcheable PurePort Pure where
-  match'l :: forall p c b r m.
-    ( YulO3 r p b
-    , YulCat Pure p ~ m
-    , PatternMatchable m YulCatObj p c
-    ) => P'P r p -> (c -> m b) -> P'P r b
-  match'l p f = let mb = match (YulId :: YulCat Pure p p) f
-                in encode'l mb id p
