@@ -2,9 +2,10 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
   ( -- * Yul Port Definitions
     -- $LinearPortDefs
     PortEffect (PurePort, VersionedPort), EffectVersionDelta, P'x, P'V, P'P
+  , ver'l, unsafeCoerce'l
     -- * General Yul Port Operations
     -- $GeneralOps
-  , ver'l, emb'l, const'l, dup2'l, yulKeccak256'l
+  , emb'l, const'l, dup2'l, yulKeccak256'l
     -- * Type Operations
     -- $TypeOps
   , coerceType'l, reduceType'l, extendType'l, cons'l, uncons'l
@@ -43,7 +44,10 @@ type family EffectVersionDelta eff :: Nat where
 type instance IsEffectNotPure (eff :: PortEffect) = True
 type instance MayEffectWorld  (eff :: PortEffect) = True
 
+
+-- type role P'x phantom
 -- | Linear port of yul categories with the port effect kind, aka. yul ports.
+-- newtype P'x (eff :: PortEffect) r a = P'x (P (YulCat eff) r a)
 type P'x (eff :: PortEffect) = P (YulCat eff)
 
 -- | Linear port of yul category with pure data, aka. pure yul ports.
@@ -55,7 +59,10 @@ type P'V v = P'x (VersionedPort v)
 -- | Pure port can be converted to any versioned port.
 ver'l :: forall a v r. YulO2 a r
       => P'P r a ⊸ P'V v r a
-ver'l = UnsafeLinear.coerce
+ver'l = unsafeCoerce'l
+
+unsafeCoerce'l :: forall eff1 eff2 r a. P'x eff1 r a ⊸ P'x eff2 r a
+unsafeCoerce'l = UnsafeLinear.coerce
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $GeneralOps

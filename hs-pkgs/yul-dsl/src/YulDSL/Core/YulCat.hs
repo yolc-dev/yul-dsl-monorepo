@@ -30,7 +30,7 @@ module YulDSL.Core.YulCat
     -- * YulCat, the Categorical DSL of Yul
   , YulCat (..), AnyYulCat (..)
   , NamedYulCat, NamedYulCatNP
-  , Fn (MkFn, unFn)
+  , Fn (MkFn, unFn), unsafeCoerceFn
   , ExternalFn (MkExternalFn), declareExternalFn
   , (>.>), (<.<)
   , yulIfThenElse
@@ -171,6 +171,10 @@ data YulCat (eff :: k) a b where
   -- ^ Put storage word.
   YulSPut :: forall eff a. (YulO1 a, AssertNonPureEffect eff, ABIWordValue a) => YulCat eff (B32, a) ()
 
+  -- ^ Unsafe coerce between different effects.
+  YulUnsafeCoerceEffect :: forall k1 k2 (eff1 :: k1) (eff2 :: k2) a b. YulO2 a b
+                        => YulCat eff1 a b %1-> YulCat eff2 a b
+
 -- | Existential wrapper of the 'YulCat'.
 data AnyYulCat = forall eff a b. (YulO2 a b) => MkAnyYulCat (YulCat eff a b)
 
@@ -186,6 +190,12 @@ type NamedYulCatNP eff xs b = NamedYulCat eff (NP xs) b
 data Fn eff f where
   MkFn :: forall eff f xs b. EquivalentNPOfFunction f xs b
        => { unFn :: NamedYulCatNP eff (UncurryNP'Fst f) (UncurryNP'Snd f) } -> Fn eff f
+
+unsafeCoerceFn :: forall eff1 eff2 f xs b.
+                  ( EquivalentNPOfFunction f xs b
+                  , YulO2 b (NP xs))
+               => Fn eff1 f -> Fn eff2 f
+unsafeCoerceFn f = let (n, cat) = unFn f in MkFn (n, YulUnsafeCoerceEffect cat)
 
 -- | External contract functions that can be called via its selector.
 data ExternalFn f where
@@ -295,6 +305,8 @@ yulCatCompactShow = go
     --
     go (YulSGet @_ @a)             = "Sg" <> abi_type_name @a
     go (YulSPut @_ @a)             = "Sp" <> abi_type_name @a
+    --
+    go (YulUnsafeCoerceEffect c)   = go c
     -- A 'abi_type_name variant, enclosing name with "@()".
     abi_type_name :: forall a. ABITypeable a => String
     abi_type_name = "@" ++ abiTypeCompactName @a
@@ -306,35 +318,36 @@ yulCatCompactShow = go
 yulCatToUntypedLisp :: forall eff a b. YulCat eff a b -> Code
 yulCatToUntypedLisp = go init_ind
   where
-    go :: forall m n. Indenter -> YulCat eff m n -> Code
-    go _ YulReduceType        = T.empty
-    go _ YulExtendType        = T.empty
-    go _ YulCoerceType        = T.empty
+    go :: forall eff' a' b'. Indenter -> YulCat eff' a' b' -> Code
+    go _ YulReduceType               = T.empty
+    go _ YulExtendType               = T.empty
+    go _ YulCoerceType               = T.empty
     --
-    go _ YulId                = T.empty
-    go ind (YulComp cb ac)    = gcomp ind cb ac
-    go ind (YulProd ab cd)    = g2 ind "prod" ab cd
-    go ind YulSwap            = ind $ T.pack "swap"
-    go ind (YulFork ab ac)    = g2 ind "fork" ab ac
-    go ind YulExl             = ind $ T.pack "exl"
-    go ind YulExr             = ind $ T.pack "exr"
-    go ind YulDis             = ind $ T.pack "dis"
-    go ind YulDup             = ind $ T.pack "dup"
-    go ind (YulEmb x)         = ind $ T.pack (show x)
-    go ind (YulITE a b)       = g2 ind "ite" a b
-    go ind (YulJmpU (cid, _)) = ind $ T.pack ("(jmpu " ++ cid ++ ")")
-    go ind (YulJmpB p)        = ind $ T.pack ("(jmpb " ++ yulB_fname p ++ ")")
-    go ind (YulCall sel)      = ind $ T.pack ("(call " ++ showSelectorOnly sel ++ ")")
-    go ind YulSGet            = ind $ T.pack "sget"
-    go ind YulSPut            = ind $ T.pack "sput"
+    go _ YulId                       = T.empty
+    go ind (YulComp cb ac)           = gcomp ind cb ac
+    go ind (YulProd ab cd)           = g2 ind "prod" ab cd
+    go ind YulSwap                   = ind $ T.pack "swap"
+    go ind (YulFork ab ac)           = g2 ind "fork" ab ac
+    go ind YulExl                    = ind $ T.pack "exl"
+    go ind YulExr                    = ind $ T.pack "exr"
+    go ind YulDis                    = ind $ T.pack "dis"
+    go ind YulDup                    = ind $ T.pack "dup"
+    go ind (YulEmb x)                = ind $ T.pack (show x)
+    go ind (YulITE a b)              = g2 ind "ite" a b
+    go ind (YulJmpU (cid, _))        = ind $ T.pack ("(jmpu " ++ cid ++ ")")
+    go ind (YulJmpB p)               = ind $ T.pack ("(jmpb " ++ yulB_fname p ++ ")")
+    go ind (YulCall sel)             = ind $ T.pack ("(call " ++ showSelectorOnly sel ++ ")")
+    go ind YulSGet                   = ind $ T.pack "sget"
+    go ind YulSPut                   = ind $ T.pack "sput"
+    go ind (YulUnsafeCoerceEffect c) = go ind c
     --
-    gcomp :: Indenter -> YulCat eff c' b' -> YulCat eff a' c' -> Code
+    gcomp :: forall eff' a' b' c'. Indenter -> YulCat eff' c' b' -> YulCat eff' a' c' -> Code
     gcomp ind cb ac = let c1 = go ind ac
                           c2 = go ind cb
                       in if T.null c1 || T.null c2
                          then c1 <> c2
                          else c1 <> ind (T.pack ";;") <> c2
-    g2 :: Indenter -> String -> YulCat eff m n -> YulCat eff p q -> Code
+    g2 :: forall eff' m n p q. Indenter -> String -> YulCat eff' m n -> YulCat eff' p q -> Code
     g2 ind op c1 c2 =
       let op' = T.pack "(" <> T.pack op
           ind' = indent ind

@@ -68,6 +68,7 @@ evalYulCat' (YulITE ct cf) (BOOL t, a) = if t then evalYulCat' ct a else evalYul
 evalYulCat' (YulEmb b)  _ = pure b
 evalYulCat' YulSGet r = gets $ \s -> fromJust (fromWord =<< M.lookup r (store_map s))
 evalYulCat' YulSPut (r, a) = modify' $ \s -> s { store_map = M.insert r (toWord a) (store_map s) }
+evalYulCat' (YulUnsafeCoerceEffect c) a = evalYulCat' c a
 
 evalYulCat :: YulO2 a b => YulCat eff a b -> a -> b
 evalYulCat s a = evalState (evalYulCat' s a) initEvalState

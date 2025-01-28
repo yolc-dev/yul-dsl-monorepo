@@ -26,28 +26,30 @@ do_compile_cat :: HasCallStack
                => AnyYulCat -> CGState RhsExprGen
 do_compile_cat (MkAnyYulCat (cat :: YulCat eff a b)) = go cat where
   -- - type conversions
-  go (YulExtendType)        = build_rhs_aliases @a
-  go (YulReduceType)        = build_rhs_aliases @a
-  go (YulCoerceType)        = build_rhs_aliases @a
+  go (YulExtendType)           = build_rhs_aliases @a
+  go (YulReduceType)           = build_rhs_aliases @a
+  go (YulCoerceType)           = build_rhs_aliases @a
   -- - categorical
-  go (YulId)                = build_rhs_aliases @a
-  go (YulComp cb ac)        = go_comp cb ac
-  go (YulProd ab cd)        = go_prod ab cd
-  go (YulSwap @_ @m @n)     = go_swap @m @n
-  go (YulFork ab ac)        = go_fork ab ac
-  go (YulExl @_ @m @n)      = go_extract @m @n True  {- extractLeft -}
-  go (YulExr @_ @m @n)      = go_extract @m @n False {- extractLeft -}
-  go (YulDis)               = go_dis @a
-  go (YulDup)               = go_dup @a
+  go (YulId)                   = build_rhs_aliases @a
+  go (YulComp cb ac)           = go_comp cb ac
+  go (YulProd ab cd)           = go_prod ab cd
+  go (YulSwap @_ @m @n)        = go_swap @m @n
+  go (YulFork ab ac)           = go_fork ab ac
+  go (YulExl @_ @m @n)         = go_extract @m @n True  {- extractLeft -}
+  go (YulExr @_ @m @n)         = go_extract @m @n False {- extractLeft -}
+  go (YulDis)                  = go_dis @a
+  go (YulDup)                  = go_dup @a
   -- - control flows
-  go (YulEmb @_ @m @n x)    = go_emb @m @n x
-  go (YulITE ct cf)         = go_ite ct cf
-  go (YulJmpU t)            = go_jmpu t
-  go (YulJmpB b)            = go_jmpb b
-  go (YulCall @_ @m @n sel) = go_call @m @n 'O' sel
+  go (YulEmb @_ @m @n x)       = go_emb @m @n x
+  go (YulITE ct cf)            = go_ite ct cf
+  go (YulJmpU t)               = go_jmpu t
+  go (YulJmpB b)               = go_jmpb b
+  go (YulCall @_ @m @n sel)    = go_call @m @n 'O' sel
   -- - storage effects
-  go (YulSGet @_ @m)        = go_sget @m
-  go (YulSPut @_ @m)        = go_sput @m
+  go (YulSGet @_ @m)           = go_sget @m
+  go (YulSPut @_ @m)           = go_sput @m
+  --
+  go (YulUnsafeCoerceEffect c) = do_compile_cat (MkAnyYulCat c)
 
 go_comp :: forall eff a b c. (HasCallStack, YulO3 a b c)
         => YulCat eff c b -> YulCat eff a c -> CGState RhsExprGen

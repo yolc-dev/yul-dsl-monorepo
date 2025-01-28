@@ -21,7 +21,6 @@ import GHC.TypeLits                                  (type (+))
 -- linear-base
 import Control.Category.Linear                       (merge, mkUnit)
 import Prelude.Linear
-import Unsafe.Linear                                 qualified as UnsafeLinear
 -- yul-dsl
 import YulDSL.Core
 -- yul-dsl-pure
@@ -81,7 +80,7 @@ class CallFnLinearly fnEff vd | fnEff -> vd where
     -> (P'V v1 r x ⊸ LiftFunction (CurryNP (NP xs) b) (P'V v1 r) (P'V vn r) One)
   -- ^ All other function kinds is coerced into calling as if it is a versioned input output.
   callFn'l f = callFn'l @(VersionedInputOutput vd) @vd @f
-               (UnsafeLinear.coerce f)
+               (unsafeCoerceFn f)
 
 instance CallFnLinearly (VersionedInputOutput vd) vd where
   callFn'l :: forall f x xs b r v1 vn.
@@ -138,12 +137,11 @@ externalCall (MkExternalFn sel) addr x =
                                     @_ @_ @_ {- r a b -}
                                     @(YulMonad v1 (v1 + 1) r b')
                            YulId
-                           (\(b' :: P'V (v1 + 1) r b) -> let mb = LVM.pure b' :: YulMonad (v1 + 1) (v1 + 1) r b'
-                                                         in UnsafeLinear.coerce mb)
+                           (\(b' :: P'V (v1 + 1) r b) -> LVM.unsafeCoerceLVM (LVM.pure b'))
   $ go (cons'l x' (fxs u))
   where go :: forall. P'x (VersionedPort v1) r (NP (x : xs)) ⊸ P'V v1 r b
         go args = let !(args', u) = mkUnit args
                   in encode'l @(VersionedInputOutput 0) @(VersionedPort v1)
                      (YulCall sel)
                      id
-                     (merge (merge (UnsafeLinear.coerce addr, emb'l 0 u), args'))
+                     (merge (merge (unsafeCoerce'l addr, emb'l 0 u), args'))

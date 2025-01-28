@@ -5,7 +5,6 @@ module YulDSL.Haskell.Effects.LinearSMC.YulMonad
     -- * Yul Monadic Diagrams
   , YulCat'LVM (MkYulCat'LVM), YulCat'LPM (MkYulCat'LPM)
   , yulmonad'v, yulmonad'p
-    -- * Re-import Combinators Of Linearly Versioned Monad
   , ypure
   , module Control.LinearlyVersionedMonad.Combinators
   , Control.Functor.Linear.fmap
@@ -36,9 +35,10 @@ type YulMonad va vb r = LVM (YulMonadCtx r) va vb
 -- | Run a YulMonad with an initial unit port and returns a versioned result.
 runYulMonad :: forall vd r a ue . YulO2 r a
             => P'x ue r () ⊸ YulMonad 0 vd r (P'V vd r a) ⊸ P'V vd r a
-runYulMonad u m = let !(ctx', a) = runLVM (MkYulMonadCtx (UnsafeLinear.coerce u)) m
+runYulMonad u m = let ud = MkUnitDumpster (unsafeCoerce'l u)
+                      !(ctx', a) = runLVM (MkYulMonadCtx ud) m
                       !(MkYulMonadCtx (MkUnitDumpster u')) = ctx'
-                  in ignore (UnsafeLinear.coerce u') a
+                  in ignore (unsafeCoerce'l u') a
 
 -- An alias to 'LVM.pure' to avoid naming conflict with Monad pure function.
 ypure :: forall a v r. a ⊸ YulMonad v v r a
@@ -55,12 +55,12 @@ newtype UnitDumpster r = MkUnitDumpster (P'V 0 r ())
 ud_dupu :: forall eff r. YulO1 r
         => UnitDumpster r ⊸ (UnitDumpster r, P'x eff r ())
 ud_dupu (MkUnitDumpster u) = let !(u1, u2) = dup2'l u
-                             in (MkUnitDumpster u1, UnsafeLinear.coerce u2)
+                             in (MkUnitDumpster u1, unsafeCoerce'l u2)
 
 -- Gulp an input port.
 ud_gulp :: forall eff r a. YulO2 r a
         => P'x eff r a ⊸ UnitDumpster r ⊸ UnitDumpster r
-ud_gulp x (MkUnitDumpster u) = let u' = ignore u (UnsafeLinear.coerce (discard x))
+ud_gulp x (MkUnitDumpster u) = let u' = ignore u (unsafeCoerce'l (discard x))
                                in MkUnitDumpster u'
 
 -- Context to be with the 'YulMonad'.
@@ -168,7 +168,7 @@ instance forall x v1 vn r a.
          (P'P r) (YulMonad v1 vn r)
          (YulCat'LPP r a) (YulCat'LPM v1 vn r a) One where
   uncurryingNP x (MkYulCat'LPP h) = MkYulCat'LPM
-    \a -> tossToUnit (UnsafeLinear.coerce @_ @(P'V v1 r x) (h a & coerceType'l @_ @())) LVM.>> x
+    \a -> tossToUnit (unsafeCoerce'l (h a & coerceType'l @_ @())) LVM.>> x
 
 instance forall x xs b g v1 vn r a.
          ( YulO5 x (NP xs) b r a
