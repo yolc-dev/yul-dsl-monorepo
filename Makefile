@@ -7,7 +7,7 @@ LINEAR_SMC_VERSION = 2.2.3
 LINEAR_SMC_PATH_FILE = 3rd-parties/linear-smc-$(LINEAR_SMC_VERSION).patch
 
 # Output directories
-DEFAULT_BUILDDIR ?= $(PWD)/build/yolc
+DEFAULT_BUILDDIR ?= $(PWD)/build/default
 TEST_COVERAGE_BUILDDIR ?= $(PWD)/build/dist-coverage
 DOCS_BUILDDIR ?= $(PWD)/build/dist-docs
 
