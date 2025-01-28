@@ -11,31 +11,32 @@ This module packages all the goodies prelude-worthy for programming "YulDSL" in 
 
 -}
 module Prelude.YulDSL
-  ( -- * YulDSL/Haskell's Pure Effects
-    module YulDSL.Haskell.YulUtils
-    -- * YulDSL/Haskell's LinearSMC Support
-  , module YulDSL.Haskell.Effects.LinearSMC
-    -- * YulDSL/Haskell's Data Types
-  , module YulDSL.Haskell.Data.SHMap
+  ( -- * Module linear-base
+    module Data.MPOrd
+  , module Prelude.Linear
+
     -- * YulDSL Core
   , module YulDSL.Core
-    -- * Module linear-base
-  , module Data.MPOrd
-  , module Prelude.Linear
-    -- * Module linear-smc
-  , module Control.Category.Linear
+
+    -- * YulDSL/Haskell's Pure Effect Utils
+  , module YulDSL.Haskell.YulUtils.Pure
+
+    -- * YulDSL/Haskell's LinearSMC Support
+  , module YulDSL.Haskell.Effects.LinearSMC
+  , module YulDSL.Haskell.YulUtils.LinearSMC
+  , module YulDSL.Haskell.Data.SHMap
   ) where
 -- linear-base, replacing Eq/Ord with MPOrd
 import Data.MPOrd
-import Data.Num.Linear.YulDSL           ()
-import Prelude.Linear                   hiding (Eq (..), Ord (..))
--- linear-smc
-import Control.Category.Linear
+import Data.Num.Linear.YulDSL            ()
+import Prelude.Linear                    hiding (Eq (..), Ord (..))
 -- yul-dsl
 import YulDSL.Core
 -- yul-dsl-pure
-import YulDSL.Haskell.YulUtils
+import YulDSL.Haskell.YulUtils.Pure
 --
 import YulDSL.Haskell.Effects.LinearSMC
+--
+import YulDSL.Haskell.YulUtils.LinearSMC
 --
 import YulDSL.Haskell.Data.SHMap

@@ -50,14 +50,21 @@ debug() {
 runyol() {
   local CABAL=(cabal --builddir="$build_dir")
   if is_verbose; then
-    debug "+ runyol" "${CABAL[@]}" "$@"
-    "${CABAL[@]}" "$@" -v1 build runyol >&2 && \
-      "${CABAL[@]}"  "$@" -v0 list-bin runyol | xargs -- sh -c
+    {
+      debug "+ build runyol" "${CABAL[@]}" "$@"
+      "${CABAL[@]}" "$@" -v1 build runyol >&2
+      debug "- build runyol"
+    }
   else
     # silent the stdout of the build process
-    "${CABAL[@]}" "$@" -v0 build runyol >/dev/null && \
-      "${CABAL[@]}" "$@" -v0 list-bin runyol | xargs -- sh -c
-  fi
+    "${CABAL[@]}" "$@" -v0 build runyol >/dev/null
+  fi && {
+    runbin=$("${CABAL[@]}" "$@" -v0 list-bin runyol)
+    is_verbose && {
+      debug "+ runyol" "$runbin"
+    }
+    $runbin
+  }
 }
 
 main() {

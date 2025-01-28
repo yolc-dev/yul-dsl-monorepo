@@ -29,8 +29,8 @@ CABAL ?= cabal -v$(CABAL_VERBOSITY) -j
 CABAL_PACKAGE_DB = $(shell $(CABAL) -v0 --builddir=$(DEFAULT_BUILDDIR) path --output-format=json | \
 										 jq -r '."store-dir" + "/" + .compiler.id + "-inplace/package.db"')
 
-CABAL_BUILD    = $(CABAL) --builddir=$(DEFAULT_BUILDDIR) build
-CABAL_TEST     = $(CABAL) --builddir=$(DEFAULT_BUILDDIR) test $(TEST_OPTIONS)
+CABAL_BUILD    = $(CABAL) --builddir=$(DEFAULT_BUILDDIR) -O0 build
+CABAL_TEST     = $(CABAL) --builddir=$(DEFAULT_BUILDDIR) -O0 test $(TEST_OPTIONS)
 CABAL_COVERAGE = $(CABAL) --builddir=$(TEST_COVERAGE_BUILDDIR) coverage
 CABAL_DOCS     = $(CABAL) --builddir=$(DOCS_BUILDDIR) haddock
 

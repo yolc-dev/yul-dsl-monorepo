@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
-module YulDSL.Haskell.YulUtils
+module YulDSL.Haskell.YulUtils.Pure
     -- * YulDSL/Haskell's pure effect support
   ( module YulDSL.Haskell.Effects.Pure
     -- * Extra YulCat Helpers

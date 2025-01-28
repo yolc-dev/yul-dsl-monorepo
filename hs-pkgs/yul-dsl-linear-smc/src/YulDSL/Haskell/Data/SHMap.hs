@@ -3,7 +3,6 @@ module YulDSL.Haskell.Data.SHMap
   , shmapGet
   ) where
 -- linear-base
-import Control.Category.Linear
 import Prelude.Linear                            (String, fromInteger, type (~))
 -- yul-dsl
 import YulDSL.Core
@@ -12,6 +11,8 @@ import Control.LinearlyVersionedMonad            qualified as LVM
 import Data.Num.Linear.YulDSL                    ()
 import YulDSL.Haskell.Effects.LinearSMC.YulMonad
 import YulDSL.Haskell.Effects.LinearSMC.YulPort
+import YulDSL.Haskell.YulUtils.LinearSMC
+
 
 newtype SHMap a b = SHMap U256
 
@@ -24,4 +25,4 @@ shmapGet :: forall a b ie r v. YulO3 r a b
   ⊸ YulMonad v v r (P'x ie r (REF b))
 shmapGet (SHMap key) a = LVM.do
   key' <- embed key
-  with a (\a' -> ypure (extendType'l (yulKeccak256'l (merge (key', a')))))
+  with a (\a' -> ypure (extendType'l (yulKeccak256'l (merge'l (key', a')))))

@@ -107,8 +107,8 @@ infixr 1 =<<
 
 -- Unsafely coerce version proofs.
 unsafeCoerceLVM :: LVM ctx va vb a ⊸ LVM ctx vc vd a
-unsafeCoerceLVM (MkLVM f) =MkLVM \ctx -> let !(d, ctx', a) = f ctx
-                                         in (lseq d unsafeAxiom, ctx', a)
+unsafeCoerceLVM (MkLVM f) = MkLVM \ctx -> let !(d, ctx', a) = f ctx
+                                          in (lseq d unsafeAxiom, ctx', a)
 
 --
 -- Instances for linear-base

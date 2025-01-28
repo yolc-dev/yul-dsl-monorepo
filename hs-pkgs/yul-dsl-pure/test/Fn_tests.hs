@@ -1,6 +1,6 @@
 module Fn_tests where
 -- base
-import Data.Functor                ((<&>))
+import Data.Functor                 ((<&>))
 -- hspec, quickcheck
 import Test.Hspec
 import Test.QuickCheck
@@ -11,9 +11,9 @@ import YulDSL.Core
 import YulDSL.Eval
 -- yul-dsl-pure
 import YulDSL.Haskell.Effects.Pure
-import YulDSL.Haskell.YulUtils
+import YulDSL.Haskell.YulUtils.Pure
 --
-import TestCommon                  ()
+import TestCommon                   ()
 
 
 --------------------------------------------------------------------------------

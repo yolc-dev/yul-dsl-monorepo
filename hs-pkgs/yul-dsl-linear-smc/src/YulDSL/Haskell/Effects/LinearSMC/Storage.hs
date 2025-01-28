@@ -24,7 +24,6 @@ import GHC.TypeLits                              (type (+))
 -- constraints
 import Data.Constraint.Unsafe                    (unsafeAxiom)
 -- linear-base
-import Control.Category.Linear
 import Prelude.Linear                            ((&), (.))
 -- yul-dsl
 import YulDSL.Core
@@ -42,14 +41,14 @@ class YulO2 a b => SReferenceable v r a b where
   sput :: forall. YulO1 r => P'V v r a ⊸ P'V v r b ⊸ YulMonad v (v + 1) r (P'V (v + 1) r ())
 
 instance (YulO1 b, ABIWordValue b) => SReferenceable v r B32 b where
-  sget a = ypure (encode YulSGet a)
-  sput to x = encode YulSPut (merge (to, x))
-              & \u -> MkLVM (unsafeAxiom, , unsafeCoerce'l u)
+  sget a = ypure (encode'x YulSGet a)
+  sput to x = encode'x YulSPut (merge'l (to, x))
+              & \u -> MkLVM (unsafeAxiom, , unsafeCoerceYulPort u)
 
 instance (YulO1 a, ABIWordValue a) => SReferenceable v r (REF a) a where
-  sget a = ypure (encode YulSGet (reduceType'l a))
-  sput to x = encode YulSPut (merge (reduceType'l to, x))
-              & \u -> MkLVM (unsafeAxiom, , unsafeCoerce'l u)
+  sget a = ypure (encode'x YulSGet (reduceType'l a))
+  sput to x = encode'x YulSPut (merge'l (reduceType'l to, x))
+              & \u -> MkLVM (unsafeAxiom, , unsafeCoerceYulPort u)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- sgetNP, sgetN, (<==)
@@ -102,7 +101,7 @@ instance ( YulO1 r
   sputNP ((a, b) :* xs) = let x'  = sput a b :: YulMonad v (v + 1) r (P'V (v + 1) r ())
                               x'' = LVM.unsafeCoerceLVM x' :: YulMonad v v r (P'V (v + 1) r ())
                               xs' = sputNP xs :: YulMonad v (v + 1) r (P'V (v + 1) r ())
-                     in x'' LVM.>> xs'
+                          in x'' LVM.>> xs'
 
 sputN :: forall tpl v r.
   ( ConvertibleTupleN tpl
@@ -122,7 +121,7 @@ sassign (to := x) = sput to x
 sputs :: forall v r. YulO1 r => NonEmpty (StorageAssignment v r) ⊸ YulMonad v (v + 1) r (P'V (v + 1) r ())
 sputs (sa :| []) = sassign sa
 sputs (sa :| (sa':sas)) =
-  let x  = sassign sa LVM.>>= ypure . unsafeCoerce'l :: YulMonad v (v + 1) r (P'V v r ())
+  let x  = sassign sa LVM.>>= ypure . unsafeCoerceYulPort:: YulMonad v (v + 1) r (P'V v r ())
       x' = LVM.unsafeCoerceLVM x :: YulMonad v v r (P'V v r ())
       xs = sputs (sa' :| sas)
   in x' LVM.>> xs

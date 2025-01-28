@@ -34,11 +34,11 @@ library
   -- modules
   exposed-modules:
     -- YulDSL/Haskell
-    YulDSL.Haskell.YulUtils
     YulDSL.Haskell.Effects.Pure
     YulDSL.Haskell.YulCatObj.Maybe
     YulDSL.Haskell.YulCatObj.NP
     YulDSL.Haskell.YulCatObj.TUPLEn
+    YulDSL.Haskell.YulUtils.Pure
     -- Extra control patterns
     Data.MPOrd
     Control.PatternMatchable

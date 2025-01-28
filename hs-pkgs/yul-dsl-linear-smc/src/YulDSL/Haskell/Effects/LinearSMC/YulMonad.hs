@@ -10,10 +10,8 @@ module YulDSL.Haskell.Effects.LinearSMC.YulMonad
   , Control.Functor.Linear.fmap
   ) where
 -- linear-base
-import Control.Category.Linear                       (discard, ignore, mkUnit, split)
 import Control.Functor.Linear qualified
 import Prelude.Linear
-import Unsafe.Linear                                 qualified as UnsafeLinear
 -- yul-dsl
 import YulDSL.Core
 -- linearly-versioned-monad
@@ -35,10 +33,10 @@ type YulMonad va vb r = LVM (YulMonadCtx r) va vb
 -- | Run a YulMonad with an initial unit port and returns a versioned result.
 runYulMonad :: forall vd r a ue . YulO2 r a
             => P'x ue r () ⊸ YulMonad 0 vd r (P'V vd r a) ⊸ P'V vd r a
-runYulMonad u m = let ud = MkUnitDumpster (unsafeCoerce'l u)
+runYulMonad u m = let ud = MkUnitDumpster (unsafeCoerceYulPort u)
                       !(ctx', a) = runLVM (MkYulMonadCtx ud) m
                       !(MkYulMonadCtx (MkUnitDumpster u')) = ctx'
-                  in ignore (unsafeCoerce'l u') a
+                  in ignore'l (unsafeCoerceYulPort u') a
 
 -- An alias to 'LVM.pure' to avoid naming conflict with Monad pure function.
 ypure :: forall a v r. a ⊸ YulMonad v v r a
@@ -55,12 +53,12 @@ newtype UnitDumpster r = MkUnitDumpster (P'V 0 r ())
 ud_dupu :: forall eff r. YulO1 r
         => UnitDumpster r ⊸ (UnitDumpster r, P'x eff r ())
 ud_dupu (MkUnitDumpster u) = let !(u1, u2) = dup2'l u
-                             in (MkUnitDumpster u1, unsafeCoerce'l u2)
+                             in (MkUnitDumpster u1, unsafeCoerceYulPort u2)
 
 -- Gulp an input port.
 ud_gulp :: forall eff r a. YulO2 r a
         => P'x eff r a ⊸ UnitDumpster r ⊸ UnitDumpster r
-ud_gulp x (MkUnitDumpster u) = let u' = ignore u (unsafeCoerce'l (discard x))
+ud_gulp x (MkUnitDumpster u) = let u' = ignore'l u (unsafeCoerceYulPort(discard'l x))
                                in MkUnitDumpster u'
 
 -- Context to be with the 'YulMonad'.
@@ -73,7 +71,7 @@ instance YulO2 r a => ContextualConsumable (YulMonadCtx r) (P'x eff r a) where
 instance YulO3 r a b => ContextualSeqable (YulMonadCtx r) (P'x eff1 r a) (P'x eff2 r b) where
   contextualSeq (MkYulMonadCtx ud) a b = let ud' = ud_gulp a ud
                                              !(ud'', u') = ud_dupu ud'
-                                             b' = ignore u' b
+                                             b' = ignore'l u' b
                                          in (MkYulMonadCtx ud'', b')
 
 instance YulO2 r a => ContextualDupable (YulMonadCtx r) (P'x eff r a) where
@@ -109,13 +107,13 @@ instance forall x xs b g v1 vn r a.
   uncurryingNP f (MkYulCat'LVV h) = MkYulCat'LVM
     \xxs ->
       dup2'l xxs
-    & \(xxs1, xxs2) -> split (coerceType'l @(NP (x:xs)) @(x, NP xs) (h xxs1))
+    & \(xxs1, xxs2) -> split'l (coerceType'l @(NP (x:xs)) @(x, NP xs) (h xxs1))
     & \(x, xs) -> let !(MkYulCat'LVM g) =
                         (uncurryingNP
                           @g @xs @(P'V vn r b)
                           @(P'V v1 r) @(YulMonad v1 vn r) @(YulCat'LVV v1 v1 r a) @(YulCat'LVM v1 vn r a) @One
                           (f x)
-                          (MkYulCat'LVV (\a -> ignore (discard a) xs))
+                          (MkYulCat'LVV (\a -> ignore'l (discard'l a) xs))
                         )
                   in g xxs2
 
@@ -123,7 +121,7 @@ instance forall x v1 vn r a.
          ( YulO3 x r a
          , LiftFunction (CurryNP (NP '[]) x) (P'V v1 r) (YulMonad v1 vn r) One ~ YulMonad v1 vn r x
          ) => CurryingNP '[] (P'V vn r x) (P'V v1 r) (YulMonad v1 vn r) (YulCat'LVV v1 v1 r a) One where
-  curryingNP cb = cb (MkYulCat'LVV (\a -> coerceType'l (discard a)))
+  curryingNP cb = cb (MkYulCat'LVV (\a -> coerceType'l (discard'l a)))
 
 instance forall x xs b r a v1 vn.
          ( YulO5 x (NP xs) b r a
@@ -152,7 +150,7 @@ yulmonad'v :: forall f xs b r vd m1 m1b m2 m2b f' b'.
   -> (P'V 0 r (NP xs) ⊸ P'V vd r b) -- ^ LiftFunction (NP (():xs) -> b) m1 m1b One
 yulmonad'v f =
   let !(MkYulCat'LVM f') = uncurryingNP @f' @xs @b' @m1 @m1b @m2 @m2b @One f (MkYulCat'LVV id)
-  in \xs -> mkUnit xs & \(xs', u) -> runYulMonad u (f' xs')
+  in \xs -> mkUnit'l xs & \(xs', u) -> runYulMonad u (f' xs')
 
 ------------------------------------------------------------------------------------------------------------------------
 -- yulmonad'p
@@ -168,7 +166,7 @@ instance forall x v1 vn r a.
          (P'P r) (YulMonad v1 vn r)
          (YulCat'LPP r a) (YulCat'LPM v1 vn r a) One where
   uncurryingNP x (MkYulCat'LPP h) = MkYulCat'LPM
-    \a -> tossToUnit (unsafeCoerce'l (h a & coerceType'l @_ @())) LVM.>> x
+    \a -> tossToUnit (unsafeCoerceYulPort (h a & coerceType'l @_ @())) LVM.>> x
 
 instance forall x xs b g v1 vn r a.
          ( YulO5 x (NP xs) b r a
@@ -179,13 +177,13 @@ instance forall x xs b g v1 vn r a.
   uncurryingNP f (MkYulCat'LPP h) = MkYulCat'LPM
     \xxs ->
       dup2'l xxs
-    & \(xxs1, xxs2) -> split (coerceType'l @(NP (x:xs)) @(x, NP xs) (h xxs1))
+    & \(xxs1, xxs2) -> split'l (coerceType'l @(NP (x:xs)) @(x, NP xs) (h xxs1))
     & \(x, xs) -> let !(MkYulCat'LPM g) =
                         (uncurryingNP
                           @g @xs @(P'V vn r b)
                           @(P'P r) @(YulMonad v1 vn r) @(YulCat'LPP r a) @(YulCat'LPM v1 vn r a) @One
                           (f x)
-                          (MkYulCat'LPP (\a -> ignore (discard a) xs))
+                          (MkYulCat'LPP (\a -> ignore'l (discard'l a) xs))
                         )
                   in g xxs2
 
@@ -209,4 +207,4 @@ yulmonad'p :: forall f xs b r vd m1 m1b m2 m2b f' b'.
   -> (P'P r (NP xs) ⊸ P'V vd r b) -- ^ LiftFunction (NP (():xs) -> b) m1 m1b One
 yulmonad'p f =
   let !(MkYulCat'LPM f') = uncurryingNP @f' @xs @b' @m1 @m1b @m2 @m2b @One f (MkYulCat'LPP id)
-  in \xs -> mkUnit xs & \(xs', u) -> runYulMonad u (f' xs')
+  in \xs -> mkUnit'l xs & \(xs', u) -> runYulMonad u (f' xs')

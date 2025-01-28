@@ -19,14 +19,11 @@ module YulDSL.Haskell.Effects.LinearSMC.LinearYulCat
 -- base
 import GHC.TypeLits                             (KnownNat, type (+))
 import Prelude                                  qualified as BasePrelude
--- linear-base
-import Control.Category.Linear                  (P, decode, discard, encode, ignore, split)
 import Prelude.Linear
-import Unsafe.Linear                            qualified as UnsafeLinear
 -- yul-dsl
 import YulDSL.Core
 -- yul-dsl-pure
-import YulDSL.Haskell.YulUtils
+import YulDSL.Haskell.YulUtils.Pure
 --
 import YulDSL.Haskell.Effects.LinearSMC.YulPort
 
@@ -91,27 +88,11 @@ class DecodableYulPortDiagram ie oe eff | ie oe -> eff where
   decode'l :: forall a b. YulO2 a b
     => (forall r. YulO1 r => P'x ie r a ⊸ P'x oe r b)
     -> YulCat eff a b
+  decode'l f = YulUnsafeCoerceEffect (decode'x (unsafeCoerceYulPortDiagram f))
 
-instance DecodableYulPortDiagram (VersionedPort 0) (VersionedPort vd) (VersionedInputOutput vd) where
-  decode'l f = decode (h f) -- an intermediate function to fight the multiplicity hell
-    where h :: forall oe a b. oe ~ VersionedInputOutput vd
-            => (forall r. YulO1 r => P'V 0 r a ⊸ P'V vd r b)
-            ⊸ (forall r. YulO1 r => P (YulCat oe) r a ⊸ P (YulCat oe) r b)
-          h = UnsafeLinear.coerce {- using Unsafe coerce to convert effect after type-checking -}
-
-instance DecodableYulPortDiagram PurePort (VersionedPort vd) (PureInputVersionedOutput vd) where
-  decode'l f = decode (h f) -- an intermediate function to fight the multiplicity hell
-    where h :: forall oe a b. oe ~ PureInputVersionedOutput vd
-            => (forall r. YulO1 r => P'P r a ⊸ P'V vd r b)
-            ⊸ (forall r. YulO1 r => P (YulCat oe) r a ⊸ P (YulCat oe) r b)
-          h = UnsafeLinear.coerce {- using Unsafe coerce to convert effect after type-checking -}
-
-instance DecodableYulPortDiagram PurePort PurePort Pure where
-  decode'l f = decode (h f) -- an intermediate function to fight the multiplicity hell
-    where h :: forall oe a b. oe ~ Pure
-            => (forall r. YulO1 r => P'P r a ⊸ P'P r b)
-            ⊸ (forall r. YulO1 r => P (YulCat oe) r a ⊸ P (YulCat oe) r b)
-          h = UnsafeLinear.coerce {- using Unsafe coerce to convert effect after type-checking -}
+instance DecodableYulPortDiagram (VersionedPort 0) (VersionedPort vd) (VersionedInputOutput vd)
+instance DecodableYulPortDiagram PurePort (VersionedPort vd) (PureInputVersionedOutput vd)
+instance DecodableYulPortDiagram PurePort PurePort Pure
 
 -- | Encodable yul port diagrams.
 class EncodableYulPortDiagram eff ie oe | eff ie -> oe where
@@ -122,36 +103,14 @@ class EncodableYulPortDiagram eff ie oe | eff ie -> oe where
     => YulCat eff a b
     -> (P'x oe r b ⊸ c)
     -> (P'x ie r a ⊸ c)
-
-instance va + vd ~ vb => EncodableYulPortDiagram (VersionedInputOutput vd) (VersionedPort va) (VersionedPort vb) where
-  encode'l :: forall r a b c. YulO3 r a b
-    => YulCat (VersionedInputOutput vd) a b
-    -> (P'x (VersionedPort vb) r b ⊸ c)
-    -> (P'x (VersionedPort va) r a ⊸ c)
-  encode'l cat f x = -- ghc can infer it; annotating for readability and double checking expected types
-    let cat' = YulUnsafeCoerceEffect cat :: YulCat (VersionedPort va) a b
-        b = unsafeCoerce'l (encode cat' x)
+  encode'l cat f x =
+    let cat' = YulUnsafeCoerceEffect cat
+        b = unsafeCoerceYulPort (encode'x cat' x)
     in f b
 
-instance EncodableYulPortDiagram (PureInputVersionedOutput v) PurePort (VersionedPort v) where
-  encode'l :: forall r a b c. YulO3 r a b
-    => YulCat (PureInputVersionedOutput v) a b
-    -> (P'x (VersionedPort v) r b ⊸ c)
-    -> (P'P r a ⊸ c)
-  encode'l cat f x = -- ghc can infer it; annotating for readability and double checking expected types
-    let cat' = YulUnsafeCoerceEffect cat :: YulCat PurePort a b
-        b = unsafeCoerce'l (encode cat' x)
-    in f b
-
-instance EncodableYulPortDiagram (eff :: PureEffectKind) PurePort PurePort where
-  encode'l :: forall r a b c. YulO3 r a b
-    => YulCat eff a b
-    -> (P'P r b ⊸ c)
-    -> (P'P r a ⊸ c)
-  encode'l cat f x = -- ghc can infer it; annotating for readability and double checking expected types
-    let cat' = YulUnsafeCoerceEffect cat :: YulCat PurePort a b
-        b = unsafeCoerce'l (encode cat' x)
-    in f b
+instance va + vd ~ vb => EncodableYulPortDiagram (VersionedInputOutput vd) (VersionedPort va) (VersionedPort vb)
+instance EncodableYulPortDiagram (PureInputVersionedOutput v) PurePort (VersionedPort v)
+instance EncodableYulPortDiagram (eff :: PureEffectKind) PurePort PurePort
 
 ------------------------------------------------------------------------------------------------------------------------
 -- (P'V v1 r x1 ⊸ P'V v1 r x2 ⊸ ... P'V vn r b) <=> YulCat'LVV v1 vn r (NP xs) b
@@ -164,8 +123,8 @@ instance forall x v1 vn r a.
   uncurryingNP x (MkYulCat'LVV h) = MkYulCat'LVV
     (\a -> h a                   -- :: P'V v1 (NP '[])
            & coerceType'l @_ @() -- :: P'V v1 ()
-           & unsafeCoerce'l      -- :: P'V vn ()
-           & \u -> ignore u x)   -- :: P'V vn x
+           & unsafeCoerceYulPort -- :: P'V vn ()
+           & \u -> ignore'l u x) -- :: P'V vn x
 
 instance forall x xs b g v1 vn r a.
          ( YulO5 x (NP xs) b r a
@@ -174,13 +133,13 @@ instance forall x xs b g v1 vn r a.
   uncurryingNP f (MkYulCat'LVV h) = MkYulCat'LVV
     (\xxs ->
         dup2'l xxs
-      & \(xxs1, xxs2) -> split (coerceType'l @(NP (x:xs)) @(x, NP xs) (h xxs1))
+      & \(xxs1, xxs2) -> split'l (coerceType'l @(NP (x:xs)) @(x, NP xs) (h xxs1))
       & \(x, xs) -> let !(MkYulCat'LVV g) =
                           (uncurryingNP
                             @g @xs @b
                             @(P'V v1 r) @(P'V vn r) @(YulCat'LVV v1 v1 r a) @(YulCat'LVV v1 vn r a) @One
                             (f x)
-                            (MkYulCat'LVV (\a -> ignore (discard a) xs))
+                            (MkYulCat'LVV (\a -> ignore'l (discard'l a) xs))
                           )
                     in g xxs2
     )
@@ -209,7 +168,7 @@ instance forall x v1 vn r a.
          ( YulO3 x r a
          , LiftFunction (CurryNP (NP '[]) x) (P'V v1 r) (P'V vn r) One ~ P'V vn r x
          ) => CurryingNP '[] x (P'V v1 r) (P'V vn r) (YulCat'LVV v1 v1 r a) One where
-  curryingNP cb = cb (MkYulCat'LVV (\a -> coerceType'l (discard a)))
+  curryingNP cb = cb (MkYulCat'LVV (\a -> coerceType'l (discard'l a)))
 
 instance forall x xs b r a v1 vn.
          ( YulO5 x (NP xs) b r a
@@ -228,8 +187,8 @@ instance forall x vd r a.
          ) => UncurryingNP (x) '[] x (P'P r) (P'V vd r) (YulCat'LPP r a) (YulCat'LPV vd r a) One where
   uncurryingNP x (MkYulCat'LPP h) = MkYulCat'LPV (\a -> h a                   -- :: P'P (NP '[])
                                                         & coerceType'l @_ @() -- :: P'P ()
-                                                        & unsafeCoerce'l      -- :: P'V vn ()
-                                                        & \u -> ignore u x)   -- :: P'V vn x
+                                                        & unsafeCoerceYulPort -- :: P'V vn ()
+                                                        & \u -> ignore'l u x) -- :: P'V vn x
 
 instance forall x xs b g vd r a.
          ( YulO5 x (NP xs) b r a
@@ -238,13 +197,13 @@ instance forall x xs b g vd r a.
   uncurryingNP f (MkYulCat'LPP h) = MkYulCat'LPV
     (\xxs ->
         dup2'l xxs
-      & \(xxs1, xxs2) -> split (coerceType'l @(NP (x:xs)) @(x, NP xs) (h xxs1))
+      & \(xxs1, xxs2) -> split'l (coerceType'l @(NP (x:xs)) @(x, NP xs) (h xxs1))
       & \(x, xs) -> let !(MkYulCat'LPV g) =
                           (uncurryingNP
                            @g @xs @b
                            @(P'P r) @(P'V vd r) @(YulCat'LPP r a) @(YulCat'LPV vd r a) @One
                            (f x)
-                           (MkYulCat'LPP (\a -> ignore (discard a) xs))
+                           (MkYulCat'LPP (\a -> ignore'l (discard'l a) xs))
                           )
                     in g xxs2
     )
@@ -273,14 +232,14 @@ instance forall x v1 vn r a.
          ( YulO3 x r a
          , LiftFunction (CurryNP (NP '[]) x) (P'P r) (P'V vn r) One ~ P'V vn r x
          ) => CurryingNP '[] x (P'P r) (P'V vn r) (YulCat'LVV v1 v1 r a) One where
-  curryingNP cb = cb (MkYulCat'LVV (\a -> coerceType'l (discard a)))
+  curryingNP cb = cb (MkYulCat'LVV (\a -> coerceType'l (discard'l a)))
 
 instance forall x xs b r a v1 vn.
          ( YulO5 x (NP xs) b r a
          , CurryingNP xs b (P'P r) (P'V vn r) (YulCat'LVV v1 v1 r a) One
          ) => CurryingNP (x:xs) b (P'P r) (P'V vn r) (YulCat'LVV v1 v1 r a) One where
   curryingNP cb x = curryingNP @xs @b @(P'P r) @(P'V vn r) @(YulCat'LVV v1 v1 r a) @One
-                    (\(MkYulCat'LVV fxs) -> cb (MkYulCat'LVV (\a -> (cons'l (unsafeCoerce'l x) (fxs a)))))
+                    (\(MkYulCat'LVV fxs) -> cb (MkYulCat'LVV (\a -> (cons'l (unsafeCoerceYulPort x) (fxs a)))))
 
 ------------------------------------------------------------------------------------------------------------------------
 -- YulCat'LPP ==> (P'P ⊸ P'P ⊸ ... P'P)
@@ -290,14 +249,14 @@ instance forall x r a.
          ( YulO3 x r a
          , LiftFunction (CurryNP (NP '[]) x) (P'P r) (P'P r) One ~ P'P r x
          ) => CurryingNP '[] x (P'P r) (P'P r) (YulCat'LPP r a) One where
-  curryingNP cb = cb (MkYulCat'LPP (\a -> coerceType'l (discard a)))
+  curryingNP cb = cb (MkYulCat'LPP (\a -> coerceType'l (discard'l a)))
 
 instance forall x xs b r a.
          ( YulO5 x (NP xs) b r a
          , CurryingNP xs b (P'P r) (P'P r) (YulCat'LPP r a) One
          ) => CurryingNP (x:xs) b (P'P r) (P'P r) (YulCat'LPP r a) One where
   curryingNP cb x = curryingNP @xs @b @(P'P r) @(P'P r) @(YulCat'LPP r a) @One
-                    (\(MkYulCat'LPP fxs) -> cb (MkYulCat'LPP (\a -> (cons'l (unsafeCoerce'l x) (fxs a)))))
+                    (\(MkYulCat'LPP fxs) -> cb (MkYulCat'LPP (\a -> (cons'l (unsafeCoerceYulPort x) (fxs a)))))
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $PatternMatching

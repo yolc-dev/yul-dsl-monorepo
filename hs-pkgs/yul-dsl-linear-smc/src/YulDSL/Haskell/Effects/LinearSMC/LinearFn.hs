@@ -19,12 +19,11 @@ module YulDSL.Haskell.Effects.LinearSMC.LinearFn
 -- base
 import GHC.TypeLits                                  (type (+))
 -- linear-base
-import Control.Category.Linear                       (merge, mkUnit)
 import Prelude.Linear
 -- yul-dsl
 import YulDSL.Core
 -- yul-dsl-pure
-import YulDSL.Haskell.YulUtils
+import YulDSL.Haskell.YulUtils.Pure
 -- (linearly-versioned-monoad)
 import Control.LinearlyVersionedMonad                qualified as LVM
 --
@@ -88,7 +87,7 @@ instance CallFnLinearly (VersionedInputOutput vd) vd where
     => Fn (VersionedInputOutput vd) f
     -> (P'V v1 r x ⊸ LiftFunction (CurryNP (NP xs) b) (P'V v1 r) (P'V vn r) One)
   callFn'l (MkFn t) x =
-    mkUnit x
+    mkUnit'l x
     & \(x', u) -> curryingNP @xs @b @(P'V v1 r) @(P'V vn r) @(YulCat'LVV v1 v1 r ()) @One
     $ \(MkYulCat'LVV fxs) -> encode'l (YulJmpU t) id
     $ cons'l x' (fxs u)
@@ -110,7 +109,7 @@ callFn'lpp :: forall f x xs b r eff.
   => Fn (eff :: PureEffectKind) f
   -> (P'P r x ⊸ LiftFunction (CurryNP (NP xs) b) (P'P r) (P'P r) One)
 callFn'lpp (MkFn t) x =
-  mkUnit x
+  mkUnit'l x
   & \(x', u) -> curryingNP @_ @_ @(P'P r) @(P'P r) @(YulCat'LPP r ()) @One
   $ \(MkYulCat'LPP fxs) -> encode'l (YulJmpU t) id
   $ cons'l x' (fxs u)
@@ -131,7 +130,7 @@ externalCall :: forall f x xs b b' r v1 addrEff.
   -> P'x addrEff r ADDR
   ⊸ (P'V v1 r x ⊸ LiftFunction (CurryNP (NP xs) b') (P'V v1 r) (YulMonad v1 (v1 + 1) r) One)
 externalCall (MkExternalFn sel) addr x =
-  mkUnit x
+  mkUnit'l x
   & \(x', u) -> curryingNP @_ @_ @(P'V v1 r) @(YulMonad v1 (v1 + 1) r) @(YulCat'LVV v1 v1 r ()) @One
   $ \(MkYulCat'LVV fxs) -> encode'l @(VersionedInputOutput 1) @(VersionedPort v1) @_
                                     @_ @_ @_ {- r a b -}
@@ -140,8 +139,8 @@ externalCall (MkExternalFn sel) addr x =
                            (\(b' :: P'V (v1 + 1) r b) -> LVM.unsafeCoerceLVM (LVM.pure b'))
   $ go (cons'l x' (fxs u))
   where go :: forall. P'x (VersionedPort v1) r (NP (x : xs)) ⊸ P'V v1 r b
-        go args = let !(args', u) = mkUnit args
+        go args = let !(args', u) = mkUnit'l args
                   in encode'l @(VersionedInputOutput 0) @(VersionedPort v1)
                      (YulCall sel)
                      id
-                     (merge (merge (unsafeCoerce'l addr, emb'l 0 u), args'))
+                     (merge'l (merge'l (unsafeCoerceYulPort addr, emb'l 0 u), args'))

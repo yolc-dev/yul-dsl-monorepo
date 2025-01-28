@@ -25,7 +25,7 @@ rangeSum'l = lfn $locId $ yulmonad'p @(U256 -> U256 -> U256 -> U256)
 
 -- TODO: yikes, this is ugly and we need to improve.
 callExternalFoo0 = lfn $locId $ yulmonad'v @(ADDR -> U256)
-  \to -> dup2'l to & \(to1, to2) -> externalCall external_foo0 to1 (discard to2)
+  \to -> dup2'l to & \(to1, to2) -> externalCall external_foo0 to1 (discard'l to2)
 
 callExternalFoo1 = lfn $locId $ yulmonad'v @(ADDR -> U256 -> U256)
   \to val1 -> externalCall external_foo1 to val1
