@@ -1,5 +1,5 @@
-{-# LANGUAGE AllowAmbiguousTypes    #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE UndecidableInstances   #-}
 {-|
 
 Copyright   : (c) 2023-2025 Miao, ZhiCheng
@@ -9,15 +9,14 @@ Stability   : experimental
 -}
 module YulDSL.Haskell.Effects.LinearSMC.LinearFn
   ( -- * Build Linear Yul Functions
-    CreateLinearFn (lfn)
+    StaticFn, OmniFn, lfn, lfn'
     -- * Call Yul Functions Linearly
-  , LinearlyCallableFn, CallFnLinearly (callFn'l)
-  , callFn'lpp
+  , callFn'lvv, callFn'lpp, callFn'l
     -- * Call External Smart Contract Functions
   , externalCall
   ) where
 -- base
-import GHC.TypeLits                                  (type (+))
+import GHC.TypeLits                                  (KnownNat, type (+))
 -- linear-base
 import Prelude.Linear
 -- yul-dsl
@@ -35,84 +34,146 @@ import YulDSL.Haskell.Effects.LinearSMC.YulPort
 -- lfn
 ------------------------------------------------------------------------------------------------------------------------
 
--- | Create linear kind of yul functions.
-class CreateLinearFn (iEff :: PortEffect) (oEff :: PortEffect) (fnEff :: LinearEffectKind)
-      | iEff oEff -> fnEff where
+data StaticFn f where
+  MkStaticFn :: forall (eff :: LinearEffectKind) f.
+                ( KnownYulCatEffect eff, AssertStaticEffect eff
+                ) => Fn eff f -> StaticFn f
+
+data OmniFn f where
+  MkOmniFn :: forall (eff :: LinearEffectKind) f.
+              ( KnownYulCatEffect eff, AssertOmniEffect eff
+              ) => Fn eff f -> OmniFn f
+
+instance ClassifiedFn StaticFn StaticEffect where
+  withClassifiedFn g (MkStaticFn f) = g f
+
+instance ClassifiedFn OmniFn OmniEffect where
+  withClassifiedFn g (MkOmniFn f) = g f
+
+-- | Create classified linear kind of yul functions.
+class ConstructibleLinearFn fn (ie :: PortEffect) (oe :: PortEffect) where
   -- | Define a `YulCat` morphism from a yul port diagram.
   lfn :: forall f xs b.
-    ( YulO2 (NP xs) b
-    -- constraint f, using b xs
-    , EquivalentNPOfFunction f xs b
-    )
-    => String
-    -> (forall r. YulO1 r => P'x iEff r (NP xs) ⊸ P'x oEff r b)
-    -> Fn fnEff (CurryNP (NP xs) b)
+    ( -- constraint f, using b xs
+      EquivalentNPOfFunction f xs b
+    , YulO2 (NP xs) b
+    ) => String
+      -> (forall r. YulO1 r => P'x ie r (NP xs) ⊸ P'x oe r b)
+      -> fn f
 
-instance CreateLinearFn (VersionedPort 0) (VersionedPort vd) (VersionedInputOutput vd) where
-  lfn cid f = MkFn (cid, decode'l f)
+instance ConstructibleLinearFn StaticFn (VersionedPort 0) (VersionedPort 0) where
+  lfn cid f = MkStaticFn (MkFn (cid, decode'l f))
 
-instance CreateLinearFn PurePort (VersionedPort vd) (PureInputVersionedOutput vd) where
-  lfn cid f = MkFn (cid, decode'l f)
+instance ConstructibleLinearFn StaticFn PurePort (VersionedPort 0) where
+  lfn cid f = MkStaticFn (MkFn (cid, decode'l f))
+
+instance ( KnownNat vd, AssertOmniEffect (VersionedInputOutput vd)
+         ) =>
+         ConstructibleLinearFn OmniFn (VersionedPort 0) (VersionedPort vd) where
+  lfn cid f = MkOmniFn (MkFn (cid, decode'l f))
+
+instance ( KnownNat vd, AssertOmniEffect (PureInputVersionedOutput vd)
+         ) =>
+         ConstructibleLinearFn OmniFn PurePort (VersionedPort vd) where
+  lfn cid f = MkOmniFn (MkFn (cid, decode'l f))
+
+-- | Create linear kind of yul functions.
+class ConstructibleLinearFn' (eff :: LinearEffectKind) (ie :: PortEffect) (oe :: PortEffect) | ie oe -> eff where
+  -- | Define a `YulCat` morphism from a yul port diagram.
+  lfn' :: forall f xs b.
+    ( -- constraint f, using b xs
+      EquivalentNPOfFunction f xs b
+    , YulO2 (NP xs) b
+    ) => String
+      -> (forall r. YulO1 r => P'x ie r (NP xs) ⊸ P'x oe r b)
+      -> Fn eff f
+
+instance ConstructibleLinearFn' (VersionedInputOutput vd) (VersionedPort 0) (VersionedPort vd) where
+  lfn' cid f = MkFn (cid, decode'l f)
+
+instance ConstructibleLinearFn' (PureInputVersionedOutput vd) PurePort (VersionedPort vd) where
+  lfn' cid f = MkFn (cid, decode'l f)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- callFn'l
 ------------------------------------------------------------------------------------------------------------------------
 
--- This makes the signature of CallFnLinearly easier to repeat.
-type LinearlyCallableFn f x xs b r v1 vd vn =
-    ( YulO4 x (NP xs) b r
-    , v1 + vd ~ vn
-    -- constraint f
-    , EquivalentNPOfFunction f (x:xs) b
+type CallFn'L f x xs b r ie oe ye =
+  ( -- constraint f
+    EquivalentNPOfFunction f (x:xs) b
+  , YulO4 x (NP xs) b r
     -- constraint b
-    , LiftFunction b (YulCat'LVV v1 v1 r ()) (P'V vn r) One ~ P'V vn r b
+  , LiftFunction b (ye r ()) (P'x oe r) One ~ P'x oe r b
     -- CurryingNP instance on "NP xs -> b"
-    , CurryingNP xs b (P'V v1 r) (P'V vn r) (YulCat'LVV v1 v1 r ()) One
-    )
+  , CurryingNP xs b (P'x ie r) (P'x oe r) (ye r ()) One
+  )
 
--- | Calling @fnEff@ kind of yul function will increase data version by @vd@.
-class CallFnLinearly fnEff vd | fnEff -> vd where
-  -- | Call functions with versioned yul port and get versioned yul port.
-  callFn'l :: forall f x xs b r v1 vn.
-    LinearlyCallableFn f x xs b r v1 vd vn
-    => Fn fnEff f
-    -> (P'V v1 r x ⊸ LiftFunction (CurryNP (NP xs) b) (P'V v1 r) (P'V vn r) One)
-  -- ^ All other function kinds is coerced into calling as if it is a versioned input output.
-  callFn'l f = callFn'l @(VersionedInputOutput vd) @vd @f
-               (unsafeCoerceFn f)
-
-instance CallFnLinearly (VersionedInputOutput vd) vd where
-  callFn'l :: forall f x xs b r v1 vn.
-    LinearlyCallableFn f x xs b r v1 vd vn
-    => Fn (VersionedInputOutput vd) f
-    -> (P'V v1 r x ⊸ LiftFunction (CurryNP (NP xs) b) (P'V v1 r) (P'V vn r) One)
-  callFn'l (MkFn t) x =
+-- | Call functions with versioned yul port and get versioned yul port.
+callFn'lvv :: forall f v1 vd vn x xs b r.
+  ( v1 + vd ~ vn
+  , CallFn'L f x xs b r (VersionedPort v1) (VersionedPort vn) (YulCat'LVV v1 v1)
+  )
+  => Fn (VersionedInputOutput vd) f
+  -> (P'V v1 r x ⊸ LiftFunction (CurryNP (NP xs) b) (P'V v1 r) (P'V vn r) One)
+-- ^ All other function kinds is coerced into calling as if it is a versioned input output.
+callFn'lvv (MkFn f) x =
     mkUnit'l x
     & \(x', u) -> curryingNP @xs @b @(P'V v1 r) @(P'V vn r) @(YulCat'LVV v1 v1 r ()) @One
-    $ \(MkYulCat'LVV fxs) -> encode'l (YulJmpU t) id
+    $ \(MkYulCat'LVV fxs) -> encodeWith'l id (YulJmpU f)
     $ cons'l x' (fxs u)
 
-instance CallFnLinearly (PureInputVersionedOutput vd) vd
-instance CallFnLinearly Pure 0
-instance CallFnLinearly Total 0
-
 -- | Call pure function with pure yul port and get pure yul port.
-callFn'lpp :: forall f x xs b r eff.
-  ( YulO4 x (NP xs) b r
-  -- constraint f
-  , EquivalentNPOfFunction f (x:xs) b
-  -- constraint b
-  , LiftFunction b (YulCat'LPP r ()) (P'P r) One ~ P'P r b
-  -- CurryingNP instance on "NP xs -> b"
-  , CurryingNP xs b (P'P r) (P'P r) (YulCat'LPP r ()) One
-  )
-  => Fn (eff :: PureEffectKind) f
+callFn'lpp :: forall f x xs b r.
+  CallFn'L f x xs b r PurePort PurePort YulCat'LPP
+  => Fn Pure f
   -> (P'P r x ⊸ LiftFunction (CurryNP (NP xs) b) (P'P r) (P'P r) One)
-callFn'lpp (MkFn t) x =
+callFn'lpp (MkFn f) x =
   mkUnit'l x
   & \(x', u) -> curryingNP @_ @_ @(P'P r) @(P'P r) @(YulCat'LPP r ()) @One
-  $ \(MkYulCat'LPP fxs) -> encode'l (YulJmpU t) id
+  $ \(MkYulCat'LPP fxs) -> encodeWith'l id (YulJmpU f)
   $ cons'l x' (fxs u)
+
+type family CallableFn_LVV_OE fn (ie :: PortEffect) where
+  CallableFn_LVV_OE (Fn (PureInputVersionedOutput vd)) (VersionedPort v1) = VersionedPort (v1 + vd)
+  CallableFn_LVV_OE (Fn (VersionedInputOutput vd)) (VersionedPort v1) = VersionedPort (v1 + vd)
+  CallableFn_LVV_OE (Fn Pure) PurePort = PurePort
+  CallableFn_LVV_OE StaticFn (VersionedPort v1) = VersionedPort v1
+  CallableFn_LVV_OE OmniFn (VersionedPort v1) = VersionedPort (v1 + 1)
+  CallableFn_LVV_OE PureFn (VersionedPort v1) = VersionedPort v1
+  CallableFn_LVV_OE PureFn PurePort = PurePort
+
+type family CallableFn_LVV_YE fn (ie :: PortEffect) where
+  CallableFn_LVV_YE (Fn (PureInputVersionedOutput _)) (VersionedPort v1) = YulCat'LVV v1 v1
+  CallableFn_LVV_YE (Fn (VersionedInputOutput _)) (VersionedPort v1) = YulCat'LVV v1 v1
+  CallableFn_LVV_YE (Fn Pure) PurePort = YulCat'LPP
+  CallableFn_LVV_YE StaticFn (VersionedPort v1) = YulCat'LVV v1 v1
+  CallableFn_LVV_YE OmniFn (VersionedPort v1) = YulCat'LVV v1 v1
+  CallableFn_LVV_YE PureFn (VersionedPort v1) = YulCat'LVV v1 v1
+  CallableFn_LVV_YE PureFn PurePort = YulCat'LPP
+
+-- | Calling @fnEff@ kind of yul function will increase data version by @vd@.
+class CallableFn'LVV fn (ie :: PortEffect) f where
+  -- | Call functions with versioned yul port and get versioned yul port.
+  callFn'l :: forall x xs b r oe.
+    ( CallableFn_LVV_OE fn ie ~ oe
+    , CallFn'L f x xs b r ie oe (CallableFn_LVV_YE fn ie)
+    )
+    => fn f
+    -> (P'x ie r x ⊸ LiftFunction (CurryNP (NP xs) b) (P'x ie r) (P'x oe r) One)
+instance CallableFn'LVV (Fn (PureInputVersionedOutput vd)) (VersionedPort v1) f where
+  callFn'l f = callFn'lvv @f @v1 @vd @(v1 + vd) (unsafeCoerceFn f)
+instance CallableFn'LVV (Fn (VersionedInputOutput vd)) (VersionedPort v1) f where
+  callFn'l f = callFn'lvv @f @v1 @vd @(v1 + vd) (unsafeCoerceFn f)
+instance CallableFn'LVV (Fn Pure) PurePort f where
+  callFn'l = callFn'lpp @f
+instance CallableFn'LVV StaticFn (VersionedPort v1) f where
+  callFn'l (MkStaticFn f) = callFn'lvv @f @v1 @0 @v1 (unsafeCoerceFn f)
+instance CallableFn'LVV OmniFn (VersionedPort v1) f where
+  callFn'l (MkOmniFn f) = callFn'lvv @f @v1 @1 @(v1 + 1) (unsafeCoerceFn f)
+instance CallableFn'LVV PureFn (VersionedPort v1) f where
+  callFn'l (MkPureFn f) = callFn'lvv @f @v1 @0 @v1 (unsafeCoerceFn f)
+instance CallableFn'LVV PureFn PurePort f where
+  callFn'l (MkPureFn f) = callFn'lpp @f f
 
 ------------------------------------------------------------------------------------------------------------------------
 -- calling external functions (Yul Monadic)
@@ -131,16 +192,17 @@ externalCall :: forall f x xs b b' r v1 addrEff.
   ⊸ (P'V v1 r x ⊸ LiftFunction (CurryNP (NP xs) b') (P'V v1 r) (YulMonad v1 (v1 + 1) r) One)
 externalCall (MkExternalFn sel) addr x =
   mkUnit'l x
-  & \(x', u) -> curryingNP @_ @_ @(P'V v1 r) @(YulMonad v1 (v1 + 1) r) @(YulCat'LVV v1 v1 r ()) @One
-  $ \(MkYulCat'LVV fxs) -> encode'l @(VersionedInputOutput 1) @(VersionedPort v1) @(VersionedPort (v1 + 1))
-                                    @_ @_ @_ {- r a b -}
-                                    @(YulMonad v1 (v1 + 1) r b')
-                           YulId
-                           (\(b' :: P'V (v1 + 1) r b) -> LVM.unsafeCoerceLVM (LVM.pure b'))
-  $ go (cons'l x' (fxs u))
+  & \(x', u) ->
+      curryingNP @_ @_ @(P'V v1 r) @(YulMonad v1 (v1 + 1) r) @(YulCat'LVV v1 v1 r ()) @One
+      $ \(MkYulCat'LVV fxs) -> encodeWith'l @(VersionedInputOutput 1) @(VersionedPort v1) @(VersionedPort (v1 + 1))
+                                            @_ @_ @_ {- r a b -}
+                                            @(YulMonad v1 (v1 + 1) r b')
+                               (\(b' :: P'V (v1 + 1) r b) -> LVM.unsafeCoerceLVM (LVM.pure b'))
+                               YulId
+      $ go (cons'l x' (fxs u))
   where go :: forall. P'x (VersionedPort v1) r (NP (x : xs)) ⊸ P'V v1 r b
         go args = let !(args', u) = mkUnit'l args
-                  in encode'l @(VersionedInputOutput 0) @(VersionedPort v1) @(VersionedPort v1)
-                     (YulCall sel)
+                  in encodeWith'l @(VersionedInputOutput 0) @(VersionedPort v1) @(VersionedPort v1)
                      id
+                     (YulCall sel)
                      (merge'l (merge'l (unsafeCoerceYulPort addr, emb'l 0 u), args'))

@@ -104,7 +104,10 @@ test-demo-foundry: build-all-modules
 dev:
 	nodemon -w hs-pkgs -w yol-demo -w examples -e "hs sol cabal" -x "make $(DEV_TARGETS) || exit 1"
 
-.PHONY: all lint build build-* clean install-* test test-* dev
+repl-eth-abi:
+	$(CABAL) --builddir=$(DEFAULT_BUILDDIR) repl eth-abi
+
+.PHONY: all lint build build-* clean install-* test test-* dev repl-eth-abi
 
 $(LINEAR_SMC_PATH_FILE):
 	[ -d 3rd-parties/linear-smc ] || exit 1

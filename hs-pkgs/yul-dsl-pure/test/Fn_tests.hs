@@ -28,35 +28,43 @@ dis_any = fn "dis_any" \_ -> YulEmb ()
 --------------------------------------------------------------------------------
 
 uncurry_fn0 :: PureFn (U256)
-uncurry_fn0 = fn @(U256) "uncurry_fn0" 42
+uncurry_fn0 = fn "uncurry_fn0" 42
 
 uncurry_fn1 :: ValidINTx s n => PureFn (INTx s n -> INTx s n)
 uncurry_fn1 =
   fn "uncurry_fn1" \a -> a + a
 
-uncurry_fn2 = fn @(U256 -> U256 -> U256) $locId
+uncurry_fn2 :: PureFn (U256 -> U256 -> U256)
+uncurry_fn2 = fn $locId
   \a b -> a + b
 
-uncurry_fn3 = fn @(U256 -> U256 -> U256 -> U256) $locId
+uncurry_fn3 :: PureFn (U256 -> U256 -> U256 -> U256)
+uncurry_fn3 = fn $locId
   \a b c -> a + b + c
 
-uncurry_fn4 = fn @(U256 -> U256 -> U256 -> U256 -> U256) $locId
+uncurry_fn4 :: PureFn (U256 -> U256 -> U256 -> U256 -> U256)
+uncurry_fn4 = fn $locId
   \a b c d -> f a b + f c d
   where f a b = a + b
 
-call_fn0 = fn @(U256) $locId
+call_fn0 :: PureFn (U256)
+call_fn0 = fn $locId
   do callFn uncurry_fn0
 
-call_fn1 = fn @(U256 -> U256) $locId
+call_fn1 :: PureFn (U256 -> U256)
+call_fn1 = fn $locId
   \a -> callFn uncurry_fn1 a
 
-call_fn2 = fn @(U256 -> U256) $locId
+call_fn2 :: PureFn (U256 -> U256)
+call_fn2 = fn $locId
   \a -> callFn uncurry_fn2 a a
 
-call_fn3 = fn @(U256 -> U256) $locId
+call_fn3 :: PureFn (U256 -> U256)
+call_fn3 = fn $locId
   \a -> callFn uncurry_fn3 a a a
 
-call_fn4 = fn @(U256 -> U256) $locId
+call_fn4 :: PureFn (U256 -> U256)
+call_fn4 = fn $locId
   \a -> callFn uncurry_fn4 a a a a
 
 test_simple_fn :: Gen Bool
@@ -72,10 +80,19 @@ test_simple_fn = chooseInteger (0, toInteger (maxBound @U32)) <&>
   ) . fromInteger
 
 --------------------------------------------------------------------------------
+-- Polymorphic
+--------------------------------------------------------------------------------
+
+-- foo_any_num :: forall a. (YulO1 a, Num a) => PureFn (I a -> I a -> I a)
+-- foo_any_num = fn $locId
+--   \x y -> x * 2 + y
+
+--------------------------------------------------------------------------------
 -- Pattern matching for Maybe
 --------------------------------------------------------------------------------
 
-maybe_num_fn2 = fn @(Maybe U8 -> Maybe U8 -> U8) $locId
+maybe_num_fn2 :: PureFn (Maybe U8 -> Maybe U8 -> U8)
+maybe_num_fn2 = fn $locId
   \a b -> match (a + b) \case
     Just x -> x
     Nothing -> 0

@@ -35,4 +35,4 @@ match'l :: forall p c b r m eff ioe.
   , PatternMatchable m YulCatObj p c
   , EncodableYulPortDiagram eff ioe ioe
   ) => P'x ioe r p ⊸ (c -> m b) -> P'x ioe r b
-match'l p f = let mb = match (YulId :: YulCat eff p p) f in encode'l mb id p
+match'l p f = let mb = match (YulId :: YulCat eff p p) f in encodeWith'l id mb p

@@ -1,5 +1,6 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE LinearTypes         #-}
+{-# LANGUAGE AllowAmbiguousTypes    #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE LinearTypes            #-}
 {-|
 Copyright   : (c) 2023-2025 Miao, ZhiCheng
 License     : LGPL-3
@@ -30,7 +31,7 @@ module YulDSL.Core.YulCat
     -- * YulCat, the Categorical DSL of Yul
   , YulCat (..), AnyYulCat (..)
   , NamedYulCat, NamedYulCatNP
-  , Fn (MkFn, unFn), unsafeCoerceFn
+  , Fn (MkFn, unFn), ClassifiedFn (withClassifiedFn), unsafeCoerceFn
   , ExternalFn (MkExternalFn), declareExternalFn
   , (>.>), (<.<)
   , yulIfThenElse
@@ -41,7 +42,7 @@ module YulDSL.Core.YulCat
   ) where
 -- base
 import Data.Kind                   (Constraint)
-import GHC.TypeError               (Assert, ErrorMessage (Text), TypeError)
+import GHC.TypeError               (Assert, ErrorMessage (Text), Unsatisfiable)
 import Text.Printf                 (printf)
 -- template-haskell
 import Language.Haskell.TH         qualified as TH
@@ -72,26 +73,6 @@ type family IsEffectNotPure (eff :: k) :: Bool
 -- | An open type family for declaring a effect may change the state of the world.
 type family MayEffectWorld (eff :: k) :: Bool
 
--- | Test if an effect can be used for morphisms that are pure.
-type AssertPureEffect :: k -> Constraint
-type AssertPureEffect eff = Assert (Not (IsEffectNotPure eff) && Not (MayEffectWorld eff)) -- (F, F)
-                            (TypeError (Text "pure effect expected"))
-
--- | Test if an effect can be used for morphisms that are pure.
-type AssertNonPureEffect :: k -> Constraint
-type AssertNonPureEffect eff = Assert (IsEffectNotPure eff) -- (T, -)
-                               (TypeError (Text "non-pure effect expected"))
-
--- | Test if an effect can be used for morphisms that are non-pure but cannot change world.
-type AssertStaticEffect :: k -> Constraint
-type AssertStaticEffect eff = Assert (IsEffectNotPure eff && Not (MayEffectWorld eff)) -- (T, F)
-                              (TypeError (Text "static effect expected"))
-
--- | Test if an effect can be used for morphisms that are non-pure and may change world.
-type AssertOmniEffect :: k -> Constraint
-type AssertOmniEffect eff = Assert (IsEffectNotPure eff && MayEffectWorld eff) -- (T, T)
-                            (TypeError (Text "omni effect expected"))
-
 -- | Classification of yul category effect.
 data YulCatEffectClass = PureEffect
                        | StaticEffect
@@ -109,6 +90,26 @@ data SYulCatEffectClass eff = KnownYulCatEffect eff => SYulCatEffectClass
 -- | Create classification singleton of known yul effect.
 classifySYulCatEffect :: SYulCatEffectClass eff -> YulCatEffectClass
 classifySYulCatEffect (SYulCatEffectClass @eff) = classifyYulCatEffect @eff
+
+-- | Test if an effect can be used for morphisms that are pure. (F, F)
+type AssertPureEffect :: k -> Constraint
+type AssertPureEffect eff = Assert (Not (IsEffectNotPure eff) && Not (MayEffectWorld eff))
+                            (Unsatisfiable (Text "pure effect expected"))
+
+-- | Test if an effect can be used for morphisms that are pure. (T, -)
+type AssertNonPureEffect :: k -> Constraint
+type AssertNonPureEffect eff = Assert (IsEffectNotPure eff)
+                               (Unsatisfiable (Text "non-pure effect expected"))
+
+-- | Test if an effect can be used for morphisms that are non-pure but cannot change world. (T, F)
+type AssertStaticEffect :: k -> Constraint
+type AssertStaticEffect eff = Assert (IsEffectNotPure eff && Not (MayEffectWorld eff))
+                              (Unsatisfiable (Text "static effect expected"))
+
+-- | Test if an effect can be used for morphisms that are non-pure and may change world. (T, T)
+type AssertOmniEffect :: k -> Constraint
+type AssertOmniEffect eff = Assert (IsEffectNotPure eff && MayEffectWorld eff)
+                            (Unsatisfiable (Text "omni effect expected"))
 
 -- Shorthand for declaring multi-objects constraint:
 type YulO1 a = YulCatObj a
@@ -158,7 +159,7 @@ data YulCat (eff :: k) a b where
   -- ^ Jump to an user-defined morphism.
   YulJmpU :: forall eff a b. YulO2 a b => NamedYulCat eff a b %1-> YulCat eff a b
   -- ^ Jump to a built-in yul function.
-  YulJmpB :: forall eff a b p. (YulO2 a b, YulBuiltInPrefix p a b) => YulBuiltIn p a b %1-> YulCat eff a b
+  YulJmpB :: forall eff a b p. (YulO2 a b, YulBuiltInPrefix p a b) => YulBuiltIn p a b -> YulCat eff a b
   -- ^ Call an external contract at the address along with a possible msgValue.
   YulCall :: forall eff a b. (YulO2 a b, AssertNonPureEffect eff) => SELECTOR -> YulCat eff ((ADDR, U256), a) b
   -- TODO: YulSCall
@@ -188,9 +189,16 @@ type NamedYulCatNP eff xs b = NamedYulCat eff (NP xs) b
 --
 --   Note: Fn (a1 -> a2 -> ...aN -> b) ~ FnNP (NP [a1,a2...aN]) b
 data Fn eff f where
-  MkFn :: forall eff f xs b. EquivalentNPOfFunction f xs b
-       => { unFn :: NamedYulCatNP eff (UncurryNP'Fst f) (UncurryNP'Snd f) } -> Fn eff f
+  MkFn :: forall eff f xs b.
+    ( EquivalentNPOfFunction f xs b
+    , YulO2 (NP xs) b )
+    => { unFn :: NamedYulCatNP eff (UncurryNP'Fst f) (UncurryNP'Snd f) }
+    -> Fn eff f
 
+class ClassifiedFn fn (efc :: YulCatEffectClass) | fn -> efc where
+  withClassifiedFn :: forall f r. (forall k (eff :: k). KnownYulCatEffect eff => Fn eff f -> r) %1-> fn f -> r
+
+-- | Unsafely convert between yul functions of different effects.
 unsafeCoerceFn :: forall eff1 eff2 f xs b.
                   ( EquivalentNPOfFunction f xs b
                   , YulO2 b (NP xs))
@@ -218,7 +226,7 @@ m >.> n = n `YulComp` m
 (<.<) :: forall eff a b c. YulO3 a b c => YulCat eff b c %1-> YulCat eff a b %1-> YulCat eff a c
 (<.<) = YulComp
 
--- Same precedence as (>>>) (<<<);
+-- ^ Same precedence as (>>>) (<<<);
 -- see https://hackage.haskell.org/package/base-4.20.0.1/docs/Control-Category.html
 infixr 1 >.>, <.<
 

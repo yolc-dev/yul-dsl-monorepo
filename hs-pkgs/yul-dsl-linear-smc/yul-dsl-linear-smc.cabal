@@ -90,12 +90,14 @@ library linearly-versioned-monad
     Data.Constraint.Linear
 
 Test-Suite test-yul-dsl-linear-smc
-  import:           basic-options
-  ghc-options:      -Wno-missing-signatures
-  type:             exitcode-stdio-1.0
-  hs-source-dirs:   test
-  build-depends:    hspec >=2.11,
-                    yul-dsl-linear-smc
+  import:             basic-options
+  ghc-options:        -Wno-missing-signatures
+  type:               exitcode-stdio-1.0
+  default-extensions: BlockArguments
+                      TemplateHaskell
+  hs-source-dirs:     test
+  build-depends:      hspec >=2.11,
+                      yul-dsl-linear-smc
   -- modules
   other-modules:
     Num_prop

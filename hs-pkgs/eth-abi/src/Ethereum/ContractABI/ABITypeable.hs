@@ -70,6 +70,6 @@ abiTypeCanonName = intercalate "," (fmap abiCoreTypeCanonName (abiTypeInfo @a))
 abiTypeCompactName :: forall a. ABITypeable a => String
 abiTypeCompactName = intercalate "" (fmap abiCoreTypeCompactName (abiTypeInfo @a))
 
--- | Test if a 'ABITypeable' is a core type.
+-- | Test if a 'ABITypeable' is a core type,
 type IsABICoreType :: Type -> Bool
 type IsABICoreType a = a == (ABITypeDerivedOf a)

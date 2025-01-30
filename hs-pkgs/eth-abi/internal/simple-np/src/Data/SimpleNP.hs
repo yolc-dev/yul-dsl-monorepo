@@ -51,9 +51,9 @@ infixr 5 :*
 --
 --   This lifted function consists of a type function, @m@, for each argument, followed by a multiplicity arrow of @p@,
 --   and uses a type function @mb@, for the result of the lifted function.
-type family LiftFunction f (m  :: Type -> Type) (mb :: Type -> Type) (p :: Multiplicity) where
+type family LiftFunction (f :: Type) (m  :: Type -> Type) (mb :: Type -> Type) (p :: Multiplicity) where
   LiftFunction  (x1 -> g) m mb p = m x1 %p-> LiftFunction g m mb p
-  LiftFunction        (b) m mb _ = mb b
+  LiftFunction        (b) _ mb _ = mb b
 
 -- | Uncurry the arguments of a function to a list of types.
 type family UncurryNP'Fst f :: [Type] where
@@ -61,12 +61,12 @@ type family UncurryNP'Fst f :: [Type] where
   UncurryNP'Fst         (b) = '[]
 
 -- | Uncurry the result of a function.
-type family UncurryNP'Snd f  where
+type family UncurryNP'Snd (f :: Type) where
   UncurryNP'Snd (_ %_-> g) = UncurryNP'Snd (g)
   UncurryNP'Snd        (b) = b
 
 -- | Uncurry and extract the multiplicity of the last arrow.
-type family UncurryNP'Multiplicity f :: Multiplicity where
+type family UncurryNP'Multiplicity (f :: Type) :: Multiplicity where
   UncurryNP'Multiplicity         (x1 %p-> b) = p
   UncurryNP'Multiplicity                 (b) = Many
 
@@ -77,14 +77,13 @@ type UncurryNP f = NP (UncurryNP'Fst f) %(UncurryNP'Multiplicity f)-> UncurryNP'
 --
 --   Note: To add multiplicity-polymorphic arrows or to decorate arguments with additional type function, use
 --   'LiftFunction'.
-type family CurryNP np b where
-  CurryNP (NP (x:xs)) b = x -> CurryNP (NP xs) b
+type family CurryNP (np :: Type) (b :: Type) where
   CurryNP (NP    '[]) b = b
-
+  CurryNP (NP (x:xs)) b = x -> CurryNP (NP xs) b
 
 -- | Declare the equivalence between a currying function form @f@ and @NP xs -> b@.
 type EquivalentNPOfFunction f xs b =
-  ( CurryNP (NP xs) b ~ f -- Note! The order of the constraint seems matter here.
+  ( CurryNP (NP xs) b ~ f -- Note! The order of this constraint line seems matter here.
   , UncurryNP'Fst f ~ xs
   , UncurryNP'Snd f ~ b
   )

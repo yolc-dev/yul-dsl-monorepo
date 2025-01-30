@@ -14,7 +14,7 @@ This module provides the operations for working with the 'Pure' kind of effect f
 module YulDSL.Haskell.Effects.Pure
   ( -- * Pure Effect Kind
     -- $PureEffectKind
-    PureEffectKind (Pure, Total), PureFn, YulCat'P
+    PureEffectKind (Pure, Total), PureFn (MkPureFn), YulCat'P
     -- * Build And Call PureFn
     -- $PureFn
   , fn, callFn
@@ -42,7 +42,14 @@ type instance IsEffectNotPure (eff :: PureEffectKind) = False
 type instance MayEffectWorld  (eff :: PureEffectKind) = False
 
 -- | Function without side effects, hence pure.
-type PureFn = Fn Pure
+data PureFn f where
+  MkPureFn :: Fn Pure f -> PureFn f
+
+-- -- | Function without side effects and bottom, hence total.
+-- newtype TotalFn f = MkPureFn (Fn Total f)
+
+instance ClassifiedFn PureFn PureEffect where
+  withClassifiedFn g (MkPureFn f) = g f
 
 -- | Pure yul category morphisms.
 type YulCat'P = YulCat Pure
@@ -81,7 +88,7 @@ fn :: forall f xs b m.
     -> LiftFunction f m m Many    -- ^ uncurrying function type
     -> PureFn (CurryNP (NP xs) b) -- ^ result type, or its short form @m b@
 fn cid f = let cat = uncurryingNP @f @xs @b @m @m @m @m f YulId
-           in MkFn (cid, cat)
+           in MkPureFn (MkFn (cid, cat))
 
 -- | Call a 'PureFn' by currying it with pure yul categorical values of @r ↝ xn@ until a pure yul categorical value of
 -- @r ↝ b@ is returned.
@@ -94,8 +101,9 @@ callFn :: forall f xs b r m.
           )
        => PureFn f                -- ^ a 'PureFn' of function type @f@
        -> LiftFunction f m m Many -- ^ a currying function type
-callFn (MkFn (cid, cat)) = curryingNP @xs @b @m @m @m @Many
-                           (\xs -> xs >.> YulJmpU (cid, cat))
+callFn (MkPureFn (MkFn (cid, cat))) =
+  curryingNP @xs @b @m @m @m @Many
+  (\xs -> xs >.> YulJmpU (cid, cat))
 
 -- $yulCatVal
 --

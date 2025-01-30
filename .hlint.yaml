@@ -58,7 +58,7 @@
 # - ignore: {name: Use const, within: SpecialModule} # Only within certain modules
 
 - extensions:
-  - name: [ RequiredTypeArguments, LinearTypes ]
+  - name: [ RequiredTypeArguments, LinearTypes, TypeAbstractions ]
 - ignore: { name: "Use camelCase" }
 - ignore: { name: "Use bimap" } # TODO, use linear-base?
 - ignore: { name: "Use head" }

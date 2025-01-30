@@ -9,26 +9,32 @@ object = mkYulObject "ERC20" emptyCtor
   , omniFn   "mint"      mint
   ]
 
+-- | Storage map of account balances
+balanceMap :: SHMap ADDR U256
+balanceMap = shmap "Yolc.Demo.ERC20.Storage.AccountBalance"
+
 -- | ERC20 balance of the account.
-balanceOf = lfn $locId $ yulmonad'p @(ADDR -> U256)
-  \account'p -> LVM.do
-  s <- shmapGet balanceMap account'p
+balanceOf :: StaticFn (ADDR -> U256)
+balanceOf = lfn $locId $ yulmonad'p
+  -- NOTE on naming convention,  "*_p" means port that are still pure;
+  -- use ver'l to tag version to them.
+  \owner_p -> LVM.do
+  s <- shmapGet balanceMap owner_p
   sget (ver'l s)
 
-balanceMap = shmap @(ADDR -> U256) "Yolc.Demo.ERC20.Storage.AccountBalance"
-
 -- | ERC20 transfer function.
-transfer = lfn $locId $ yulmonad'p @(ADDR -> ADDR -> U256 -> BOOL)
-  \from'p to'p amount'p -> LVM.do
+transfer :: OmniFn (ADDR -> ADDR -> U256 -> BOOL)
+transfer = lfn $locId $ yulmonad'p
+  \from_p to_p amount_p -> LVM.do
   -- get sender balance
-  (from'p, senderBalanceRef) <- pass from'p (shmapGet balanceMap)
+  (from_p, senderBalanceRef) <- pass from_p (shmapGet balanceMap)
   -- get receiver balance
-  (to'p, receiverBalanceRef) <- pass to'p (shmapGet balanceMap)
+  (to_p, receiverBalanceRef) <- pass to_p (shmapGet balanceMap)
   -- calculate new balances
-  (amount, newSenderBalance) <- pass (ver'l amount'p)
-    \amount -> ypure $ callFn'l balanceOf (ver'l from'p) - amount
+  (amount, newSenderBalance) <- pass (ver'l amount_p)
+    \amount -> ypure $ callFn'l balanceOf (ver'l from_p) - amount
   newReceiverBalance <- with amount
-    \amount -> ypure $ callFn'l balanceOf (ver'l to'p) + amount
+    \amount -> ypure $ callFn'l balanceOf (ver'l to_p) + amount
   -- update storages
   sputs $
     ver'l senderBalanceRef   := newSenderBalance   :|
@@ -37,16 +43,20 @@ transfer = lfn $locId $ yulmonad'p @(ADDR -> ADDR -> U256 -> BOOL)
   embed true
 
 -- | Mint new tokens
-mint = lfn $locId $ yulmonad'p @(ADDR -> U256 -> ())
-  \account'p mintAmount'p -> LVM.do
+mint :: OmniFn (ADDR -> U256 -> ())
+mint = lfn $locId $ yulmonad'p
+  \to_p amount_p -> LVM.do
   -- fetch balance of the account
-  (account'p, balanceBefore) <- pass account'p (ypure . callFn'l balanceOf . ver'l)
-  -- use linear port (naming convention, "*'p") values safely
-  (account'p, mintAmount'p) <- passN_ (account'p, mintAmount'p) \(account'p, mintAmount'p) -> LVM.do
+  (to_p, balanceBefore) <- pass to_p (ypure . callFn'l balanceOf . ver'l)
+  -- use linear port values safely
+  (to_p, amount_p) <- passN_ (to_p, amount_p) \(to_p, amount_p) -> LVM.do
     -- update balance
-    s <- shmapGet balanceMap account'p
-    sput (ver'l s) (balanceBefore + ver'l mintAmount'p)
+    s <- shmapGet balanceMap to_p
+    sput (ver'l s) (balanceBefore + ver'l amount_p)
   -- call unsafe external contract onTokenMinted
-  externalCall onTokenMinted (ver'l account'p) (ver'l mintAmount'p)
+  externalCall onTokenMinted (ver'l to_p) (ver'l amount_p)
 
+--
+-- TODO: this should/could be generated from a solidity interface definition file:
+-- | A hook to the token minted event for the mint receiver.
 onTokenMinted = declareExternalFn @(U256 -> ()) "onTokenMinted"

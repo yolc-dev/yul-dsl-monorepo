@@ -14,13 +14,12 @@ documentation](https://docs.soliditylang.org/en/latest/yul.html#specification-of
 module YulDSL.Core.YulObject
   (-- $AnyExportedYulCat
     AnyExportedYulCat (MkAnyExportedYulCat), withAnyExportedYulCat
-  , pureFn,staticFn, omniFn
+  , pureFn, staticFn, omniFn
     -- $YulObject
   , YulObject (..), mkYulObject
   ) where
 
 -- base
-import Control.Exception                          (assert)
 import Data.List                                  (intercalate)
 -- eth-abi
 import Ethereum.ContractABI.ABITypeable           (abiTypeCanonName)
@@ -45,32 +44,47 @@ withAnyExportedYulCat :: AnyExportedYulCat
   -> a
 withAnyExportedYulCat (MkAnyExportedYulCat _ _ f) g = g f
 
-pureFn :: forall f xs b eff.
-  ( AssertPureEffect eff
-  , KnownYulCatEffect eff
-  , YulO2 (NP xs) b
+pureFn :: forall fn f xs b efc.
+  ( ClassifiedFn fn efc
+  , efc ~ PureEffect
   , EquivalentNPOfFunction f xs b
-  ) => String -> Fn eff f -> AnyExportedYulCat
-pureFn fname (MkFn f) = assert (classifyYulCatEffect @eff == PureEffect)
-  MkAnyExportedYulCat (mkTypedSelector @(NP xs) fname) PureEffect f
+  , YulO2 (NP xs) b
+  ) => String -> fn f -> AnyExportedYulCat
+pureFn fname = withClassifiedFn (MkAnyExportedYulCat (mkTypedSelector @(NP xs) fname) PureEffect . unFn)
 
-staticFn :: forall f xs b eff.
-  ( AssertStaticEffect eff
-  , KnownYulCatEffect eff
-  , YulO2 (NP xs) b
+staticFn :: forall fn f xs b efc.
+  ( ClassifiedFn fn efc
+  , efc ~ StaticEffect
   , EquivalentNPOfFunction f xs b
-  ) => String -> Fn eff f -> AnyExportedYulCat
-staticFn fname (MkFn f) = assert (classifyYulCatEffect @eff == StaticEffect)
-  MkAnyExportedYulCat (mkTypedSelector @(NP xs) fname) StaticEffect f
+  , YulO2 (NP xs) b
+  ) => String -> fn f -> AnyExportedYulCat
+staticFn fname = withClassifiedFn (MkAnyExportedYulCat (mkTypedSelector @(NP xs) fname) StaticEffect . unFn)
 
-omniFn :: forall f xs b eff.
-  ( AssertOmniEffect eff
-  , KnownYulCatEffect eff
-  , YulO2 (NP xs) b
+omniFn :: forall fn f xs b efc.
+  ( ClassifiedFn fn efc
+  , efc ~ OmniEffect
   , EquivalentNPOfFunction f xs b
-  ) => String -> Fn eff f -> AnyExportedYulCat
-omniFn fname (MkFn f) = assert (classifyYulCatEffect @eff == OmniEffect)
-  MkAnyExportedYulCat (mkTypedSelector @(NP xs) fname) OmniEffect f
+  , YulO2 (NP xs) b
+  ) => String -> fn f -> AnyExportedYulCat
+omniFn fname = withClassifiedFn (MkAnyExportedYulCat (mkTypedSelector @(NP xs) fname) OmniEffect . unFn)
+
+-- staticFn :: forall f xs b eff.
+--   ( AssertStaticEffect eff
+--   , KnownYulCatEffect eff
+--   , YulO2 (NP xs) b
+--   , EquivalentNPOfFunction f xs b
+--   ) => String -> Fn eff f -> AnyExportedYulCat
+-- staticFn fname (MkFn f) =
+--   MkAnyExportedYulCat (mkTypedSelector @(NP xs) fname) StaticEffect f
+
+-- omniFn :: forall f xs b eff.
+--   ( AssertOmniEffect eff
+--   , KnownYulCatEffect eff
+--   , YulO2 (NP xs) b
+--   , EquivalentNPOfFunction f xs b
+--   ) => String -> Fn eff f -> AnyExportedYulCat
+-- omniFn fname (MkFn f) =
+--   MkAnyExportedYulCat (mkTypedSelector @(NP xs) fname) OmniEffect f
 
 instance Show AnyExportedYulCat where
   show (MkAnyExportedYulCat s PureEffect   cat) = "pure "   <> show_fn_spec s cat

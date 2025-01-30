@@ -4,33 +4,42 @@ Test code generations for typical and problematic functions.
 module Basic_Tests where
 import Prelude.YulDSL
 
-embUnit'p = fn @(I256 -> ()) $locId \_ -> YulEmb ()
+embUnit'p :: PureFn (I256 -> ())
+embUnit'p = fn $locId \_ -> YulEmb ()
 
-embTrue'p = fn @(BOOL) $locId $ YulEmb true
+embTrue'p :: PureFn BOOL
+embTrue'p = fn $locId $ YulEmb true
 
-embTrue'l = lfn $locId $ yulmonad'p @(BOOL) (embed true)
+embTrue'l :: StaticFn BOOL
+embTrue'l = lfn $locId $ yulmonad'p (embed true)
 
-revertIfTrue = fn @(BOOL -> U256 -> U256) $locId
+revertIfTrue :: PureFn (BOOL -> U256 -> U256)
+revertIfTrue = fn $locId
   $ \t x -> if t then yulRevert else x
 
 -- Test function recursion; but it will reach stack limit of EVM.
-rangeSum'p = fn @(U256 -> U256 -> U256 -> U256) $locId
-  \from step until -> let j = from + step
-                      in from + if j <= until
-                                then callFn rangeSum'p j step until
-                                else 0
+rangeSum'p :: PureFn (U256 -> U256 -> U256 -> U256)
+rangeSum'p = fn $locId \from step until ->
+  let j = from + step
+  in from + if j <= until
+            then callFn rangeSum'p j step until
+            else 0
 
-rangeSum'l = lfn $locId $ yulmonad'p @(U256 -> U256 -> U256 -> U256)
-  \from'p step'p until'p -> ypure $ ver'l $ callFn'lpp rangeSum'p from'p step'p until'p
+rangeSum'l :: StaticFn (U256 -> U256 -> U256 -> U256)
+rangeSum'l = lfn $locId $ yulmonad'p
+  \from'p step'p until'p -> ypure $ ver'l $ callFn'l rangeSum'p from'p step'p until'p
 
--- TODO: yikes, this is ugly and we need to improve.
-callExternalFoo0 = lfn $locId $ yulmonad'v @(ADDR -> U256)
+callExternalFoo0 :: OmniFn (ADDR -> U256)
+callExternalFoo0 = lfn $locId $ yulmonad'v
+  -- FIXME: yikes, this is ugly and we need to improve.
   \to -> dup2'l to & \(to1, to2) -> externalCall external_foo0 to1 (discard'l to2)
 
-callExternalFoo1 = lfn $locId $ yulmonad'v @(ADDR -> U256 -> U256)
+callExternalFoo1 :: OmniFn (ADDR -> U256 -> U256)
+callExternalFoo1 = lfn $locId $ yulmonad'v
   \to val1 -> externalCall external_foo1 to val1
 
-callExternalFoo2 = lfn $locId $ yulmonad'v @(ADDR -> U256 -> U256 -> U256)
+callExternalFoo2 :: OmniFn (ADDR -> U256 -> U256 -> U256)
+callExternalFoo2 = lfn $locId $ yulmonad'v
   \to val1 val2 -> externalCall external_foo2 to val1 val2
 
 object = mkYulObject "BasicTests" emptyCtor

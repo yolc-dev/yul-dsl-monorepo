@@ -10,7 +10,7 @@ module YulDSL.Haskell.Effects.LinearSMC.LinearYulCat
     -- $YulPortDiagrams
   , YulCat'LVV (MkYulCat'LVV), YulCat'LPV (MkYulCat'LPV), YulCat'LPP (MkYulCat'LPP)
   , DecodableYulPortDiagram (decode'l)
-  , EncodableYulPortDiagram (encode'l)
+  , EncodableYulPortDiagram (encodeWith'l)
   , uncurry'lvv, uncurry'lpv
   ) where
 -- base
@@ -93,22 +93,19 @@ instance DecodableYulPortDiagram PurePort (VersionedPort vd) (PureInputVersioned
 instance DecodableYulPortDiagram PurePort PurePort Pure
 
 -- | Encodable yul port diagrams.
-class EncodableYulPortDiagram eff ie oe | eff ie -> oe where
+class EncodableYulPortDiagram eff ie oe where
   --  | Encode a yul port diagrams to a yul port function with a continuation.
   --
   --  Note: @r@ is a skolem type variable from encoding. The continuation is the only way to have access to it.
-  encode'l :: forall r a b c. YulO3 r a b
-    => YulCat eff a b
-    -> (P'x oe r b ⊸ c)
+  encodeWith'l :: forall r a b c. YulO3 r a b
+    => (P'x oe r b ⊸ c)
+    -> YulCat eff a b
     -> (P'x ie r a ⊸ c)
-  encode'l cat f x =
-    let cat' = YulUnsafeCoerceEffect cat
-        b = unsafeCoerceYulPort (encode'x cat' x)
-    in f b
+  encodeWith'l f c x = f (unsafeCoerceYulPort (encode'x (YulUnsafeCoerceEffect c) x))
 
 instance (va + vd ~ vb) => EncodableYulPortDiagram (VersionedInputOutput vd) (VersionedPort va) (VersionedPort vb)
 instance EncodableYulPortDiagram (PureInputVersionedOutput v) PurePort (VersionedPort v)
-instance EncodableYulPortDiagram (eff :: PureEffectKind) PurePort PurePort
+instance EncodableYulPortDiagram eff PurePort PurePort
 
 ------------------------------------------------------------------------------------------------------------------------
 -- (P'V v1 r x1 ⊸ P'V v1 r x2 ⊸ ... P'V vn r b) <=> YulCat'LVV v1 vn r (NP xs) b

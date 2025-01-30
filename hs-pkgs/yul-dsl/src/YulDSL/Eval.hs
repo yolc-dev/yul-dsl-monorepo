@@ -73,9 +73,10 @@ evalYulCat' (YulUnsafeCoerceEffect c) a = evalYulCat' c a
 evalYulCat :: YulO2 a b => YulCat eff a b -> a -> b
 evalYulCat s a = evalState (evalYulCat' s a) initEvalState
 
-evalFn :: forall eff f xs b.
+evalFn :: forall fn f xs b efc.
           ( YulO2 (NP xs) b
           , EquivalentNPOfFunction f xs b
+          , ClassifiedFn fn efc
           )
-       => Fn eff f -> NP xs -> b
-evalFn = evalYulCat . snd . unFn
+       => fn f -> NP xs -> b
+evalFn = withClassifiedFn (evalYulCat . snd . unFn)

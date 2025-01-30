@@ -31,7 +31,7 @@ TODO
   - [ ] 🟠 STRING
 - ExtendedType
   - [x] TUPLEn
-  - [ ] 🟢 REF, storage or memory raw reference with `constRef, keyRef`.
+  - [x] REF, storage or memory raw reference with `constRef, keyRef`.
   - [ ] 🟢 SELECTOR
 - ABICodec
   - [ ] 🟢 Compatibility with the solidity abi-spec
@@ -140,8 +140,8 @@ TODO
   - [ ] 🟢 Build YulMonad functions: `$yulMonadV` for versioned inputs, and `$yulMonadP` for pure inputs.
 - Working with storage:
   - [x] Assorted storage functions: `SReferenceable(sget, sput), sgetN, (<==), sputN, (:|), (:=), sputs`.
-  - [ ] 🟠 Storage functions working with `Referenceable` types.
   - [ ] 🟢 SHMap - Storage Hash Map.
+  - [ ] 🟠 Storage functions working with `Referenceable` types.
 
 ### yol-suite
 
