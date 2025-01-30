@@ -3,7 +3,7 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
     -- $LinearPortDefs
     PortEffect (PurePort, VersionedPort)
   , P'x (MkP'x), P'V, P'P, unP'x, encode'x, decode'x
-  , ver'l
+  , Versionable'L (ver'l)
   , unsafeCoerceYulPort, unsafeCoerceYulPortDiagram
     -- * General Yul Port Operations
     -- $GeneralOps
@@ -62,10 +62,19 @@ decode'x :: forall (eff :: PortEffect) a b. YulO2 a b
   -> YulCat PortEffect a b
 decode'x f = decode (\a -> unP'x (f (MkP'x a)))
 
--- | Pure port can be converted to any versioned port.
-ver'l :: forall a v r. YulO2 a r
-      => P'P r a ⊸ P'V v r a
-ver'l = unsafeCoerceYulPort
+class Versionable'L ie v where
+  ver'l :: forall a r. YulO2 a r => P'x ie r a ⊸ P'V v r a
+
+instance Versionable'L (VersionedPort v) v where
+  ver'l = id
+
+instance Versionable'L PurePort v where
+  ver'l = unsafeCoerceYulPort
+
+-- -- | Pure port can be converted to any versioned port.
+-- ver'l :: forall a v r. YulO2 a r
+--       => P'P r a ⊸ P'V v r a
+-- ver'l = unsafeCoerceYulPort
 
 -- | Unsafe coerce yul port' effects.
 unsafeCoerceYulPort :: forall (eff1 :: PortEffect) (eff2 :: PortEffect) r a.

@@ -18,18 +18,16 @@ balanceOf :: StaticFn (ADDR -> U256)
 balanceOf = lfn $locId $ yulmonad'p
   -- NOTE on naming convention,  "*_p" means port that are still pure;
   -- use ver'l to tag version to them.
-  \owner_p -> LVM.do
-  s <- shmapGet balanceMap owner_p
-  sget (ver'l s)
+  \owner_p -> balanceMap `shmapGet` owner_p
 
 -- | ERC20 transfer function.
 transfer :: OmniFn (ADDR -> ADDR -> U256 -> BOOL)
 transfer = lfn $locId $ yulmonad'p
   \from_p to_p amount_p -> LVM.do
   -- get sender balance
-  (from_p, senderBalanceRef) <- pass from_p (shmapGet balanceMap)
+  (from_p, senderBalanceRef_p) <- pass from_p (shmapRef balanceMap)
   -- get receiver balance
-  (to_p, receiverBalanceRef) <- pass to_p (shmapGet balanceMap)
+  (to_p, receiverBalanceRef_p) <- pass to_p (shmapRef balanceMap)
   -- calculate new balances
   (amount, newSenderBalance) <- pass (ver'l amount_p)
     \amount -> ypure $ callFn'l balanceOf (ver'l from_p) - amount
@@ -37,8 +35,8 @@ transfer = lfn $locId $ yulmonad'p
     \amount -> ypure $ callFn'l balanceOf (ver'l to_p) + amount
   -- update storages
   sputs $
-    ver'l senderBalanceRef   := newSenderBalance   :|
-    ver'l receiverBalanceRef := newReceiverBalance :[]
+    senderBalanceRef_p   := newSenderBalance   :|
+    receiverBalanceRef_p := newReceiverBalance :[]
   -- always return true as a silly urban-legendary ERC20 convention
   embed true
 
@@ -51,8 +49,8 @@ mint = lfn $locId $ yulmonad'p
   -- use linear port values safely
   (to_p, amount_p) <- passN_ (to_p, amount_p) \(to_p, amount_p) -> LVM.do
     -- update balance
-    s <- shmapGet balanceMap to_p
-    sput (ver'l s) (balanceBefore + ver'l amount_p)
+    s <- shmapRef balanceMap to_p
+    sput s (balanceBefore + ver'l amount_p)
   -- call unsafe external contract onTokenMinted
   externalCall onTokenMinted (ver'l to_p) (ver'l amount_p)
 

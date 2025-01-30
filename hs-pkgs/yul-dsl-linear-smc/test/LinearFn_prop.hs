@@ -42,7 +42,7 @@ bar3 = lfn $locId $ yulmonad'p
 
 fooSPut :: OmniFn (B32 -> U256 -> ())
 fooSPut = lfn $locId $ yulmonad'p
-  \sloc'p val'p -> sput (ver'l sloc'p) (ver'l val'p)
+  \s_p val_p -> sput s_p (ver'l val_p)
 
 call0 :: StaticFn (() -> U256)
 call0 = lfn $locId $ uncurry'lvv
