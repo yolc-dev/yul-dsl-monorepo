@@ -1,6 +1,12 @@
 {
     "name": "Yolc Dev Environment",
-    "features": {},
+    "features": {
+        "ghcr.io/devcontainers/features/nix:1": {
+			"multiUser": true,
+			"version": "latest",
+			"extraNixConfig": "experimental-features = nix-command flakes"
+		}
+    },
     "customizations": {
       "vscode": {
         "settings": {
@@ -11,7 +17,6 @@
           "jnoortheen.nix-ide"
         ]
       }
-    },
-    "postCreateCommand": "/bin/sh .devcontainer/setup-nix.sh"
+    }
   }
   
