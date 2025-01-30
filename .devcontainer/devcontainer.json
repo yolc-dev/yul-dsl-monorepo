@@ -12,6 +12,6 @@
         ]
       }
     },
-    "postCreateCommand": "nix develop --command bash"
+    "postCreateCommand": "/bin/sh .devcontainer/setup-nix.sh"
   }
   
