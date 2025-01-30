@@ -18,10 +18,6 @@
           "jnoortheen.nix-ide"
         ]
       }
-    },
-    "postCreateCommand": [
-        "sudo apt install acl",
-        "sudo chmod 1777 /tmp/ && sudo setfacl --remove-default  /tmp"
-    ]
+    }
   }
   
