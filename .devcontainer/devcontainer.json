@@ -1,0 +1,17 @@
+{
+    "name": "Yolc Dev Environment",
+    "features": {},
+    "customizations": {
+      "vscode": {
+        "settings": {
+          "nix.enableLanguageServer": true
+        },
+        "extensions": [
+          "arrterian.nix-env-selector",
+          "jnoortheen.nix-ide"
+        ]
+      }
+    },
+    "postCreateCommand": "nix develop --command bash"
+  }
+  
