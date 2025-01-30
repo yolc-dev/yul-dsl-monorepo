@@ -1,6 +1,5 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# OPTIONS_HADDOCK hide #-}
-{-# LANGUAGE AllowAmbiguousTypes  #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-|
 
@@ -14,9 +13,7 @@ Stability   : experimental
 This module defines the 'Num' instance from base library for Maybe 'YulNum' objects.
 
 -}
-module YulDSL.Haskell.YulCatObj.Maybe
-  ( MaybeYulNum
-  ) where
+module YulDSL.Haskell.YulCatObj.Maybe () where
 -- yul-dsl
 import YulDSL.Core
 import YulDSL.StdBuiltIns.ValueType ()
@@ -24,18 +21,8 @@ import YulDSL.StdBuiltIns.ValueType ()
 import Control.PatternMatchable
 
 
---
--- Maybe (INTx s n) being a YulNum
---
-
-type MaybeYulNum a = ( ABITypeable a
-                     , ABITypeable (ABITypeDerivedOf a)
-                     , ABITypeCodec (ABITypeDerivedOf a)
-                     , Num (ABITypeDerivedOf a)
-                     )
-
-instance MaybeYulNum a => ABITypeable (Maybe a) where
-  type instance ABITypeDerivedOf (Maybe a) = NP [BOOL, ABITypeDerivedOf a]
+instance ValidINTx s n => ABITypeable (Maybe (INTx s n)) where
+  type instance ABITypeDerivedOf (Maybe (INTx s n)) = NP [BOOL, INTx s n]
 
   abiToCoreType (Just x) = true :* abiToCoreType x :* Nil
   abiToCoreType Nothing  = false :* 0 :* Nil
@@ -43,10 +30,8 @@ instance MaybeYulNum a => ABITypeable (Maybe a) where
   abiFromCoreType (b :* x :* Nil) = case b of
     BOOL True  -> Just (abiFromCoreType x)
     BOOL False -> Nothing
-
-instance MaybeYulNum a => ABITypeCodec (Maybe a)
-
-instance (MaybeYulNum a, Show a) => YulCatObj (Maybe a)
+instance ValidINTx s n => ABITypeCodec (Maybe (INTx s n))
+instance ValidINTx s n => YulCatObj (Maybe (INTx s n))
 
 instance (YulO1 r, ValidINTx s n) => Num (YulCat eff r (Maybe (INTx s n))) where
   a + b = YulJmpB (MkYulBuiltIn @"__maybe_add_t_") <.< YulProd a b <.< YulDup
@@ -61,22 +46,22 @@ instance (YulO1 r, ValidINTx s n) => Num (YulCat eff r (Maybe (INTx s n))) where
 --
 
 instance ( YulCat eff r ~ m
-         , YulO2 r a, YulCatObj (ABITypeDerivedOf a), MaybeYulNum a
-         ) => PatternMatchable m YulCatObj (Maybe a) (Maybe (m a)) where
+         , YulO1 r
+         , ValidINTx s n
+         -- , YulO3 (ABITypeDerivedOf a) (Maybe a) (ABITypeDerivedOf (Maybe a))
+         -- , ABITypeDerivedOf (Maybe a) ~ NP [BOOL, ABITypeDerivedOf a]
+         -- , ABITypeCoercible (ABITypeDerivedOf (Maybe a)) (BOOL, NP '[ABITypeDerivedOf a])
+         ) => PatternMatchable m YulCatObj (Maybe (INTx s n)) (Maybe (m (INTx s n))) where
   be = \case
     Just a  -> YulFork (YulEmb true) (a >.> YulReduceType)
                >.> YulReduceType
-               >.> YulExtendType -- @_ @(NP [BOOL, ABITypeDerivedOf a]) @(Maybe a)
+               >.> YulExtendType
     Nothing -> YulFork (YulEmb false) (YulEmb 0)
                >.> YulReduceType
                >.> YulExtendType
 
   match pat f =
-    let pat' = pat >.> YulReduceType >.> YulCoerceType
+    let pat' = pat >.> YulReduceType >.> YulExtendType :: YulCat eff r (BOOL, INTx s n)
         b    = pat' >.> YulExl
-        n    = pat'
-               >.> YulExr
-               >.> YulCoerceType @_ @(NP '[ABITypeDerivedOf a]) @(ABITypeDerivedOf a, NP '[])
-               >.> YulExl @_ @(ABITypeDerivedOf a) @_
-              >.> YulExtendType
+        n    = pat' >.> YulExr
     in yulIfThenElse b (f (Just n)) (f Nothing)

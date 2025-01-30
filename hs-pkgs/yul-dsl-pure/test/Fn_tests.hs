@@ -5,6 +5,7 @@ import Data.Functor                 ((<&>))
 import Test.Hspec
 import Test.QuickCheck
 -- eth-abi
+import Data.TupleN                  (Solo (MkSolo))
 import Ethereum.ContractABI
 -- yul-dsl
 import YulDSL.Core
@@ -83,9 +84,15 @@ test_simple_fn = chooseInteger (0, toInteger (maxBound @U32)) <&>
 -- Polymorphic
 --------------------------------------------------------------------------------
 
--- foo_any_num :: forall a. (YulO1 a, Num a) => PureFn (I a -> I a -> I a)
--- foo_any_num = fn $locId
---   \x y -> x * 2 + y
+poly_foo :: forall a s n. (a ~ INTx s n, ValidINTx s n) => PureFn (a -> a -> a)
+poly_foo = fn $locId \x y -> x * 2 + y
+
+test_poly_foo :: Bool
+test_poly_foo = and
+  [ evalFn (poly_foo @U8) (4 :* 2 :* Nil) == 10
+  , evalFn (poly_foo @I32) (4 :* 2 :* Nil) == 10
+  , evalFn (poly_foo @U256) (4 :* 2 :* Nil) == 10
+  ]
 
 --------------------------------------------------------------------------------
 -- Pattern matching for Maybe
@@ -110,4 +117,5 @@ test_maybe_fn = and
 -- | "YulDSL.Core.Fn" tests.
 tests = describe "YulDSL.Core.Fn" $ do
   it "simple fn" $ property test_simple_fn
+  it "test polymorphic fn" $ property test_poly_foo
   it "pattern matching with Maybe" $ property test_maybe_fn

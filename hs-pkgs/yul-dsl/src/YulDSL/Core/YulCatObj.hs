@@ -32,7 +32,6 @@ class (ABITypeable a, ABITypeCodec a, Show a) => YulCatObj a where
 
 -- Enumerate known YulCat objects:
 
-instance YulCatObj a => YulCatObj (I a)
 -- NP
 instance YulCatObj (NP '[])
 instance (YulCatObj x, YulCatObj (NP xs)) => YulCatObj (NP (x:xs))

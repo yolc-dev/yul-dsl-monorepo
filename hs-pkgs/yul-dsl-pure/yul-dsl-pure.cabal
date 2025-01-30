@@ -49,6 +49,7 @@ Test-Suite test-yul-dsl-pure
   type:               exitcode-stdio-1.0
   default-extensions: BlockArguments
                       TemplateHaskell
+                      ImpredicativeTypes
   ghc-options:        -Wno-missing-signatures
   hs-source-dirs:     test
   build-depends:      QuickCheck >=2.13,

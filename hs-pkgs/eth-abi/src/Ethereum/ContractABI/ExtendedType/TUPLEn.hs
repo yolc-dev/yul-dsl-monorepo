@@ -17,7 +17,7 @@ Ethereum contract ABI compatible tuples encoded as n-tuples.
 -}
 module Ethereum.ContractABI.ExtendedType.TUPLEn
   ( module Data.TupleN
-  , I (I)
+  , Solo (MkSolo)
   ) where
 -- base
 import Control.Monad                     (replicateM)
@@ -70,17 +70,3 @@ do
         instance $(clist2) => ABITypeCodec $(tpl)
      |]) [3..64]
   pure (concat insts)
-
--- | An identity type function; alternative shorter form of Solo.
-newtype I a = I a
-
-deriving instance Show a => Show (I a)
-
-instance ABITypeable a => ABITypeable (I a) where
-  type ABITypeDerivedOf (I a) = a
-  abiToCoreType (I a) = a
-  abiFromCoreType = I
-
-instance (ABITypeable a, ABITypeCodec a) => ABITypeCodec (I a) where
-  abiEncoder (I x) = abiEncoder x
-  abiDecoder = fmap I abiDecoder

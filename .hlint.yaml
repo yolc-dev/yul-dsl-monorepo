@@ -65,6 +65,7 @@
 - ignore: { name: "Redundant bracket" }
 - ignore: { name: "Avoid lambda" }
 - ignore: { name: "Use list literal" }
+- ignore: { name: "Use &&" }
 
 # Define some custom infix operators
 # - fixity: infixr 3 ~^#^~
