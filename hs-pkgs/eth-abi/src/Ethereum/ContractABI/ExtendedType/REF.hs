@@ -28,7 +28,9 @@ import Ethereum.ContractABI.CoreType.BYTESn
 
 
 -- | A storage or memory reference to type @a@ at the solidity conventional "(slot, offset)".
-newtype REF a = REF Integer deriving (Show, Ord, Eq)
+newtype REF a = REF Integer deriving (Ord, Eq)
+
+instance Show (REF a) where show (REF x) = show x
 
 -- | Each slot uses 32 bytes
 type ValidSlot n = (KnownNat n, n <= (2 ^ 248))
