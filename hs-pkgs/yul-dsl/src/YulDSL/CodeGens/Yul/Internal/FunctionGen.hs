@@ -45,6 +45,7 @@ do_compile_cat (MkAnyYulCat (cat :: YulCat eff a b)) = go cat where
   go (YulJmpU t)               = go_jmpu t
   go (YulJmpB b)               = go_jmpb b
   go (YulCall @_ @m @n sel)    = go_call @m @n 'O' sel
+  go (YulCaller)               = build_inline_expr @(NP '[]) $ \_ -> pure "caller()"
   -- - storage effects
   go (YulSGet @_ @m)           = go_sget @m
   go (YulSPut @_ @m)           = go_sput @m

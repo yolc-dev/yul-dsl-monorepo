@@ -14,11 +14,12 @@ contract CounterProgramTest is Test {
     counter = createCounterProgram();
   }
 
-  function testDefaultCounterValue() external {
+  function testGlobalCounterValue() external {
+    assertEq(counter.getCounter(), 0);
     assertEq(counter.getCounter(), 0);
   }
 
-  function testIncCounter(uint32 a, uint32 b) external {
+  function testGlobaoIncCounter(uint32 a, uint32 b) external {
     counter.incCounter(a);
     assertEq(counter.getCounter(), a, "1");
     counter.incCounter(b);

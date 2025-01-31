@@ -161,6 +161,9 @@ data YulCat (eff :: k) a b where
   -- TODO: YulSCall
   -- TODO: YulDCall
 
+  -- TODO: make this a built-in, whilre preserving AssertNonPureEffect.
+  YulCaller :: forall eff. (AssertNonPureEffect eff) => YulCat eff () ADDR
+
   -- * Storage Primitives
   --
   -- ^ Get storage word.
@@ -306,6 +309,7 @@ yulCatCompactShow = go
     go (YulJmpU @_ @a @b (cid, _)) = "Ju " <> cid <> abi_type_name2 @a @b
     go (YulJmpB @_ @a @b p)        = "Jb " <> yulB_fname p <> abi_type_name2 @a @b
     go (YulCall @_ @a @b sel)      = "C" <> showSelectorOnly sel <> abi_type_name2 @a @b
+    go (YulCaller @_)              = "Jb caller" <> abi_type_name2 @() @ADDR
     --
     go (YulSGet @_ @a)             = "Sg" <> abi_type_name @a
     go (YulSPut @_ @a)             = "Sp" <> abi_type_name @a
@@ -341,6 +345,7 @@ yulCatToUntypedLisp = go init_ind
     go ind (YulJmpU (cid, _))        = ind $ T.pack ("(jmpu " ++ cid ++ ")")
     go ind (YulJmpB p)               = ind $ T.pack ("(jmpb " ++ yulB_fname p ++ ")")
     go ind (YulCall sel)             = ind $ T.pack ("(call " ++ showSelectorOnly sel ++ ")")
+    go ind (YulCaller)               = ind $ T.pack "caller"
     go ind YulSGet                   = ind $ T.pack "sget"
     go ind YulSPut                   = ind $ T.pack "sput"
     go ind (YulUnsafeCoerceEffect c) = go ind c

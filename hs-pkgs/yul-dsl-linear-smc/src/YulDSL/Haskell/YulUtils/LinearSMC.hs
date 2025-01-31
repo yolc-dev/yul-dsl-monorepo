@@ -1,6 +1,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 module YulDSL.Haskell.YulUtils.LinearSMC
   ( yulKeccak256'l
+  , yulCaller'l
     -- $PatternMatching
   , match'l
   ) where
@@ -17,6 +18,9 @@ import YulDSL.Haskell.Effects.LinearSMC.YulPort
 
 yulKeccak256'l :: forall a eff r. YulO2 r a => P'x eff r a ⊸ P'x eff r B32
 yulKeccak256'l = encode'x (YulJmpB (MkYulBuiltIn @"__keccak_c_" @a @B32))
+
+yulCaller'l :: forall a r eff. YulO1 r => P'x eff r () ⊸ P'x eff r ADDR
+yulCaller'l = encode'x YulCaller
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $PatternMatching
