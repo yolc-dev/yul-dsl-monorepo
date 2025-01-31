@@ -40,5 +40,6 @@ common yol-module-options
 library
   import:           yol-module-options
   exposed-modules:  ERC20
+                    Counter
                     Project
   hs-source-dirs:   src
