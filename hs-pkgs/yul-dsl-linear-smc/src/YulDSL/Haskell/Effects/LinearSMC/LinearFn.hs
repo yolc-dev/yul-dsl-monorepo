@@ -1,4 +1,5 @@
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE TemplateHaskell        #-}
 {-# LANGUAGE UndecidableInstances   #-}
 {-|
 
@@ -9,14 +10,18 @@ Stability   : experimental
 -}
 module YulDSL.Haskell.Effects.LinearSMC.LinearFn
   ( -- * Build Linear Yul Functions
-    StaticFn, OmniFn, lfn, lfn'
+    StaticFn, OmniFn, lfn'
     -- * Call Yul Functions Linearly
   , callFn'lvv, callFn'lpp, callFn'l
     -- * Call External Smart Contract Functions
   , externalCall
+    -- * Template Haskell Support
+  , lfn
   ) where
 -- base
 import GHC.TypeLits                                  (KnownNat, type (+))
+-- template-haskell
+import Language.Haskell.TH                           qualified as TH
 -- linear-base
 import Prelude.Linear
 -- yul-dsl
@@ -53,7 +58,7 @@ instance ClassifiedFn OmniFn OmniEffect where
 -- | Create classified linear kind of yul functions.
 class ConstructibleLinearFn fn (ie :: PortEffect) (oe :: PortEffect) where
   -- | Define a `YulCat` morphism from a yul port diagram.
-  lfn :: forall f xs b.
+  lfn' :: forall f xs b.
     ( -- constraint f, using b xs
       EquivalentNPOfFunction f xs b
     , YulO2 (NP xs) b
@@ -62,37 +67,20 @@ class ConstructibleLinearFn fn (ie :: PortEffect) (oe :: PortEffect) where
       -> fn f
 
 instance ConstructibleLinearFn StaticFn (VersionedPort 0) (VersionedPort 0) where
-  lfn cid f = MkStaticFn (MkFn (cid, decode'l f))
+  lfn' cid f = MkStaticFn (MkFn (cid, decode'l f))
 
 instance ConstructibleLinearFn StaticFn PurePort (VersionedPort 0) where
-  lfn cid f = MkStaticFn (MkFn (cid, decode'l f))
+  lfn' cid f = MkStaticFn (MkFn (cid, decode'l f))
 
 instance ( KnownNat vd, AssertOmniEffect (VersionedInputOutput vd)
          ) =>
          ConstructibleLinearFn OmniFn (VersionedPort 0) (VersionedPort vd) where
-  lfn cid f = MkOmniFn (MkFn (cid, decode'l f))
+  lfn' cid f = MkOmniFn (MkFn (cid, decode'l f))
 
 instance ( KnownNat vd, AssertOmniEffect (PureInputVersionedOutput vd)
          ) =>
          ConstructibleLinearFn OmniFn PurePort (VersionedPort vd) where
-  lfn cid f = MkOmniFn (MkFn (cid, decode'l f))
-
--- | Create linear kind of yul functions.
-class ConstructibleLinearFn' (eff :: LinearEffectKind) (ie :: PortEffect) (oe :: PortEffect) | ie oe -> eff where
-  -- | Define a `YulCat` morphism from a yul port diagram.
-  lfn' :: forall f xs b.
-    ( -- constraint f, using b xs
-      EquivalentNPOfFunction f xs b
-    , YulO2 (NP xs) b
-    ) => String
-      -> (forall r. YulO1 r => P'x ie r (NP xs) ⊸ P'x oe r b)
-      -> Fn eff f
-
-instance ConstructibleLinearFn' (VersionedInputOutput vd) (VersionedPort 0) (VersionedPort vd) where
-  lfn' cid f = MkFn (cid, decode'l f)
-
-instance ConstructibleLinearFn' (PureInputVersionedOutput vd) PurePort (VersionedPort vd) where
-  lfn' cid f = MkFn (cid, decode'l f)
+  lfn' cid f = MkOmniFn (MkFn (cid, decode'l f))
 
 ------------------------------------------------------------------------------------------------------------------------
 -- callFn'l
@@ -206,3 +194,11 @@ externalCall (MkExternalFn sel) addr x =
                      id
                      (YulCall sel)
                      (merge'l (merge'l (unsafeCoerceYulPort addr, emb'l 0 u), args'))
+
+----------------------------------------------------------------------------------------------------
+-- Template Haskell Support
+----------------------------------------------------------------------------------------------------
+
+-- | Create a curruying linear function with pure input ports.
+lfn :: TH.Q TH.Exp
+lfn = [e| lfn' $locId |]

@@ -5,41 +5,41 @@ module Basic_Tests where
 import Prelude.YulDSL
 
 embUnit'p :: PureFn (I256 -> ())
-embUnit'p = fn $locId \_ -> YulEmb ()
+embUnit'p = $fn $ \_ -> YulEmb ()
 
 embTrue'p :: PureFn BOOL
-embTrue'p = fn $locId $ YulEmb true
+embTrue'p = $fn $ YulEmb true
 
 embTrue'l :: StaticFn BOOL
-embTrue'l = lfn $locId $ yulmonad'p (embed true)
+embTrue'l = $lfn $ yulmonad'p (embed true)
 
 revertIfTrue :: PureFn (BOOL -> U256 -> U256)
-revertIfTrue = fn $locId
+revertIfTrue = $fn
   $ \t x -> if t then yulRevert else x
 
 -- Test function recursion; but it will reach stack limit of EVM.
 rangeSum'p :: PureFn (U256 -> U256 -> U256 -> U256)
-rangeSum'p = fn $locId \from step until ->
+rangeSum'p = $fn \from step until ->
   let j = from + step
   in from + if j <= until
             then callFn rangeSum'p j step until
             else 0
 
 rangeSum'l :: StaticFn (U256 -> U256 -> U256 -> U256)
-rangeSum'l = lfn $locId $ yulmonad'p
+rangeSum'l = $lfn $ yulmonad'p
   \from'p step'p until'p -> ypure $ ver'l $ callFn'l rangeSum'p from'p step'p until'p
 
 callExternalFoo0 :: OmniFn (ADDR -> U256)
-callExternalFoo0 = lfn $locId $ yulmonad'v
+callExternalFoo0 = $lfn $ yulmonad'v
   -- FIXME: yikes, this is ugly and we need to improve.
   \to -> dup2'l to & \(to1, to2) -> externalCall external_foo0 to1 (discard'l to2)
 
 callExternalFoo1 :: OmniFn (ADDR -> U256 -> U256)
-callExternalFoo1 = lfn $locId $ yulmonad'v
+callExternalFoo1 = $lfn $ yulmonad'v
   \to val1 -> externalCall external_foo1 to val1
 
 callExternalFoo2 :: OmniFn (ADDR -> U256 -> U256 -> U256)
-callExternalFoo2 = lfn $locId $ yulmonad'v
+callExternalFoo2 = $lfn $ yulmonad'v
   \to val1 val2 -> externalCall external_foo2 to val1 val2
 
 object = mkYulObject "BasicTests" emptyCtor

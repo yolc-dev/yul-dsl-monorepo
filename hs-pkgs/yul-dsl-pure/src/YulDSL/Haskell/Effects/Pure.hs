@@ -1,4 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE TemplateHaskell     #-}
 {-|
 
 Copyright   : (c) 2024-2025 Miao, ZhiCheng
@@ -17,10 +18,14 @@ module YulDSL.Haskell.Effects.Pure
     PureEffectKind (Pure, Total), PureFn (MkPureFn), YulCat'P
     -- * Build And Call PureFn
     -- $PureFn
-  , fn, callFn
+  , fn', fn, callFn
+    -- * Template Haskell Helpers
+  , locId
     -- * Technical Notes
     -- $yulCatVal
   ) where
+-- template-haskell
+import Language.Haskell.TH  qualified as TH
 -- eth-abi
 import Ethereum.ContractABI
 --
@@ -77,18 +82,18 @@ type YulCat'P = YulCat Pure
 --   * @f = λ x1' -> λ x2' -> ... λ xn' -> Pure (NP xs ↝ b)@
 --
 -- It returns: @Pure (NP xs ↝ b)@
-fn :: forall f xs b m.
-       ( YulO2 (NP xs) b
-       , EquivalentNPOfFunction f xs b
-       , YulCat'P (NP xs) ~ m
-       , UncurryingNP f xs b m m m m Many
-       , LiftFunction b m m Many ~ m b
-       )
-    => String
-    -> LiftFunction f m m Many    -- ^ uncurrying function type
-    -> PureFn (CurryNP (NP xs) b) -- ^ result type, or its short form @m b@
-fn cid f = let cat = uncurryingNP @f @xs @b @m @m @m @m f YulId
-           in MkPureFn (MkFn (cid, cat))
+fn' :: forall f xs b m.
+  ( YulO2 (NP xs) b
+  , EquivalentNPOfFunction f xs b
+  , YulCat'P (NP xs) ~ m
+  , UncurryingNP f xs b m m m m Many
+  , LiftFunction b m m Many ~ m b
+  )
+  => String
+  -> LiftFunction f m m Many    -- ^ uncurrying function type
+  -> PureFn (CurryNP (NP xs) b) -- ^ result type, or its short form @m b@
+fn' cid f = let cat = uncurryingNP @f @xs @b @m @m @m @m f YulId
+            in MkPureFn (MkFn (cid, cat))
 
 -- | Call a 'PureFn' by currying it with pure yul categorical values of @r ↝ xn@ until a pure yul categorical value of
 -- @r ↝ b@ is returned.
@@ -116,3 +121,20 @@ callFn (MkPureFn (MkFn (cid, cat))) =
 --
 -- From category theory perspective, it is a hom-set @YulCat(-, a)@ that is contravariant of @a@.
 --
+
+----------------------------------------------------------------------------------------------------
+-- Template Haskell Support
+----------------------------------------------------------------------------------------------------
+
+-- | Automatically generate a source location based id using template haskell.
+locId :: TH.Q TH.Exp
+locId = do
+  loc <- TH.location
+  let modname = TH.loc_module loc
+      -- normalize module name: replace "."
+      modname' = fmap (\x -> if x `elem` "." then '_' else x) modname
+      (s1, s2) = TH.loc_start loc
+  TH.litE (TH.StringL (modname' ++ "_" ++ show s1 ++ "_" ++ show s2))
+
+fn :: TH.Q TH.Exp
+fn = [e| fn' $locId |]

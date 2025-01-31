@@ -5,7 +5,7 @@ import Data.Functor                 ((<&>))
 import Test.Hspec
 import Test.QuickCheck
 -- eth-abi
-import Data.TupleN                  (Solo (MkSolo))
+-- import Data.TupleN                  (Solo (MkSolo))
 import Ethereum.ContractABI
 -- yul-dsl
 import YulDSL.Core
@@ -22,50 +22,50 @@ import TestCommon                   ()
 --------------------------------------------------------------------------------
 
 dis_any :: forall a. YulO1 a => PureFn (a -> ())
-dis_any = fn "dis_any" \_ -> YulEmb ()
+dis_any = fn' "dis_any" \_ -> YulEmb ()
 
 --------------------------------------------------------------------------------
 -- Simple functions
 --------------------------------------------------------------------------------
 
 uncurry_fn0 :: PureFn (U256)
-uncurry_fn0 = fn "uncurry_fn0" 42
+uncurry_fn0 = fn' "uncurry_fn0" 42
 
 uncurry_fn1 :: ValidINTx s n => PureFn (INTx s n -> INTx s n)
-uncurry_fn1 =
-  fn "uncurry_fn1" \a -> a + a
+uncurry_fn1 = fn' "uncurry_fn1"
+  \a -> a + a
 
 uncurry_fn2 :: PureFn (U256 -> U256 -> U256)
-uncurry_fn2 = fn $locId
+uncurry_fn2 = $fn
   \a b -> a + b
 
 uncurry_fn3 :: PureFn (U256 -> U256 -> U256 -> U256)
-uncurry_fn3 = fn $locId
+uncurry_fn3 = $fn
   \a b c -> a + b + c
 
 uncurry_fn4 :: PureFn (U256 -> U256 -> U256 -> U256 -> U256)
-uncurry_fn4 = fn $locId
+uncurry_fn4 = $fn
   \a b c d -> f a b + f c d
   where f a b = a + b
 
 call_fn0 :: PureFn (U256)
-call_fn0 = fn $locId
+call_fn0 = $fn
   do callFn uncurry_fn0
 
 call_fn1 :: PureFn (U256 -> U256)
-call_fn1 = fn $locId
+call_fn1 = $fn
   \a -> callFn uncurry_fn1 a
 
 call_fn2 :: PureFn (U256 -> U256)
-call_fn2 = fn $locId
+call_fn2 = $fn
   \a -> callFn uncurry_fn2 a a
 
 call_fn3 :: PureFn (U256 -> U256)
-call_fn3 = fn $locId
+call_fn3 = $fn
   \a -> callFn uncurry_fn3 a a a
 
 call_fn4 :: PureFn (U256 -> U256)
-call_fn4 = fn $locId
+call_fn4 = $fn
   \a -> callFn uncurry_fn4 a a a a
 
 test_simple_fn :: Gen Bool
@@ -85,7 +85,7 @@ test_simple_fn = chooseInteger (0, toInteger (maxBound @U32)) <&>
 --------------------------------------------------------------------------------
 
 poly_foo :: forall a s n. (a ~ INTx s n, ValidINTx s n) => PureFn (a -> a -> a)
-poly_foo = fn $locId \x y -> x * 2 + y
+poly_foo = $fn \x y -> x * 2 + y
 
 test_poly_foo :: Bool
 test_poly_foo = and
@@ -99,7 +99,7 @@ test_poly_foo = and
 --------------------------------------------------------------------------------
 
 maybe_num_fn2 :: PureFn (Maybe U8 -> Maybe U8 -> U8)
-maybe_num_fn2 = fn $locId
+maybe_num_fn2 = $fn
   \a b -> match (a + b) \case
     Just x -> x
     Nothing -> 0

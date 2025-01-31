@@ -2,10 +2,10 @@
 module YulDSL.Haskell.Effects.LinearSMC.YulMonad
   ( -- * Yul Monad
     YulMonad, runYulMonad
+  , ypure, yembed
     -- * Yul Monadic Diagrams
   , YulCat'LVM (MkYulCat'LVM), YulCat'LPM (MkYulCat'LPM)
   , yulmonad'v, yulmonad'p
-  , ypure
   , module Control.LinearlyVersionedMonad.Combinators
   , Control.Functor.Linear.fmap
   ) where
@@ -41,6 +41,10 @@ runYulMonad u m = let ud = MkUnitDumpster (unsafeCoerceYulPort u)
 -- An alias to 'LVM.pure' to avoid naming conflict with Monad pure function.
 ypure :: forall a v r. a ⊸ YulMonad v v r a
 ypure = LVM.pure
+
+-- | Generate a unit monadically.
+yembed :: YulO2 r a => a ⊸ YulMonad v v r (P'V v r a)
+yembed = embed
 
 --------------------------------------------------------------------------------
 -- YulMonad Context

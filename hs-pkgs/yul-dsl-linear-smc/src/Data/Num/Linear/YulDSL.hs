@@ -18,12 +18,19 @@ import YulDSL.Core
 instance FromInteger Integer where
   fromInteger = id
 
-instance ValidINTx s n => FromInteger (INTx s n) where
-  fromInteger = UnsafeLinear.toLinear BasePrelude.fromInteger
-
---
 --  Num instances for (YulCat r (INTx s n))
 --
+
+instance (ValidINTx s n) => Additive (INTx s n) where
+  (+) = UnsafeLinear.toLinear2 (BasePrelude.+)
+instance (ValidINTx s n) => AddIdentity (INTx s n) where
+  zero = fromIntegral (0 :: Integer)
+instance (ValidINTx s n) => AdditiveGroup (INTx s n) where
+  (-) = UnsafeLinear.toLinear2 (BasePrelude.-)
+instance (ValidINTx s n) => Multiplicative (INTx s n) where
+  (*) = UnsafeLinear.toLinear2 (BasePrelude.*)
+instance (ValidINTx s n) => FromInteger (INTx s n) where
+  fromInteger = UnsafeLinear.toLinear BasePrelude.fromInteger
 
 instance (YulO1 r, ValidINTx s n) => Additive (YulCat eff r (INTx s n)) where
   (+) = UnsafeLinear.toLinear2 (BasePrelude.+)

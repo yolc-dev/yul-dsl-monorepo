@@ -52,12 +52,12 @@ is = (YulCoerceType <.<)
 emptyCtor :: AnyYulCat
 emptyCtor = MkAnyYulCat (YulDis @Pure @())
 
--- ^ 'MPEq' instance for INTx.
+-- ^ 'MPEq' instance for YulCat INTx.
 instance (YulO1 r, ValidINTx s n) => MPEq (YulCat eff r (INTx s n)) (YulCat eff r BOOL) where
   a == b = YulJmpB (MkYulBuiltIn @"__cmp_eq_t_") <.< YulProd a b <.< YulDup
   a /= b = YulJmpB (MkYulBuiltIn @"__cmp_ne_t_") <.< YulProd a b <.< YulDup
 
--- ^ 'MPOrd' instance for INTx.
+-- ^ 'MPOrd' instance for YulCat INTx.
 instance (YulO1 r, ValidINTx s n) => MPOrd (YulCat eff r (INTx s n)) (YulCat eff r BOOL) where
   a  < b = YulJmpB (MkYulBuiltIn @"__cmp_lt_t_") <.< YulProd a b <.< YulDup
   a <= b = YulJmpB (MkYulBuiltIn @"__cmp_le_t_") <.< YulProd a b <.< YulDup

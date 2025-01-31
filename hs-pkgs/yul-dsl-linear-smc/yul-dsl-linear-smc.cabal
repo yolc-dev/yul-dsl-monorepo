@@ -45,6 +45,7 @@ library
                       RequiredTypeArguments
   hs-source-dirs:     src
   build-depends:      constraints >= 0.13,
+                      template-haskell >= 2.22,
                       linear-base >= 0.3.1,
                       linear-smc >= 2.2.3,
                       yul-dsl,
@@ -95,11 +96,14 @@ Test-Suite test-yul-dsl-linear-smc
   type:               exitcode-stdio-1.0
   default-extensions: BlockArguments
                       TemplateHaskell
+                      RebindableSyntax
   hs-source-dirs:     test
   build-depends:      hspec >=2.11,
+                      QuickCheck >=2.13,
+                      yul-dsl,
                       yul-dsl-linear-smc
   -- modules
   other-modules:
-    Num_prop
-    LinearFn_prop
+    LinearFn_tests
+    YulPortNum_tests
   main-is: Main.hs

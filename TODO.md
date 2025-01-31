@@ -120,8 +120,7 @@ TODO
 - Data
   - [x] MPOrd
 - Working with pure effect
-  - [x] Build pure functions `fn`.
-    - [ ] 🟠 to be replaced with `$fn` using template haskell for generating automatic unique function id
+  - [x] Build pure functions `$fn`.
   - [x] Call pure functions `callFn`.
 
 ### yul-dsl-linear-smc
@@ -129,7 +128,7 @@ TODO
 - [x] 🌟🌟🌟 Linear safety for side effects
   - [x] Compile expression sof linear _data ports_ to YulCat
   - [x] Working with _versioned data port_ through `YulMonad`, a "Linearly Versioned Monad."
-  - [x] Build linear functions with `lfn`. ⚠️ This will be replaced with `$yulMonadV, $yulMonadP`.
+  - [x] Build linear functions with `$lfn $ uncurry'lvv | $lfn $ uncurry'lpv`.
   - [x] Call functions linearly with `callFn'l`, `callFn'lpp`.
     - [ ] 🟢 `callFnN'l` to call function via N-tuple, in order to support calling 0-ary functions.
 - Working with _data ports_
@@ -137,10 +136,10 @@ TODO
   - [ ] 🟢 Num classes for data ports: mul, abs, sig, etc.
   - [ ] 🟠 ifThenElse through pattern matching on BOOL data port.
 - Working with _versioned data port_ through `YulMonad`, a "Linearly Versioned Monad."
-  - [ ] 🟢 Build YulMonad functions: `$yulMonadV` for versioned inputs, and `$yulMonadP` for pure inputs.
+  - [x] Build YulMonad functions: `$lfn $ yulmonad'p` for versioned inputs, and `$lfn $ yulmonad'p` for pure inputs.
 - Working with storage:
   - [x] Assorted storage functions: `SReferenceable(sget, sput), sgetN, (<==), sputN, (:|), (:=), sputs`.
-  - [ ] 🟢 SHMap - Storage Hash Map.
+  - [x] SHMap - Storage Hash Map.
   - [ ] 🟠 Storage functions working with `Referenceable` types.
 
 ### yol-suite

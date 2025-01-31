@@ -15,14 +15,14 @@ balanceMap = shmap "Yolc.Demo.ERC20.Storage.AccountBalance"
 
 -- | ERC20 balance of the account.
 balanceOf :: StaticFn (ADDR -> U256)
-balanceOf = lfn $locId $ yulmonad'p
+balanceOf = $lfn $ yulmonad'p
   -- NOTE on naming convention,  "*_p" means port that are still pure;
   -- use ver'l to tag version to them.
   \owner_p -> balanceMap `shmapGet` owner_p
 
 -- | ERC20 transfer function.
 transfer :: OmniFn (ADDR -> ADDR -> U256 -> BOOL)
-transfer = lfn $locId $ yulmonad'p
+transfer = $lfn $ yulmonad'p
   \from_p to_p amount_p -> LVM.do
   -- get sender balance
   (from_p, senderBalanceRef_p) <- pass from_p (shmapRef balanceMap)
@@ -42,7 +42,7 @@ transfer = lfn $locId $ yulmonad'p
 
 -- | Mint new tokens
 mint :: OmniFn (ADDR -> U256 -> ())
-mint = lfn $locId $ yulmonad'p
+mint = $lfn $ yulmonad'p
   \to_p amount_p -> LVM.do
   -- fetch balance of the account
   (to_p, balanceBefore) <- pass to_p (ypure . callFn'l balanceOf . ver'l)

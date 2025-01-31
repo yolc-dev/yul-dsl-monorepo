@@ -1,8 +1,10 @@
 import Test.Hspec
-
-import LinearFn_prop qualified
-import Num_prop qualified
+--
+import Prelude
+--
+import LinearFn_tests qualified
+import YulPortNum_tests qualified
 
 main = hspec do
-  Num_prop.tests
-  LinearFn_prop.tests
+  LinearFn_tests.tests
+  YulPortNum_tests.tests
