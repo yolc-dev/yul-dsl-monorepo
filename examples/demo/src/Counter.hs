@@ -8,18 +8,17 @@ object = mkYulObject "Counter" emptyCtor
   ]
 
 counter :: PureFn (() -> REF U256)
-counter = fn $locId $
+counter = $fn $
   \_ -> YulEmb (keyRef "Yolc.Demo.Counter.Storage.Counter")
 
 getCounter :: StaticFn (() -> U256)
-getCounter = lfn $locId $ yulmonad'p
+getCounter = $lfn $ yulmonad'p
   \u -> sget (callFn'l counter u)
 
 incCounter :: OmniFn (() -> U256 -> ())
-incCounter = lfn $locId $ yulmonad'p
+incCounter = $lfn $ yulmonad'p
   \u inc_p -> LVM.do
     (counterRef, newValue_v0) <- pass (callFn'l counter u) \counterRef -> LVM.do
        currentValue <- sget counterRef
        ypure (currentValue + ver'l inc_p)
     sput counterRef newValue_v0
-
