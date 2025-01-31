@@ -18,5 +18,5 @@
       ]
     }
   },
-  "postCreateCommand": "nix develop .#minimal --command cabal update && echo 'Now enter a nix shell with:' && echo 'nix develop .#minimal; fi'"
+  "postCreateCommand": "echo 'cabal update may take a few minutes...' && nix develop .#minimal --command cabal update"
 }
