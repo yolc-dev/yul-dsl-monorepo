@@ -61,7 +61,7 @@ class SGettableNP v r a b where
   sgetNP :: forall. a ⊸ YulMonad v v r b
 
 instance SGettableNP v r (NP '[]) (NP '[]) where
-  sgetNP Nil = ypure Nil
+  sgetNP Nil = LVM.pure Nil
 
 instance ( YulO1 r
          , Versionable'L ie v
@@ -71,7 +71,7 @@ instance ( YulO1 r
   sgetNP (a :* as) = LVM.do
     b <- sget a
     bs <- sgetNP as
-    ypure (b :* bs)
+    LVM.pure (b :* bs)
 
 sgetN :: forall tpl_a tpl_b v r.
   ( ConvertibleTupleN tpl_a, ConvertibleTupleN tpl_b
@@ -79,7 +79,7 @@ sgetN :: forall tpl_a tpl_b v r.
   ) => tpl_a ⊸ YulMonad v v r tpl_b
 sgetN tpl_a = let np_a = fromTupleNtoNP tpl_a
                   np_b = sgetNP np_a :: YulMonad v v r (TupleNtoNP tpl_b)
-              in np_b LVM.>>= ypure . fromNPtoTupleN
+              in np_b LVM.>>= LVM.pure . fromNPtoTupleN
 
 (<==) :: forall tpl_a tpl_b v r.
   ( ConvertibleTupleN tpl_a, ConvertibleTupleN tpl_b
@@ -128,7 +128,7 @@ sassign (to := x) = sput to x
 sputs :: forall v r. YulO1 r => NonEmpty (StorageAssignment v r) ⊸ YulMonad v (v + 1) r (P'V (v + 1) r ())
 sputs (sa :| []) = sassign sa
 sputs (sa :| (sa':sas)) =
-  let x  = sassign sa LVM.>>= ypure . unsafeCoerceYulPort:: YulMonad v (v + 1) r (P'V v r ())
+  let x  = sassign sa LVM.>>= LVM.pure . unsafeCoerceYulPort:: YulMonad v (v + 1) r (P'V v r ())
       x' = LVM.unsafeCoerceLVM x :: YulMonad v v r (P'V v r ())
       xs = sputs (sa' :| sas)
   in x' LVM.>> xs

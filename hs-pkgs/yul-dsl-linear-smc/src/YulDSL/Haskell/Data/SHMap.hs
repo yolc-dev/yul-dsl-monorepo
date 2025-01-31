@@ -29,7 +29,7 @@ shmapRef :: forall a b ie r v. YulO3 r a b
   ⊸ YulMonad v v r (P'x ie r (REF b))
 shmapRef (SHMap key) a = LVM.do
   key' <- embed key
-  with a (\a' -> ypure (extendType'l (yulKeccak256'l (merge'l (key', a')))))
+  with a (\a' -> LVM.pure (extendType'l (yulKeccak256'l (merge'l (key', a')))))
 
 -- | Get a value from the storage hash-map.
 shmapGet :: forall a b ie r v.

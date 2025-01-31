@@ -10,7 +10,7 @@ Stability   : experimental
 -}
 module YulDSL.Haskell.Effects.LinearSMC.LinearFn
   ( -- * Build Linear Yul Functions
-    StaticFn, OmniFn, lfn'
+    StaticFn, OmniFn, lfn', lfn_
     -- * Call Yul Functions Linearly
   , callFn'lvv, callFn'lpp, callFn'l
     -- * Call External Smart Contract Functions
@@ -81,6 +81,23 @@ instance ( KnownNat vd, AssertOmniEffect (PureInputVersionedOutput vd)
          ) =>
          ConstructibleLinearFn OmniFn PurePort (VersionedPort vd) where
   lfn' cid f = MkOmniFn (MkFn (cid, decode'l f))
+
+-- | Create linear kind of yul functions.
+class ConstructibleLinearFn_ (eff :: LinearEffectKind) (ie :: PortEffect) (oe :: PortEffect) | ie oe -> eff where
+  -- | Define a `YulCat` morphism from a yul port diagram.
+  lfn_ :: forall f xs b.
+    ( -- constraint f, using b xs
+      EquivalentNPOfFunction f xs b
+    , YulO2 (NP xs) b
+    ) => String
+      -> (forall r. YulO1 r => P'x ie r (NP xs) ⊸ P'x oe r b)
+      -> Fn eff f
+
+instance ConstructibleLinearFn_ (VersionedInputOutput vd) (VersionedPort 0) (VersionedPort vd) where
+  lfn_ cid f = MkFn (cid, decode'l f)
+
+instance ConstructibleLinearFn_ (PureInputVersionedOutput vd) PurePort (VersionedPort vd) where
+  lfn_ cid f = MkFn (cid, decode'l f)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- callFn'l

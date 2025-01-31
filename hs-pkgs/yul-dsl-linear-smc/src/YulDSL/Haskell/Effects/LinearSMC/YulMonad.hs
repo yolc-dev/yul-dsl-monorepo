@@ -39,7 +39,7 @@ runYulMonad u m = let ud = MkUnitDumpster (unsafeCoerceYulPort u)
                   in ignore'l (unsafeCoerceYulPort u') a
 
 -- An alias to 'LVM.pure' to avoid naming conflict with Monad pure function.
-ypure :: forall a v r. a ⊸ YulMonad v v r a
+ypure :: forall a v r. (P'V v r a) ⊸ YulMonad v v r (P'V v r a)
 ypure = LVM.pure
 
 -- | Generate a unit monadically.

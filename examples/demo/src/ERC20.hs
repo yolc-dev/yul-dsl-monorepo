@@ -46,11 +46,13 @@ mint = $lfn $ yulmonad'p
   \to_p amount_p -> LVM.do
   -- fetch balance of the account
   (to_p, balanceBefore) <- pass to_p (ypure . callFn'l balanceOf . ver'l)
+
   -- use linear port values safely
   (to_p, amount_p) <- passN_ (to_p, amount_p) \(to_p, amount_p) -> LVM.do
     -- update balance
     s <- shmapRef balanceMap to_p
     sput s (balanceBefore + ver'l amount_p)
+
   -- call unsafe external contract onTokenMinted
   externalCall onTokenMinted (ver'l to_p) (ver'l amount_p)
 
