@@ -1,8 +1,0 @@
-{
-    "features": {
-      "ghcr.io/DeterminateSystems/nix-feature": {
-        "version": "1"
-      }
-    }
-  }
-  
