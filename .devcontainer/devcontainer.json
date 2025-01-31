@@ -1,22 +1,25 @@
 {
-    "name": "Yolc Dev Environment",
-    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
-    "features": {
-        "ghcr.io/devcontainers/features/nix:1": {
-			"multiUser": false,
-			"version": "latest",
-			"extraNixConfig": "experimental-features = nix-command flakes"
+  "name": "Yolc Dev Environment",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+      "ghcr.io/devcontainers/features/nix:1": {
+      "multiUser": false,
+      "version": "latest",
+      "extraNixConfig": "experimental-features = nix-command flakes"
     },
-    "customizations": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
       "vscode": {
         "settings": {
           "nix.enableLanguageServer": true
-        }
+        },
+        "extensions": [
+          "justusadam.language-haskell"
+        ]
       }
-    },
-    "postCreateCommand": [
-      "nix develop .#minimal --command cabal update",
-      "nix develop .#minimal"
-    ]
-  }
+    }
+  },
+  "postCreateCommand": [
+    "nix develop .#minimal --command cabal update",
+    "echo 'if [ -z \"$IN_NIX_SHELL\" ]; then exec nix develop .#minimal; fi' >> /home/vscode/.bashrc"
+  ]
 }
