@@ -11,6 +11,16 @@
   "customizations": {
     "vscode": {
       "settings": {
+        "terminal.integrated.profiles.linux": {
+          "NixShell": {
+            "path": "bash",
+            "args": [
+              "-c",
+              "cd /workspaces/yul-dsl-monorepo && exec nix develop .#minimal"
+            ]
+          }
+        },
+        "terminal.integrated.defaultProfile.linux": "NixShell",
         "nix.enableLanguageServer": true
       },
       "extensions": [
@@ -18,5 +28,5 @@
       ]
     }
   },
-  "postCreateCommand": "nix develop .#minimal --command cabal update && echo 'if [ -z \"$IN_NIX_SHELL\" ] && [ -n \"$PS1\" ]; then exec nix develop .#minimal; fi' >> /home/vscode/.bashrc"
+  "postCreateCommand": "cabal update"
 }
