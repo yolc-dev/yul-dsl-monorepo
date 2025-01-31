@@ -11,10 +11,7 @@
       "vscode": {
         "settings": {
           "nix.enableLanguageServer": true
-        },
-        "extensions": [
-          "justusadam.language-haskell"
-        ]
+        }
       }
     },
     "postCreateCommand": [
