@@ -18,7 +18,5 @@ getCounter = $lfn $ yulmonad'p
 incCounter :: OmniFn (() -> U256 -> ())
 incCounter = $lfn $ yulmonad'p
   \u inc_p -> LVM.do
-    (counterRef, newValue_v0) <- pass (callFn'l counter u) \counterRef -> LVM.do
-       currentValue <- sget counterRef
-       ypure (currentValue + ver'l inc_p)
-    sput counterRef newValue_v0
+  (counterRef, currentValue) <- pass (callFn'l counter u) sget
+  sput counterRef (currentValue + ver'l inc_p)
