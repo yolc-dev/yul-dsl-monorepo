@@ -1,23 +1,22 @@
 {
-    "name": "Yolc Dev Environment",
-    "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
-    "features": {
-        "ghcr.io/devcontainers/features/nix:1": {
-			"multiUser": false,
-			"version": "latest",
-			"extraNixConfig": "experimental-features = nix-command flakes"
-		}
-    },
-    "customizations": {
-      "vscode": {
-        "settings": {
-          "nix.enableLanguageServer": true
-        },
-        "extensions": [
-          "arrterian.nix-env-selector",
-          "jnoortheen.nix-ide"
-        ]
-      }
+  "name": "Yolc Dev Environment",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers/features/nix:1": {
+      "multiUser": false,
+      "version": "latest",
+      "extraNixConfig": "experimental-features = nix-command flakes"
     }
-  }
-  
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "nix.enableLanguageServer": true
+      },
+      "extensions": [
+        "justusadam.language-haskell"
+      ]
+    }
+  },
+  "postCreateCommand": "echo 'running cabal update can take a few minutes...' && nix develop .#minimal --command cabal update && echo 'if [ -z \"$IN_NIX_SHELL\" ] && [ -n \"$PS1\" ] && [ ! -f \"/tmp/nix-shell-entered-$$\" ]; then touch \"/tmp/nix-shell-entered-$$\"; exec nix develop .#minimal; fi' >> /home/vscode/.bashrc"
+}
