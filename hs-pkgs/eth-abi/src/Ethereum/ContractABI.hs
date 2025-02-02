@@ -1,5 +1,7 @@
 module Ethereum.ContractABI
-  ( module Ethereum.ContractABI.ABICoreType
+  ( module Data.Type.Function
+  --
+  , module Ethereum.ContractABI.ABICoreType
   , module Ethereum.ContractABI.ABITypeable
   , module Ethereum.ContractABI.ABITypeCodec
   , module Ethereum.ContractABI.ABITypeCoercible
@@ -14,7 +16,8 @@ module Ethereum.ContractABI
   , module Ethereum.ContractABI.ExtendedType.TUPLEn
   , module Ethereum.ContractABI.ExtendedType.SELECTOR
   ) where
-
+-- simple-sop
+import Data.Type.Function
 -- type machinery
 import Ethereum.ContractABI.ABICoreType
 import Ethereum.ContractABI.ABITypeable

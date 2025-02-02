@@ -1,0 +1,59 @@
+cabal-version:  3.4
+name:           simple-sop
+version:        0.1.0.0
+category:       Data Structures
+synopsis:       Simple implementation of n-ary sums, n-ary products, and function signature type utilities.
+description:    When building your domain-specific language (DSL), it is common to work with n-ary function signatures
+                of type within your domain. A DSL can interchangeably express a function signature in its curried and
+                uncurried forms. N-ary products (NP) provide a recursive way to work with the uncurried form of function
+                signatures.
+
+                Additionally, a DSL may also need to work with sum types. N-ary sum (NS) offers the correct data type to
+                work with them recursively.
+
+                This package contains a simple implementation of NP, NS, and the utilities to work with n-ary function
+                signatures. It is simpler than sop-core, with the trade-off having much fewer features.
+
+license:        MIT
+license-file:   MIT-LICENSE
+author:         Miao, ZhiCheng
+maintainer:     helwolf@yolc.dev
+copyright:      (c) 2024-2025 Miao, ZhiCheng
+
+extra-doc-files:  README.md
+
+tested-with:    GHC==9.10.1
+build-type:     Simple
+
+common basic-options
+  default-language:   GHC2024
+  ghc-options:        -Wall
+                      -Wunused-packages
+  default-extensions: TypeFamilies
+  build-depends:      base >= 4.20.0.0 && < 666
+
+library
+  import:          basic-options
+  hs-source-dirs:  src
+  build-depends:   ghc-experimental >= 0.1,
+                   template-haskell >= 2.22
+  -- modules
+  exposed-modules:
+    Data.SimpleNP
+    Data.TupleN.TH
+    Data.TupleN
+    Data.Type.Function
+
+Test-Suite test-simple-sop
+  import:           basic-options
+  ghc-options:      -Wno-missing-signatures
+  type:             exitcode-stdio-1.0
+  build-depends:    hspec >= 2.11,
+                    simple-sop
+  hs-source-dirs:   test
+  -- modules
+  other-modules:
+    KnownBool
+    FunctionType_test
+    TupleN_test
+  main-is: Main.hs

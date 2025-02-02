@@ -54,13 +54,16 @@ lint:
 build: build-all-modules build-docs
 
 build-all-modules:
-	$(CABAL_BUILD) all $(BUILD_OPTIONS)
+	$(CABAL_BUILD) $(BUILD_OPTIONS) all
+
+build-module-%:
+	$(CABAL_BUILD) $*
 
 build-docs:
-	$(CABAL_DOCS) yul-dsl yul-dsl-pure yul-dsl-linear-smc
+	$(CABAL_DOCS) simple-sop eth-abi yul-dsl yul-dsl-pure yul-dsl-linear-smc
 
 build-docs-and-display: build-docs
-	for i in eth-abi yul-dsl yul-dsl-pure yul-dsl-linear-smc; do \
+	for i in simple-sop eth-abi yul-dsl yul-dsl-pure yul-dsl-linear-smc; do \
 		xdg-open $(DOCS_BUILDDIR)/build/*/*/$${i}-*/doc/html/$${i}/index.html; \
   done
 
@@ -71,21 +74,13 @@ clean:
 
 test: test-all-modules test-yol-suite test-demo
 
-test-all-modules: build-all-modules test-eth-abi test-yul-dsl test-yul-dsl-pure test-yul-dsl-linear-smc
+test-all-modules:
+	$(CABAL_TEST) simple-sop eth-abi yul-dsl yul-dsl-pure yul-dsl-linear-smc
 
-test-eth-abi:
-	$(CABAL_TEST) eth-abi
+test-module-%:
+	$(CABAL_TEST) $*
 
-test-yul-dsl:
-	$(CABAL_TEST) yul-dsl
-
-test-yul-dsl-pure:
-	$(CABAL_TEST) yul-dsl-pure
-
-test-yul-dsl-linear-smc:
-	$(CABAL_TEST) yul-dsl-linear-smc
-
-test-yol-suite:
+test-yol-suite: build-all-modules
 	yolc -m yul hs-pkgs/yol-suite/testsuite
 	cd hs-pkgs/yol-suite/testsuite && forge test -vvv
 

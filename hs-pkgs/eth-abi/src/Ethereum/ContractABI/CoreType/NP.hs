@@ -26,10 +26,6 @@ import Ethereum.ContractABI.ABITypeable  (ABITypeable (..))
 import Ethereum.ContractABI.ABITypeCodec (ABITypeCodec (..))
 
 
---
--- ABITypeable instances: NP xs
---
-
 instance ABITypeable (NP '[]) where
   type instance ABITypeDerivedOf (NP '[]) = NP '[]
   abiTypeInfo = []

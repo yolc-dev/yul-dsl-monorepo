@@ -1,6 +1,6 @@
 {-|
 
-Copyright   : (c) 2024 Miao, ZhiCheng
+Copyright   : (c) 2024-2025 Miao, ZhiCheng
 License     : MIT
 
 Maintainer  : hellwolf@yolc.dev
@@ -16,9 +16,11 @@ It supports up to 64-ary tuple.
 
 -}
 module Data.TupleN
-  ( Solo (MkSolo)
-  , TupleNtoNP, FromTupleNtoNP (fromTupleNtoNP), NPtoTupleN, FromNPtoTupleN (fromNPtoTupleN)
+  ( TupleNtoNP, NPtoTupleN
+  , FromTupleNtoNP (fromTupleNtoNP), FromNPtoTupleN (fromNPtoTupleN)
   , ConvertibleTupleN
+  -- re-export solo tuple type
+  , Solo (MkSolo)
   ) where
 
 -- ghc-experimental
@@ -27,7 +29,7 @@ import Data.Tuple.Experimental (Solo (MkSolo))
 import Data.TupleN.TH
 
 
--- | A constraint for TupleN types that are convertible to NP and vice versa.
+-- | A constraint alias for TupleN types that are convertible to NP and vice versa.
 type ConvertibleTupleN tpl = ( NPtoTupleN (TupleNtoNP tpl) ~ tpl
                              , FromTupleNtoNP tpl
                              , FromNPtoTupleN (TupleNtoNP tpl)

@@ -18,9 +18,10 @@ module YulDSL.Core.YulObject
     -- $YulObject
   , YulObject (..), mkYulObject
   ) where
-
 -- base
 import Data.List                                  (intercalate)
+-- simple-sop
+import Data.Type.Function
 -- eth-abi
 import Ethereum.ContractABI.ABITypeable           (abiTypeCanonName)
 import Ethereum.ContractABI.CoreType.NP

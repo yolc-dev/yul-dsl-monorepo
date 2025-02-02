@@ -1,5 +1,6 @@
 packages:
   3rd-parties/linear-smc-2.2.3
+  hs-pkgs/simple-sop
   hs-pkgs/eth-abi
   hs-pkgs/yul-dsl
   hs-pkgs/yul-dsl-pure

@@ -35,7 +35,7 @@ library
                   crypton >= 0.32,
                   memory >= 0.18,
                   cereal >= 0.5,
-                  eth-abi:simple-np
+                  simple-sop
   -- modules
   exposed-modules:
     -- core type machinery
@@ -63,19 +63,6 @@ library
     Data.TupleN.TH,
     Data.TupleN
 
-library simple-np
-  import:          basic-options
-  visibility:      private
-  hs-source-dirs:  ./internal/simple-np/src
-  build-depends:   ghc-experimental >= 0.1,
-                   template-haskell >= 2.22
-  -- modules
-  exposed-modules:
-    Data.SimpleNP
-    Data.TupleN.TH
-    Data.TupleN
-    Internal.Data.Type.List
-
 library lib-test
   import:           basic-options
   visibility:       public
@@ -92,12 +79,9 @@ Test-Suite test-eth-abi
   type:             exitcode-stdio-1.0
   build-depends:    QuickCheck >= 2.15,
                     hspec >= 2.11,
-                    eth-abi:simple-np,
                     eth-abi
   hs-source-dirs:   test
   -- modules
   other-modules:
-    SimpleNP_test
-    TupleN_test
     INTx_prop
   main-is: Main.hs

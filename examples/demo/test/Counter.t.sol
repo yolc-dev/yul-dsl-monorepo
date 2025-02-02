@@ -14,7 +14,7 @@ contract CounterProgramTest is Test {
     counter = createCounterProgram();
   }
 
-  function testGlobalCounterValue() external {
+  function testGlobalCounterValue() external view {
     assertEq(counter.getCounter(), 0);
     assertEq(counter.getCounter(), 0);
   }

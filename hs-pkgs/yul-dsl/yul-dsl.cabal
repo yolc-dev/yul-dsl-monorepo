@@ -34,15 +34,17 @@ common basic-options
 library
   import:             basic-options
   hs-source-dirs:     src
-  build-depends:      eth-abi ^>= 0.1.0.0,
-                      template-haskell >= 2.22,
-                      constraints >= 0.14,
-                      bytestring >= 0.11,
-                      crypton >= 0.32,
-                      memory >= 0.18,
-                      text >= 2.0.1,
-                      containers >= 0.6.7,
-                      mtl >= 2.3.1
+  build-depends:
+    template-haskell >= 2.22,
+    constraints >= 0.14,
+    bytestring >= 0.11,
+    crypton >= 0.32,
+    memory >= 0.18,
+    text >= 2.0.1,
+    containers >= 0.6.7,
+    mtl >= 2.3.1,
+    simple-sop,
+    eth-abi
   -- modules
   exposed-modules:
     -- YulDSL Core
