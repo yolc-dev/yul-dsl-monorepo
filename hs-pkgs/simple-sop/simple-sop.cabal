@@ -20,8 +20,6 @@ author:         Miao, ZhiCheng
 maintainer:     helwolf@yolc.dev
 copyright:      (c) 2024-2025 Miao, ZhiCheng
 
-extra-doc-files:  README.md
-
 tested-with:    GHC==9.10.1
 build-type:     Simple
 

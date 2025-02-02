@@ -1,0 +1,6 @@
+packages:
+  linear-smc-2.2.3
+
+package linear-smc
+  -- we don't want this external package to spew warnings out
+  ghc-options: -Wno-all -Wno-deprecated-flags

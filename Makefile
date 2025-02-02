@@ -9,7 +9,6 @@ LINEAR_SMC_PATH_FILE = 3rd-parties/linear-smc-$(LINEAR_SMC_VERSION).patch
 # Output directories
 DEFAULT_BUILDDIR ?= $(PWD)/build/default
 TEST_COVERAGE_BUILDDIR ?= $(PWD)/build/dist-coverage
-DOCS_BUILDDIR ?= $(PWD)/build/dist-docs
 
 # Build options
 BUILD_OPTIONS ?=
@@ -31,8 +30,8 @@ CABAL_PACKAGE_DB = $(shell $(CABAL) -v0 --builddir=$(DEFAULT_BUILDDIR) path --ou
 
 CABAL_BUILD    = $(CABAL) --builddir=$(DEFAULT_BUILDDIR) -O0 build
 CABAL_TEST     = $(CABAL) --builddir=$(DEFAULT_BUILDDIR) -O0 test $(TEST_OPTIONS)
-CABAL_COVERAGE = $(CABAL) --builddir=$(TEST_COVERAGE_BUILDDIR) coverage
-CABAL_DOCS     = $(CABAL) --builddir=$(DOCS_BUILDDIR) haddock
+CABAL_DOCS     = $(CABAL) --builddir=$(DEFAULT_BUILDDIR) -O0 haddock
+CABAL_COVERAGE = $(CABAL) --builddir=$(TEST_COVERAGE_BUILDDIR) -O0 coverage
 
 # Yolc Options
 
@@ -64,7 +63,7 @@ build-docs:
 
 build-docs-and-display: build-docs
 	for i in simple-sop eth-abi yul-dsl yul-dsl-pure yul-dsl-linear-smc; do \
-		xdg-open $(DOCS_BUILDDIR)/build/*/*/$${i}-*/doc/html/$${i}/index.html; \
+		xdg-open $(DEFAULT_BUILDDIR)/build/*/*/$${i}-*/doc/html/$${i}/index.html; \
   done
 
 build-patches: $(LINEAR_SMC_PATH_FILE)

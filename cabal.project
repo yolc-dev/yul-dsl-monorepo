@@ -1,5 +1,5 @@
+import 3rd-parties/cabal.project
 packages:
-  3rd-parties/linear-smc-2.2.3
   hs-pkgs/simple-sop
   hs-pkgs/eth-abi
   hs-pkgs/yul-dsl
@@ -18,7 +18,3 @@ with-compiler: ghc-9.10.1
 package *
   -- FIXME: due to a likely GHC 9.10.1 bug, building with -O1 produces faulty binary; to be reported.
   ghc-options: -O0
-
-package linear-smc
-  -- we don't want this external package to spew warnings out
-  ghc-options: -Wno-all -Wno-deprecated-flags
