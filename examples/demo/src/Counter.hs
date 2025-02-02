@@ -11,7 +11,7 @@ object = mkYulObject "Counter" emptyCtor
 
 counter :: PureFn (() -> REF U256)
 counter = $fn $
-  \_ -> YulEmb (keyRef "Yolc.Demo.Counter.Storage.Counter.Global")
+  const (YulEmb (keyRef "Yolc.Demo.Counter.Storage.Counter.Global"))
 
 getCounter :: StaticFn (() -> U256)
 getCounter = $lfn $ yulmonad'p

@@ -84,7 +84,9 @@ test_simple_fn = chooseInteger (0, toInteger (maxBound @U32)) <&>
 -- Polymorphic
 --------------------------------------------------------------------------------
 
-poly_foo :: forall a s n. (a ~ INTx s n, ValidINTx s n) => PureFn (a -> a -> a)
+poly_foo :: forall a s n.
+  ( a ~ INTx s n, ValidINTx s n
+  ) => PureFn (a -> a -> a)
 poly_foo = $fn \x y -> x * 2 + y
 
 test_poly_foo :: Bool
