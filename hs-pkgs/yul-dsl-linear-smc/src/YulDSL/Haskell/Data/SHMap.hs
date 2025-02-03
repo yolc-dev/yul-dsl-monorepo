@@ -1,7 +1,9 @@
 module YulDSL.Haskell.Data.SHMap
   ( SHMap (SHMap), shmap
-  , shmapRef, shmapGet
+  , shmapRef, shmapGet, shmapPut
   ) where
+-- base
+import GHC.TypeLits                              (type (+))
 -- linear-base
 import Prelude.Linear                            (String, fromInteger, type (~))
 -- yul-dsl
@@ -38,3 +40,12 @@ shmapGet :: forall a b ie r v.
   -> P'x ie r a
   ⊸ YulMonad v v r (P'V v r b)
 shmapGet m a = shmapRef m a LVM.>>= sget
+
+-- | Get a value from the storage hash-map.
+shmapPut :: forall a b ie r v.
+  (YulO3 r a b, SReferenceable ie v r (REF b) b) =>
+  SHMap a b ->
+  P'x ie r a ⊸
+  P'V v r b ⊸
+  YulMonad v (v + 1) r (P'V (v + 1) r ())
+shmapPut m a b = shmapRef m a LVM.>>= \s -> sput s b

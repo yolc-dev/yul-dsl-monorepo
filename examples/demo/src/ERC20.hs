@@ -22,17 +22,16 @@ balanceOf = $lfn $ yulmonad'p
 
 -- | ERC20 transfer function.
 transfer :: OmniFn (ADDR -> ADDR -> U256 -> BOOL)
-transfer = $lfn $ yulmonad'p
-  \from_p to_p amount_p -> LVM.do
+transfer = $lfn $ yulmonad'p \from_p to_p amount_p -> LVM.do
   -- get sender balance
   (from_p, senderBalanceRef_p) <- pass from_p (shmapRef balanceMap)
   -- get receiver balance
   (to_p, receiverBalanceRef_p) <- pass to_p (shmapRef balanceMap)
   -- calculate new balances
   (amount, newSenderBalance) <- pass (ver'l amount_p)
-    \amount -> ypure $ callFn'l balanceOf (ver'l from_p) - amount
+    \amount -> ypure $ balanceOf `callFn'l` (ver'l from_p) - amount
   newReceiverBalance <- with amount
-    \amount -> ypure $ callFn'l balanceOf (ver'l to_p) + amount
+    \amount -> ypure $ balanceOf `callFn'l` (ver'l to_p) + amount
   -- update storages
   sputs $
     senderBalanceRef_p   := newSenderBalance   :|
@@ -42,16 +41,15 @@ transfer = $lfn $ yulmonad'p
 
 -- | Mint new tokens
 mint :: OmniFn (ADDR -> U256 -> ())
-mint = $lfn $ yulmonad'p
-  \to_p amount_p -> LVM.do
+mint = $lfn $ yulmonad'p \to_p amount_p -> LVM.do
   -- fetch balance of the account
-  (to_p, balanceBefore) <- pass to_p (ypure . callFn'l balanceOf . ver'l)
+  (to_p, balanceBefore) <- pass to_p \to_p ->
+    ypure $ balanceOf `callFn'l` ver'l to_p
 
   -- use linear port values safely
-  (to_p, amount_p) <- passN_ (to_p, amount_p) \(to_p, amount_p) -> LVM.do
+  (to_p, amount_p) <- passN_ (to_p, amount_p) \(to_p, amount_p) ->
     -- update balance
-    s <- shmapRef balanceMap to_p
-    sput s (balanceBefore + ver'l amount_p)
+    shmapPut balanceMap to_p (balanceBefore + ver'l amount_p)
 
   -- call unsafe external contract onTokenMinted
   externalCall onTokenMinted (ver'l to_p) (ver'l amount_p)
