@@ -81,12 +81,13 @@ library linearly-versioned-monad
   build-depends:  constraints >= 0.13,
                   deepseq >= 1.5,
                   linear-base >= 0.3.1,
-                  eth-abi
+                  simple-sop
   -- modules
   exposed-modules:
     Data.LinearContext
     Control.LinearlyVersionedMonad
     Control.LinearlyVersionedMonad.Combinators
+  other-modules:
     -- support linear types for constraints package
     Data.Constraint.Linear
 

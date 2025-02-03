@@ -22,10 +22,11 @@ module Control.LinearlyVersionedMonad.Combinators
   ) where
 -- constraints
 import Data.Constraint.Linear         (Dict (Dict))
+-- simple-sop
+import Data.TupleN                    (ConvertibleTupleN, TupleNtoNP, fromTupleNtoNP)
 --
 import Control.LinearlyVersionedMonad
 import Data.LinearContext
-import Data.TupleN                    (ConvertibleTupleN, TupleNtoNP, fromTupleNtoNP)
 
 --------------------------------------------------------------------------------
 -- embed

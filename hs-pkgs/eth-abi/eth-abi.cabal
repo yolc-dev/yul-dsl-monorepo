@@ -60,7 +60,6 @@ library
   reexported-modules:
     -- simple-np
     Data.SimpleNP,
-    Data.TupleN.TH,
     Data.TupleN
 
 library lib-test
