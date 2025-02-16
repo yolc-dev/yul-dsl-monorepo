@@ -62,6 +62,7 @@ TODO
 
 - Standard Built-in Yul Functions:
   - [x] Built-in extension infrastructure
+    - [ ] ⚠️ Make effect constraint an associated family of a built-in.
   - Value validators
     - [x] bool
     - [x] intN, uintN
@@ -128,6 +129,7 @@ TODO
 - [x] 🌟🌟🌟 Linear safety for side effects
   - [x] Compile expression sof linear _data ports_ to YulCat
   - [x] Working with _versioned data port_ through `YulMonad`, a "Linearly Versioned Monad."
+    - [ ] ⚠️ BUG: fix LVM.pure
   - [x] Build linear functions with `$lfn $ uncurry'lvv | $lfn $ uncurry'lpv`.
   - [x] Call functions linearly with `callFn'l`, `callFn'lpp`.
     - [ ] 🟢 `callFnN'l` to call function via N-tuple, in order to support calling 0-ary functions.
@@ -136,9 +138,11 @@ TODO
   - [ ] 🟢 Num classes for data ports: mul, abs, sig, etc.
   - [ ] 🟠 ifThenElse through pattern matching on BOOL data port.
 - Working with _versioned data port_ through `YulMonad`, a "Linearly Versioned Monad."
-  - [x] Build YulMonad functions: `$lfn $ yulmonad'p` for versioned inputs, and `$lfn $ yulmonad'p` for pure inputs.
+  - [x] Build YulMonad functions: `$lfn $ yulmonad'p` for versioned inputs, and `$lfn $ yulmonad'p`
+        for pure inputs.
 - Working with storage:
-  - [x] Assorted storage functions: `SReferenceable(sget, sput), sgetN, (<==), sputN, (:|), (:=), sputs`.
+  - [x] Assorted storage functions: `SReferenceable(sget, sput), sgetN, (<==), sputN, (:|), (:=),
+        sputs`.
   - [x] SHMap - Storage Hash Map.
   - [ ] 🟠 Storage functions working with `Referenceable` types.
 
@@ -155,7 +159,8 @@ TODO
     - [x] Non-upgreadable.
   - Contract verification support
     - [ ] 🟢 EIP-1967 compatible "stunt contract" generator. A stunt contract includes both:
-          1. the program's interface necessary to interact with the program via EIP-1967-aware explorers,
+          1. the program's interface necessary to interact with the program via EIP-1967-aware
+             explorers,
           2. a copy of Haskell main source code in a block of solidity comments.
   - CLI
     - [x] ⭐ `yolc`, a MVP in shells script, prepares YOLC project and invoke YOLC builder.
@@ -195,3 +200,10 @@ TODO
   - Deployment Pipeline: `attila deploy`
     - [ ] Deploy the program (program is an unit of deployment.)
     - [ ] Etherscan verification pipeline.
+
+<!--
+Local Variables:
+fill-column: 100
+flycheck-mode: 0
+End:
+-->

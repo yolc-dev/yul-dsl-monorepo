@@ -1,8 +1,8 @@
 Yolc - A Safe, Expressive, Fun Language for Ethereum
 ====================================================
 
-The main motivation behind Yolc is to strike a balance between the following values for building Ethereum smart
-contracts:
+The key motivation behind Yolc is to strike a balance between the following values for building
+Ethereum smart contracts.
 
 *Safe*
 
@@ -24,21 +24,24 @@ Yolc allows you to write safe code in production, a joyful experience for super 
 
 > [!TIP]
 >
-> Yolc is a compiler program for "YulDSL/Haskell". YulDSL is a domain-specific language (DSL) based on [category
-> theory](https://category-theory.org/) for [Solidity/Yul](https://soliditylang.org/). YulDSL can be embedded in
-> different languages, with "YulDSL/Haskell" being the first of its kind. Curiously, the name "yolc" sounds similar to
-> "solc", the compiler program for "Solidity/Yul".
+> Yolc is a compiler program for "YulDSL/Haskell." YulDSL is a domain-specific language (DSL) based
+> on [category theory](https://category-theory.org/) for
+> [Solidity/Yul](https://soliditylang.org/). YulDSL can embed itself in different languages, with
+> "YulDSL/Haskell" being the first of its kind. Curiously, the name "yolc" sounds similar to "solc,"
+> the compiler program for "Solidity/Yul."
 >
-> Do not worry if you don't understand some of these concepts, you can start with Yolc right away and have a rewarding,
-> fun experience writing safer production smart contracts. However, if you do feel adventurous and want to delve into
-> the inner workings of YulDSL, read [here](./hs-pkgs/yul-dsl/README.md).
+> Do not worry if you don't understand some of these concepts. You may start with Yolc right away
+> and have a rewarding, fun experience writing safer production smart contracts. However, if you do
+> feel adventurous and want to delve into the inner workings of YulDSL, read
+> [here](./hs-pkgs/yul-dsl/README.md).
 
 > [!CAUTION]
 >
-> 🚧 While this project is still work in progress 🚧, currently it is of /technical preview/ version, read [the
-> introduction](https://yolc.dev/docs/getting-started/introduction/)
+> 🚧 While this project is still work in progress 🚧, currently it is of /technical preview/
+> version, read [the introduction](https://yolc.dev/docs/getting-started/introduction/)
 >
-> Contact me at info@yolc.dev or join the [matrix room](https://matrix.to/#/#yolc:matrix.org) if you want to learn more!
+> Contact me at info@yolc.dev or join the [matrix room](https://matrix.to/#/#yolc:matrix.org) if you
+> want to learn more!
 
 ------------------------------------------------------------------------------------------
 
@@ -50,8 +53,9 @@ Ethereum-Compatible & Extensible Types
 
 > [!NOTE]
 >
-> These include [Ethereum contract ABI specification](https://docs.soliditylang.org/en/latest/abi-spec.html)
-> implemented in as *core types*, their *type extensions*, including *dependently typed extensions*.
+> These include [Ethereum contract ABI
+> specification](https://docs.soliditylang.org/en/latest/abi-spec.html) implemented in as *core
+> types*, their *type extensions*, including *dependently typed extensions*.
 
 Unlike solidity, and to accommodate Haskell lexical rules, types are all in capitalize letters:
 
@@ -73,44 +77,49 @@ TODO.
 
 ```haskell
 -- define a pure value function
-foo3 = fn @(Maybe U8 -> Maybe U8 -> Maybe U8 -> Maybe U8) "foo3"
+PureFn (U256 -> U256 -> U256)
+foo3 = $fn
   \a b c -> a + b + c
 
 -- call other pure value function
-call3 = fn @(Maybe U8 -> Maybe U8) "call3"
-  \a -> call foo3 a a a
+call_foo3 :: PureFn (U256 -> U256)
+call_foo3 = $fn
+  \a -> callFn foo3 a a a
 ```
 
 **Pattern Matching**
 
 ```haskell
-add_maybe_int96_with_default = fn @(I96 -> I96 -> I96 -> I96) "add_maybe_int96_with_default"
-  \x y def -> match (inCase (Just x) + inCase (Just y)) \case
-    Nothing -> def
-    Just z  -> z
+-- ⭐ pattern matching coming to Ethereum
+\x y def -> match (x + y) \case
+  Nothing -> def  -- number overflown
+  Just z  -> z    -- just do it
 ```
 
 Linear Safety For Side Effects
 ------------------------------
 
 ```haskell
-  \account'p mintAmount'p -> LVM.do
   -- fetch balance of the account
-  (account'p, balanceBefore) <- pass account'p balance_of
-  -- use linear port (naming convention, "*'p") values safely
-  (account'p, mintAmount'p) <- passN_ (account'p, mintAmount'p) \(account'p, mintAmount'p) ->
+  (to_p, balanceBefore) <- pass to_p \to_p ->
+    ypure $ balanceOf `callFn'l` ver'l to_p
+
+  -- use linear port values safely
+  (to_p, amount_p) <- passN_ (to_p, amount_p) \(to_p, amount_p) ->
     -- update balance
-    sput (balance_sloc account'p) (balanceBefore + ver'l mintAmount'p)
+    shmapPut balanceMap to_p (balanceBefore + ver'l amount_p)
+
   -- call unsafe external contract onTokenMinted
-  externalCall onTokenMinted (ver'l account'p) (ver'l mintAmount'p)
+  externalCall onTokenMinted (ver'l to_p) (ver'l amount_p)
 ```
 
 Foundry Integration
 -------------------
 
-Yolc leverages the power of the best toolking in the ecosyste, while focusing on what it is best at: a safe, expressive
-and fun programming language. It is not a full toolkit for Ethereum development. Hence, it is recommended to work in
-tandem with the [foundry toolkit](https://github.com/foundry-rs/foundry).
+Yolc leverages the power of the best tooling in the ecosystem while focusing on what it is best at:
+A safe, expressive, and fun programming language. It is not a full toolkit for Ethereum
+development. Hence, Yolk works best in tandem with the [foundry
+toolkit](https://github.com/foundry-rs/foundry).
 
 ------------------------------------------------------------------------------------------
 
@@ -120,37 +129,44 @@ Packages
 - [*eth-abi*](./hs-pkgs/eth-abi/README.md) - Ethereum contract ABI specification in Haskell
 - [*yul-dsl*](./hs-pkgs/yul-dsl/README.md) - A DSL targets Solidity/Yul
 - [*yul-dsl-pure*](#) - YulDSL/Haskell's support for pure effects
-- [*yul-dsl-linear-smc*](./hs-pkgs/yul-dsl-linear-smc/README.md) - YulDSL/Haskell's support for side effects using
-  linear types
-- [*yol-suite*](./hs-pkgs/yol-suite/README.md) - A Collection of YulDSL Programs for the New Pioneer of Ethereum Smart
-  Contracts Development
+- [*yul-dsl-linear-smc*](./hs-pkgs/yul-dsl-linear-smc/README.md) - YulDSL/Haskell's support for side
+  effects using linear types
+- [*yol-suite*](./hs-pkgs/yol-suite/README.md) - A Collection of YulDSL Programs for the New Pioneer
+  of Ethereum Smart Contracts Development
   - **yolc**: the evil twin of "solc"; this is the compiler program for "YulDSL/Haskell".
   - **attila**: who wields the foundy, forges his path; this is the counter part of the "forge" from
-    [foundry](https://github.com/foundry-rs/foundry). However, it mostly invokes directly "forge" for you, since
-    yol-suite integrates itself with the [foundry toolkit](https://github.com/foundry-rs/foundry).
-  - **drwitch**: who persuades the tyrant, shapes our history; this is the counter part of the "cast" from
-    [foundry](https://github.com/foundry-rs/foundry).
+    [foundry](https://github.com/foundry-rs/foundry). However, it mostly invokes directly "forge"
+    for you, since yol-suite integrates itself with the [foundry
+    toolkit](https://github.com/foundry-rs/foundry).
+  - **drwitch**: who persuades the tyrant, shapes our history; this is the counterpart of the
+    "cast" from [foundry](https://github.com/foundry-rs/foundry).
 
 ------------------------------------------------------------------------------------------
 
 Roadmap
 =======
 
-For the ongoing feature development, here is the ccomplete [todo list](TODO.md).
+For the ongoing feature development, here is the complete [todo list](TODO.md).
 
 Milestones
 ----------
 
 - [x] Jan 6th, 2025: public announcement, with the first technical release (unversioned).
-- [ ] End of Jan 2025: version 0.0.1.0 with major features completion.
-- [ ] End of Feb 2025: version 0.0.2.0 with first live in production projects.
+- [ ] End of Feb 2025: version 0.0.1.0 with major features completion.
+- [ ] End of Mar 2025: version 0.0.2.0 with first live in production projects.
 - ...
 
 Research Topics
 ---------------
 
-- A paper on the linearly versioned monad, the corner stone of the yolc linear safety, as a survey of comparing it to
-  other resource management method including monadic regions, CoDensity, etc.
-- Liquid haskell integration.
+- A paper on the linearly versioned monad, the cornerstone of Yolc's linear safety, as a survey of
+  comparing it to other resource management method including monadic regions, CoDensity, etc.
+- Liquid Haskell integration.
 - Extend core types through dependent types.
 - Portable YulDSL artifact for non-Haskell language embedding and cross-languages modules.
+
+<!--
+Local Variables:
+fill-column: 100
+End:
+-->
