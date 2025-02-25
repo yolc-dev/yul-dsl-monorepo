@@ -117,9 +117,9 @@ type CallFn'L f x xs b r ie oe ye =
 callFn'lvv :: forall f v1 vd vn x xs b r.
   ( v1 + vd ~ vn
   , CallFn'L f x xs b r (VersionedPort v1) (VersionedPort vn) (YulCat'LVV v1 v1)
-  )
-  => Fn (VersionedInputOutput vd) f
-  -> (P'V v1 r x ⊸ LiftFunction (CurryNP (NP xs) b) (P'V v1 r) (P'V vn r) One)
+  ) =>
+  Fn (VersionedInputOutput vd) f ->
+  (P'V v1 r x ⊸ LiftFunction (CurryNP (NP xs) b) (P'V v1 r) (P'V vn r) One)
 -- ^ All other function kinds is coerced into calling as if it is a versioned input output.
 callFn'lvv (MkFn f) x =
     mkUnit'l x
@@ -129,9 +129,10 @@ callFn'lvv (MkFn f) x =
 
 -- | Call pure function with pure yul port and get pure yul port.
 callFn'lpp :: forall f x xs b r.
-  CallFn'L f x xs b r PurePort PurePort YulCat'LPP
-  => Fn Pure f
-  -> (P'P r x ⊸ LiftFunction (CurryNP (NP xs) b) (P'P r) (P'P r) One)
+  ( CallFn'L f x xs b r PurePort PurePort YulCat'LPP
+  ) =>
+  Fn Pure f ->
+  (P'P r x ⊸ LiftFunction (CurryNP (NP xs) b) (P'P r) (P'P r) One)
 callFn'lpp (MkFn f) x =
   mkUnit'l x
   & \(x', u) -> curryingNP @_ @_ @(P'P r) @(P'P r) @(YulCat'LPP r ()) @One
@@ -162,9 +163,9 @@ class CallableFn'LVV fn (ie :: PortEffect) f where
   callFn'l :: forall x xs b r oe.
     ( CallableFn_LVV_OE fn ie ~ oe
     , CallFn'L f x xs b r ie oe (CallableFn_LVV_YE fn ie)
-    )
-    => fn f
-    -> (P'x ie r x ⊸ LiftFunction (CurryNP (NP xs) b) (P'x ie r) (P'x oe r) One)
+    ) =>
+    fn f ->
+    (P'x ie r x ⊸ LiftFunction (CurryNP (NP xs) b) (P'x ie r) (P'x oe r) One)
 instance CallableFn'LVV (Fn (PureInputVersionedOutput vd)) (VersionedPort v1) f where
   callFn'l f = callFn'lvv @f @v1 @vd @(v1 + vd) (unsafeCoerceFn f)
 instance CallableFn'LVV (Fn (VersionedInputOutput vd)) (VersionedPort v1) f where

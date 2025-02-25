@@ -30,8 +30,7 @@ transfer = $lfn $ yulmonad'p \from_p to_p amount_p -> LVM.do
   -- calculate new balances
   (amount, newSenderBalance) <- pass (ver'l amount_p)
     \amount -> ypure $ balanceOf `callFn'l` (ver'l from_p) - amount
-  newReceiverBalance <- with amount
-    \amount -> ypure $ balanceOf `callFn'l` (ver'l to_p) + amount
+  let newReceiverBalance = balanceOf `callFn'l` (ver'l to_p) + amount
   -- update storages
   sputs $
     senderBalanceRef_p   := newSenderBalance   :|

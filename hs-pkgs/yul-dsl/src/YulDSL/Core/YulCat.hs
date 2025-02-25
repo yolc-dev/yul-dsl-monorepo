@@ -175,6 +175,9 @@ data YulCat (eff :: k) a b where
   YulUnsafeCoerceEffect :: forall k1 k2 (eff1 :: k1) (eff2 :: k2) a b. YulO2 a b
                         => YulCat eff1 a b %1-> YulCat eff2 a b
 
+-- | YulCat morphism with its domain in @NP xs@
+type YulCatNP eff xs b = YulCat eff (NP xs) b
+
 -- | Existential wrapper of the 'YulCat'.
 data AnyYulCat = forall eff a b. (YulO2 a b) => MkAnyYulCat (YulCat eff a b)
 
@@ -190,9 +193,15 @@ type NamedYulCatNP eff xs b = NamedYulCat eff (NP xs) b
 data Fn eff f where
   MkFn :: forall eff f xs b.
     ( EquivalentNPOfFunction f xs b
-    , YulO2 (NP xs) b )
-    => { unFn :: NamedYulCatNP eff (UncurryNP'Fst f) (UncurryNP'Snd f) }
-    -> Fn eff f
+    , YulO2 (NP xs) b
+    ) =>
+    { unFn :: NamedYulCatNP eff (UncurryNP'Fst f) (UncurryNP'Snd f) } ->
+    Fn eff f
+
+-- type Fn' eff f = forall k {eff :: k} f xs b.
+--     ( EquivalentNPOfFunction f xs b
+--     , YulO2 (NP xs) b
+--     ) => YulCatNP eff (UncurryNP'Fst f) (UncurryNP'Snd f)
 
 class ClassifiedFn fn (efc :: YulCatEffectClass) | fn -> efc where
   withClassifiedFn :: forall f r. (forall k (eff :: k). KnownYulCatEffect eff => Fn eff f -> r) %1-> fn f -> r
