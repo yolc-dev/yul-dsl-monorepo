@@ -30,6 +30,7 @@ module YulDSL.Core.YulCat
   , YulO1, YulO2, YulO3, YulO4, YulO5, YulO6
     -- * YulCat, the Categorical DSL of Yul
   , YulCat (..), AnyYulCat (..)
+  , YulCatNP, Y
   , NamedYulCat, NamedYulCatNP
   , Fn (MkFn, unFn), ClassifiedFn (withClassifiedFn), unsafeCoerceFn
   , ExternalFn (MkExternalFn), declareExternalFn
@@ -175,11 +176,14 @@ data YulCat (eff :: k) a b where
   YulUnsafeCoerceEffect :: forall k1 k2 (eff1 :: k1) (eff2 :: k2) a b. YulO2 a b
                         => YulCat eff1 a b %1-> YulCat eff2 a b
 
+-- | Existential wrapper of the 'YulCat'.
+data AnyYulCat = forall eff a b. (YulO2 a b) => MkAnyYulCat (YulCat eff a b)
+
 -- | YulCat morphism with its domain in @NP xs@
 type YulCatNP eff xs b = YulCat eff (NP xs) b
 
--- | Existential wrapper of the 'YulCat'.
-data AnyYulCat = forall eff a b. (YulO2 a b) => MkAnyYulCat (YulCat eff a b)
+-- | 'YulCatNP' denoted in its currying function forms.
+type Y eff f = forall r. YulO1 r => LiftFunction f (YulCat eff r) (YulCat eff r) Many
 
 -- | Named YulCat morphism.
 type NamedYulCat eff a b = (String, YulCat eff a b)
@@ -187,7 +191,7 @@ type NamedYulCat eff a b = (String, YulCat eff a b)
 -- | Named YulCat morphism with its domain in @NP xs@.
 type NamedYulCatNP eff xs b = NamedYulCat eff (NP xs) b
 
--- | Yul function wrappers that are in currying function forms.
+-- | 'NamedYulCatNP' denoted in its currying function forms.
 --
 --   Note: Fn (a1 -> a2 -> ...aN -> b) ~ FnNP (NP [a1,a2...aN]) b
 data Fn eff f where
@@ -197,11 +201,6 @@ data Fn eff f where
     ) =>
     { unFn :: NamedYulCatNP eff (UncurryNP'Fst f) (UncurryNP'Snd f) } ->
     Fn eff f
-
--- type Fn' eff f = forall k {eff :: k} f xs b.
---     ( EquivalentNPOfFunction f xs b
---     , YulO2 (NP xs) b
---     ) => YulCatNP eff (UncurryNP'Fst f) (UncurryNP'Snd f)
 
 class ClassifiedFn fn (efc :: YulCatEffectClass) | fn -> efc where
   withClassifiedFn :: forall f r. (forall k (eff :: k). KnownYulCatEffect eff => Fn eff f -> r) %1-> fn f -> r

@@ -15,7 +15,8 @@ This module provides the operations for working with the 'Pure' kind of effect f
 module YulDSL.Haskell.Effects.Pure
   ( -- * Pure Effect Kind
     -- $PureEffectKind
-    PureEffectKind (Pure, Total), PureFn (MkPureFn), YulCat'P
+    PureEffectKind (Pure, Total)
+  , PureY, PureFn (MkPureFn), YulCat'P
     -- * Build And Call PureFn
     -- $PureFn
   , fn', fn, callFn
@@ -45,6 +46,8 @@ instance KnownYulCatEffect Total where classifyYulCatEffect = PureEffect
 
 type instance IsEffectNotPure (eff :: PureEffectKind) = False
 type instance MayEffectWorld  (eff :: PureEffectKind) = False
+
+type PureY f = Y Pure f
 
 -- | Function without side effects, hence pure.
 data PureFn f where

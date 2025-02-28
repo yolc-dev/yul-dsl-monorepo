@@ -21,31 +21,33 @@ import TestCommon                   ()
 -- Trivial functions
 --------------------------------------------------------------------------------
 
+dis_any' :: forall a. YulO1 a => PureY (a -> ())
+dis_any' _ = YulEmb()
+
 dis_any :: forall a. YulO1 a => PureFn (a -> ())
-dis_any = fn' "dis_any" \_ -> YulEmb ()
+dis_any = fn' "dis_any" dis_any'
 
 --------------------------------------------------------------------------------
 -- Simple functions
 --------------------------------------------------------------------------------
 
-uncurry_fn0 :: PureFn (U256)
-uncurry_fn0 = fn' "uncurry_fn0" 42
+tuple_add :: PureY ((U256, U256) -> U256)
+tuple_add t = match t \case (a, b) -> a + b
 
-uncurry_fn1 :: ValidINTx s n => PureFn (INTx s n -> INTx s n)
-uncurry_fn1 = fn' "uncurry_fn1"
-  \a -> a + a
+uncurry_fn0 :: PureFn (U256)
+uncurry_fn0 = $fn 42
+
+uncurry_fn1 :: PureFn (U256 -> U256)
+uncurry_fn1 = $fn \a -> tuple_add (be (a, a))
 
 uncurry_fn2 :: PureFn (U256 -> U256 -> U256)
-uncurry_fn2 = $fn
-  \a b -> a + b
+uncurry_fn2 = $fn \a b -> tuple_add (be (a, b))
 
 uncurry_fn3 :: PureFn (U256 -> U256 -> U256 -> U256)
-uncurry_fn3 = $fn
-  \a b c -> a + b + c
+uncurry_fn3 = $fn \a b c -> a + b + c
 
 uncurry_fn4 :: PureFn (U256 -> U256 -> U256 -> U256 -> U256)
-uncurry_fn4 = $fn
-  \a b c d -> f a b + f c d
+uncurry_fn4 = $fn \a b c d -> f a b + f c d
   where f a b = a + b
 
 call_fn0 :: PureFn (U256)
