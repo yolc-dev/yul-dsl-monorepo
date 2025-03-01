@@ -2,8 +2,6 @@ Yolc - A Safe, Expressive, Fun Language for Ethereum
 ====================================================
 
 <div align="center">
-<h1>Welcome to YulDSL's monorepo 👋</h1>
-
 <p>
   <img alt="Static Badge" src="https://img.shields.io/badge/AI--Free_Code-Green">
   <a href="https://twitter.com/yolc_dev" target="_blank">
