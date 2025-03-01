@@ -7,7 +7,7 @@ Yolc - A Safe, Expressive, Fun Language for Ethereum
 <p>
   <img alt="Static Badge" src="https://img.shields.io/badge/AI--Free_Code-Green">
   <a href="https://twitter.com/yolc_dev" target="_blank">
-    <img alt="Twitter: Superfluid_HQ" src="https://img.shields.io/twitter/follow/Superfluid_HQ.svg?style=social" />
+    <img alt="X Social: yolc_dev" src="https://img.shields.io/twitter/follow/yolc_dev.svg?style=social" />
   </a>
 </p>
 </div>
