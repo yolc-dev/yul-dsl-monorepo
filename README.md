@@ -1,6 +1,17 @@
 Yolc - A Safe, Expressive, Fun Language for Ethereum
 ====================================================
 
+<div align="center">
+<h1>Welcome to YulDSL's monorepo 👋</h1>
+
+<p>
+  <img alt="Static Badge" src="https://img.shields.io/badge/AI--Free_Code-Green">
+  <a href="https://twitter.com/Superfluid_HQ" target="_blank">
+    <img alt="Twitter: Superfluid_HQ" src="https://img.shields.io/twitter/follow/Superfluid_HQ.svg?style=social" />
+  </a>
+</p>
+</div>
+
 The key motivation behind Yolc is to strike a balance between the following values for building
 Ethereum smart contracts.
 
