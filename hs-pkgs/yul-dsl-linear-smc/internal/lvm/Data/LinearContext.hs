@@ -68,7 +68,7 @@ instance ( ContextualDupable ctx x
 
 -- | Utility function to contextually duplicate a TupleN.
 contextualDupTupleN :: forall ctx aN.
-  ( ConvertibleTupleN aN
+  ( ConvertibleTupleNtoNP aN
   , ContextualDupable ctx (TupleNtoNP (aN))
   ) => ctx ⊸ aN ⊸ (ctx, (aN, aN))
 contextualDupTupleN ctx aN = let aNP = fromTupleNtoNP aN
@@ -99,7 +99,7 @@ instance ( ContextualConsumable ctx a
                                   in (ctx''', x' :* xs')
 
 contextualSeqN :: forall ctx a bN.
-  ( ConvertibleTupleN bN
+  ( ConvertibleTupleNtoNP bN
   , ContextualSeqable ctx a (TupleNtoNP (bN))
   ) => ctx ⊸ a ⊸ bN ⊸ (ctx, bN)
 contextualSeqN ctx a bN = let bNP = fromTupleNtoNP bN

@@ -18,7 +18,7 @@ It supports up to 64-ary tuple.
 module Data.TupleN
   ( TupleNtoNP, NPtoTupleN
   , FromTupleNtoNP (fromTupleNtoNP), FromNPtoTupleN (fromNPtoTupleN)
-  , ConvertibleTupleN
+  , ConvertibleTupleNtoNP, ConvertibleNPtoTupleN
   -- re-export solo tuple type
   , Solo (MkSolo)
   ) where
@@ -30,7 +30,13 @@ import Data.TupleN.TH
 
 
 -- | A constraint alias for TupleN types that are convertible to NP and vice versa.
-type ConvertibleTupleN tpl = ( NPtoTupleN (TupleNtoNP tpl) ~ tpl
-                             , FromTupleNtoNP tpl
-                             , FromNPtoTupleN (TupleNtoNP tpl)
-                             )
+type ConvertibleTupleNtoNP tpl = ( NPtoTupleN (TupleNtoNP tpl) ~ tpl
+                                 , FromTupleNtoNP tpl
+                                 , FromNPtoTupleN (TupleNtoNP tpl)
+                                 )
+
+-- | A constraint alias for NP types that are convertible to TupleN and vice versa.
+type ConvertibleNPtoTupleN np = ( TupleNtoNP (NPtoTupleN np) ~ np
+                                , FromTupleNtoNP (NPtoTupleN np)
+                                , FromNPtoTupleN np
+                                )

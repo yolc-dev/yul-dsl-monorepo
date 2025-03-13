@@ -23,7 +23,7 @@ module Control.LinearlyVersionedMonad.Combinators
 -- constraints
 import Data.Constraint.Linear         (Dict (Dict))
 -- simple-sop
-import Data.TupleN                    (ConvertibleTupleN, TupleNtoNP, fromTupleNtoNP)
+import Data.TupleN                    (ConvertibleTupleNtoNP, TupleNtoNP, fromTupleNtoNP)
 --
 import Control.LinearlyVersionedMonad
 import Data.LinearContext
@@ -59,7 +59,7 @@ toss x = MkLVM \ctx ->
 
 -- | Toss a TupleN into a contextual unit.
 tossN :: forall ctx v aN m.
-  ( ConvertibleTupleN aN
+  ( ConvertibleTupleNtoNP aN
   , ContextualConsumable ctx (TupleNtoNP aN)
   , ContextualEmbeddable ctx m ()
   ) => aN ⊸ LVM ctx v v (m ())
@@ -97,7 +97,7 @@ pass_ a mb = MkLVM \ctx ->
 
 -- | Combinator 'pass' for TupleN.
 passN :: forall ctx va vb aN b.
-  ( ConvertibleTupleN aN, ContextualDupable ctx (TupleNtoNP aN)
+  ( ConvertibleTupleNtoNP aN, ContextualDupable ctx (TupleNtoNP aN)
   , ContextualDupable ctx b, ContextualSeqable ctx b (TupleNtoNP aN)
   ) => aN ⊸ (aN ⊸ LVM ctx va vb b) ⊸ LVM ctx va vb (aN, b)
 passN aN mb = MkLVM \ctx ->
@@ -109,7 +109,7 @@ passN aN mb = MkLVM \ctx ->
 
 -- | Combinator 'pass_' for TupleN.
 passN_ :: forall ctx va vb aN b.
-  ( ConvertibleTupleN aN, ContextualDupable ctx (TupleNtoNP aN)
+  ( ConvertibleTupleNtoNP aN, ContextualDupable ctx (TupleNtoNP aN)
   , ContextualDupable ctx b, ContextualConsumable ctx b, ContextualSeqable ctx b (TupleNtoNP aN)
   ) => aN ⊸ (aN ⊸ LVM ctx va vb b) ⊸ LVM ctx va vb aN
 passN_ aN mb = passN aN mb >>= (\(aN', b) -> tossToUnit b >> pure aN')

@@ -14,6 +14,7 @@ A simple n-ary product without any type function that is present in the sop-core
 -}
 module Data.SimpleNP
   ( NP (Nil, (:*))
+  , MapList, MapNP
   ) where
 -- base
 import Data.Kind (Type)
@@ -24,6 +25,15 @@ data NP :: [Type] -> Type where
   Nil  :: NP '[]
   (:*) :: x -> NP xs -> NP (x : xs)
 infixr 5 :*
+
+-- | Map one type-level list to another with a type function.
+type family MapList (f :: Type -> Type) (xs :: [Type]) :: [Type] where
+  MapList _ '[] = '[]
+  MapList f (x : xs) = f x : MapList f xs
+
+-- | Map the components of NP from one type to another type with a type function.
+type family MapNP (f :: Type -> Type) np where
+  MapNP f (NP xs) = NP (MapList f xs)
 
 deriving instance Eq (NP ('[]))
 deriving instance (Eq x, Eq (NP xs)) => Eq (NP (x:xs))

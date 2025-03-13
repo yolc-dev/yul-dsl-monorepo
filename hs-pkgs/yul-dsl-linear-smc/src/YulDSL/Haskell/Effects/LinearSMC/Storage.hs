@@ -74,7 +74,7 @@ instance ( YulO1 r
     LVM.pure (b :* bs)
 
 sgetN :: forall tpl_a tpl_b v r.
-  ( ConvertibleTupleN tpl_a, ConvertibleTupleN tpl_b
+  ( ConvertibleTupleNtoNP tpl_a, ConvertibleTupleNtoNP tpl_b
   , SGettableNP v r (TupleNtoNP tpl_a) (TupleNtoNP tpl_b)
   ) => tpl_a ⊸ YulMonad v v r tpl_b
 sgetN tpl_a = let np_a = fromTupleNtoNP tpl_a
@@ -82,7 +82,7 @@ sgetN tpl_a = let np_a = fromTupleNtoNP tpl_a
               in np_b LVM.>>= LVM.pure . fromNPtoTupleN
 
 (<==) :: forall tpl_a tpl_b v r.
-  ( ConvertibleTupleN tpl_a, ConvertibleTupleN tpl_b
+  ( ConvertibleTupleNtoNP tpl_a, ConvertibleTupleNtoNP tpl_b
   , SGettableNP v r (TupleNtoNP tpl_a) (TupleNtoNP tpl_b)
   ) => tpl_a ⊸ YulMonad v v r tpl_b
 (<==) = sgetN
@@ -109,7 +109,7 @@ instance ( YulO1 r
                           in x'' LVM.>> xs'
 
 sputN :: forall tpl v r.
-  ( ConvertibleTupleN tpl
+  ( ConvertibleTupleNtoNP tpl
   , SPuttableNP v r (TupleNtoNP tpl)
   ) => tpl ⊸ YulMonad v (v + 1) r (P'V (v + 1) r ())
 sputN tpl = sputNP (fromTupleNtoNP tpl)

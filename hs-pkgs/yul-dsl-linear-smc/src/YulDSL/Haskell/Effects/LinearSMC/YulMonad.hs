@@ -14,6 +14,8 @@ import Control.Functor.Linear qualified
 import Prelude.Linear
 -- yul-dsl
 import YulDSL.Core
+-- yul-dsl-pure
+import YulDSL.Haskell.Effects.Pure
 -- linearly-versioned-monad
 import Control.LinearlyVersionedMonad                (LVM, runLVM)
 import Control.LinearlyVersionedMonad                qualified as LVM
@@ -39,7 +41,7 @@ runYulMonad u m = let ud = MkUnitDumpster (unsafeCoerceYulPort u)
                   in ignore'l (unsafeCoerceYulPort u') a
 
 -- An alias to 'LVM.pure' to avoid naming conflict with Monad pure function.
-ypure :: forall a v r. (P'V v r a) ⊸ YulMonad v v r (P'V v r a)
+ypure :: forall a v r. P'V v r a ⊸ YulMonad v v r (P'V v r a)
 ypure = LVM.pure
 
 -- | Generate a unit monadically.
@@ -212,3 +214,18 @@ yulmonad'p :: forall f xs b r vd m1 m1b m2 m2b f' b'.
 yulmonad'p f =
   let !(MkYulCat'LPM f') = uncurryingNP @f' @xs @b' @m1 @m1b @m2 @m2b @One f (MkYulCat'LPP id)
   in \xs -> mkUnit'l xs & \(xs', u) -> runYulMonad u (f' xs')
+
+------------------------------------------------------------------------------------------------------------------------
+-- Run YulPorts Within a Pure Yul Function
+------------------------------------------------------------------------------------------------------------------------
+
+withinPureY :: forall f xs b xsTupleN r ioe.
+  ( EquivalentNPOfFunction f xs b
+  , NPtoTupleN (NP (MapList (P'x ioe r) xs)) ~ xsTupleN
+  , ConvertibleTupleNtoNP xsTupleN
+  , YulO3 (NP xs) b r
+  ) =>
+  xsTupleN ->
+  PureY f ->
+  P'x ioe r b
+withinPureY = undefined
