@@ -182,7 +182,7 @@ instance ValidINTx s n => YulBuiltInPrefix "__safe_mul_t_" (INTx s n, INTx s n) 
                 , "let product_raw := mul(x, y)"
                 , "product := " <> T.pack (yulB_fname cleanup_f) <> "(product_raw)"
                 ] ++
-                if nbits == 256
+                if nbits > 128
                 then [ "// overflow, if x != 0 and y != product/x"
                      , "if iszero(or(iszero(x), eq(y, div(product, x)))) { failed := true }"
                      ]
