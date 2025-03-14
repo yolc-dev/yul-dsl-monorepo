@@ -15,6 +15,7 @@ A simple n-ary product without any type function that is present in the sop-core
 module Data.SimpleNP
   ( NP (Nil, (:*))
   , MapList, MapNP
+  , SequenceableNP (sequenceNP)
   ) where
 -- base
 import Data.Kind (Type)
@@ -35,9 +36,24 @@ type family MapList (f :: Type -> Type) (xs :: [Type]) :: [Type] where
 type family MapNP (f :: Type -> Type) np where
   MapNP f (NP xs) = NP (MapList f xs)
 
-deriving instance Eq (NP ('[]))
-deriving instance (Eq x, Eq (NP xs)) => Eq (NP (x:xs))
+-- | Evaluate the components of NP from left to right within the context of @s@, then produce a new NP with its element
+-- in the context of @s@ too.
+class SequenceableNP s xs where
+  sequenceNP :: s (NP xs) -> NP (MapList s xs)
 
+-- ^ All Nil NP are 'Sequenceable'.
+instance SequenceableNP s '[] where
+  sequenceNP _ = Nil
+
+--
+-- Eq insatnces
+--
+deriving stock instance Eq (NP ('[]))
+deriving stock instance (Eq x, Eq (NP xs)) => Eq (NP (x:xs))
+
+--
+-- Show instances
+--
 instance Show (NP '[]) where
   show _ = "Nil"
 instance (Show x, Show (NP xs)) => Show (NP (x:xs)) where
