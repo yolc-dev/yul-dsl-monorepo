@@ -1,4 +1,6 @@
+{-# LANGUAGE DefaultSignatures      #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE ViewPatterns           #-}
 {-|
 
 Copyright   : (c) 2024-2025 Miao, ZhiCheng
@@ -9,7 +11,11 @@ Stability   : experimental
 Portability : GHC2024
 
 -}
-module Control.PatternMatchable (PatternMatchable (be, match)) where
+module Control.PatternMatchable
+  ( PatternMatchable (be, match)
+  , SingleCasePattern (is)
+  ) where
+
 -- | Pattern matching type class for the pattern @m p@ and its cases @c@.
 --
 -- == How To Use
@@ -43,18 +49,18 @@ module Control.PatternMatchable (PatternMatchable (be, match)) where
 --             ≅ match
 --   @
 --
---   @mach pat \case (CaseX x) of -> _; (CaseY y) -> _; ...@
+--   @mach pats \case pat1 of -> _; pat2 -> _; ...@
 --
 -- == Pattern Matching Law
 --
 -- A lawful instance of 'PatternMatchable' should respect the following instance law:
 --
---   @\pat -> match pat be ≅ id {∀ m b k. k b => m b}@
+--   @\pats -> match pats be ≅ id {∀ m b k. k b => m b}@
 --
 -- Thanks to parametricity, this is also a free theorem:
 --
--- >>> :type \pat -> match pat be
--- \pat -> match pat be
+-- >>> :type \pats -> match pats be
+-- \pats -> match pats be
 --   :: forall {k1} {k2 :: k1 -> Constraint} {b :: k1} {m :: k1 -> *}
 --             {c}.
 --      (k2 b, PatternMatchable m k2 b c) =>
@@ -62,6 +68,14 @@ module Control.PatternMatchable (PatternMatchable (be, match)) where
 class PatternMatchable m k p c | m -> k, m p -> c, c -> m p where
   -- | Match pattern @m p@ with case analysis function @c -> m b@ that returns the same @m b@.
   match :: forall b. k b => m p -> (c -> m b) -> m b
+  -- ^ A special implementation of 'match' when @m p@ is a single case pattern.
+  default match :: forall b. (k b, SingleCasePattern m p c) => m p -> (c -> m b) -> m b
+  match (is -> c) f = f c
 
   -- | Be the case @c@ of the pattern @m p@.
   be :: forall. c -> m p
+
+-- | A special case for PatternMatchable where a single case @c@ exists without being in the context of @m@.
+class SingleCasePattern m p c | m p -> c where
+  -- | Return @c@ outside of the context of @m@ as the single case of @m p@. This can be used as a view pattern.
+  is :: forall. m p -> c

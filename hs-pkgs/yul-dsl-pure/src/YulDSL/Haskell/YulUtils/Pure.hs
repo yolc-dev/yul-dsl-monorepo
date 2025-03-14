@@ -4,7 +4,6 @@ module YulDSL.Haskell.YulUtils.Pure
     -- * YulDSL/Haskell's pure effect support
   ( module YulDSL.Haskell.Effects.Pure
     -- * Extra YulCat Helpers
-  , IS, is
   , yulKeccak256
   , yulRevert
     -- * YulCat Control Flows
@@ -39,13 +38,6 @@ yulRevert = YulDis >.> YulJmpB (MkYulBuiltIn @"__const_revert0_c_" @() @b)
 -- | Wrapper for built-in keccak256 yul function.
 yulKeccak256 :: forall eff a r. YulO2 r a => YulCat eff r a -> YulCat eff r B32
 yulKeccak256 x = x >.> YulJmpB (MkYulBuiltIn @"__keccak_c_" @a @B32)
-
--- | An alias for Solo.
-type IS = Solo
-
--- | View pattern helper for I type.
-is :: YulO2 r a => YulCat eff r (IS a) %1-> YulCat eff r a
-is = (YulCoerceType <.<)
 
 -- | Empty object constructor.
 emptyCtor :: AnyYulCat
