@@ -8,36 +8,19 @@ Stability   : experimental
 
 = Description
 
-This module provides the pattern matching instances for all n-ary product (NP).
+This module provides the instances for yul morphisms to NP structures.
 
 -}
 module YulDSL.Haskell.YulCatObj.NP where
 -- yul-dsl
 import YulDSL.Core
 
-yulSplitNP :: forall eff r m x xs.
-  ( YulCat eff r ~ m
-  , YulO3 r x (NP xs)
-  ) =>
-  m (NP (x:xs)) ->
-  (m x, m (NP xs))
-yulSplitNP pat =
-      let pat' = pat  >.> YulCoerceType
-          mx   = pat' >.> YulExl
-          mxs  = pat' >.> YulExr
-      in (mx, mxs)
 
-yulSequenceNP ::
-  () =>
-  m (NP xs) ->
-  NP (MapList m xs)
-yulSequenceNP = undefined
-
-yulNPToTupleN :: forall eff r m xs.
-  ( YulCat eff r ~ m
-  , YulO2 r (NP xs)
-  , ConvertibleNPtoTupleN (NP (MapList m xs))
-  ) =>
-  m (NP xs) ->
-  NPtoTupleN (NP (MapList m xs))
-yulNPToTupleN = fromNPtoTupleN . yulSequenceNP
+-- ^ A yul morphism to a NP structure is sequenceable.
+instance ( YulO3 x (NP xs) r
+         , SequenceableNP (YulCat eff r) xs) =>
+         SequenceableNP (YulCat eff r) (x:xs) where
+  sequenceNP sxxs = sx :* sequenceNP @(YulCat eff r) @xs sxs
+    where sxxs' = sxxs  >.> YulCoerceType
+          sx    = sxxs' >.> YulExl
+          sxs   = sxxs' >.> YulExr
