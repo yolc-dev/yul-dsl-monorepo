@@ -1,15 +1,16 @@
 {-# LANGUAGE LinearTypes #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 module YulDSL.Haskell.YulUtils.Pure
-    -- * YulDSL/Haskell's pure effect support
+  -- * YulDSL/Haskell's pure effect support
   ( module YulDSL.Haskell.Effects.Pure
-    -- * Extra YulCat Helpers
+  -- * Extra YulCat Helpers
+  , yulNil, yulCons
   , yulKeccak256
   , yulRevert
-    -- * YulCat Control Flows
+  -- * YulCat Control Flows
   , module Control.IfThenElse
   , module Control.PatternMatchable
-    -- * Extra Yul Object Helpers
+  -- * Extra Yul Object Helpers
   , emptyCtor
   ) where
 -- eth-abi
@@ -30,6 +31,19 @@ import YulDSL.Haskell.YulCatObj.Maybe  ()
 import YulDSL.Haskell.YulCatObj.NP     ()
 import YulDSL.Haskell.YulCatObj.TUPLEn ()
 
+
+-- | Embed a NP Nil yul morphism.
+yulNil :: forall eff a. YulO1 a => YulCat eff a (NP '[])
+yulNil = YulEmb Nil
+
+-- | Construct a NP yul morphism.
+yulCons :: forall x xs eff r m.
+  ( YulO3 x (NP xs) r
+  , YulCat eff r ~ m
+  ) =>
+  m x -> m (NP xs) -> m (NP (x:xs))
+yulCons mx mxs = YulFork mx mxs >.> YulCoerceType
+infixr 5 `yulCons`
 
 -- | Revert without any message.
 yulRevert :: forall eff a b. (YulO2 a b) => YulCat eff a b
