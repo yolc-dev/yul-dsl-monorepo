@@ -45,13 +45,25 @@ instance (YulO1 r, ValidINTx s n) => Num (YulCat eff r (Maybe (INTx s n))) where
 -- PatternMatchable instance
 --
 
+-- TODO:
+-- , YulO3 (ABITypeDerivedOf a) (Maybe a) (ABITypeDerivedOf (Maybe a))
+-- , ABITypeDerivedOf (Maybe a) ~ NP [BOOL, ABITypeDerivedOf a]
+-- , ABITypeCoercible (ABITypeDerivedOf (Maybe a)) (BOOL, NP '[ABITypeDerivedOf a])
+
 instance ( YulCat eff r ~ m
          , YulO1 r
-         , ValidINTx s n
-         -- , YulO3 (ABITypeDerivedOf a) (Maybe a) (ABITypeDerivedOf (Maybe a))
-         -- , ABITypeDerivedOf (Maybe a) ~ NP [BOOL, ABITypeDerivedOf a]
-         -- , ABITypeCoercible (ABITypeDerivedOf (Maybe a)) (BOOL, NP '[ABITypeDerivedOf a])
-         ) => PatternMatchable m YulCatObj (Maybe (INTx s n)) (Maybe (m (INTx s n))) where
+         , ValidINTx s n ) =>
+         PatternMatchable (YulCat eff r) YulCatObj (Maybe (INTx s n)) (Maybe (m (INTx s n))) where
+  match pats f =
+    let bn = pats >.> YulReduceType >.> YulExtendType :: YulCat eff r (BOOL, INTx s n)
+        b  = bn >.> YulExl
+        n  = bn >.> YulExr
+    in yulIfThenElse b (f (Just n)) (f Nothing)
+
+instance ( YulCat eff r ~ m
+         , YulO1 r
+         , ValidINTx s n ) =>
+         InjectivePattern (YulCat eff r) YulCatObj (Maybe (INTx s n)) (Maybe (m (INTx s n))) where
   be = \case
     Just a  -> YulFork (YulEmb true) (a >.> YulReduceType)
                >.> YulReduceType
@@ -59,9 +71,3 @@ instance ( YulCat eff r ~ m
     Nothing -> YulFork (YulEmb false) (YulEmb 0)
                >.> YulReduceType
                >.> YulExtendType
-
-  match pat f =
-    let pat' = pat >.> YulReduceType >.> YulExtendType :: YulCat eff r (BOOL, INTx s n)
-        b    = pat' >.> YulExl
-        n    = pat' >.> YulExr
-    in yulIfThenElse b (f (Just n)) (f Nothing)

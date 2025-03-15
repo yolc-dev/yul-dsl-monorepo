@@ -31,8 +31,20 @@ dis_any = fn' "dis_any" dis_any'
 -- Simple functions
 --------------------------------------------------------------------------------
 
+tuple_addNP :: PureY (NP [U256, U256] -> U256)
+tuple_addNP (is -> (a :* b :* Nil)) = a + b
+
+test_tuple_addNP1 :: PureFn (U256 -> U256)
+test_tuple_addNP1 = $fn \a -> tuple_addNP (be (a, a) >.> YulReduceType)
+
+test_tuple_addNP2 :: PureFn (U256 -> U256)
+test_tuple_addNP2 = $fn \a -> tuple_addNP (a `yulCons` a `yulCons` yulNil)
+
+test_tuple_addNP3 :: PureFn (U256 -> U256)
+test_tuple_addNP3 = $fn \a -> tuple_addNP (couldBe (a :* a :* Nil))
+
 tuple_add :: PureY ((U256, U256) -> U256)
-tuple_add t = match t \case (a, b) -> a + b
+tuple_add (is -> (a, b)) = a + b
 
 uncurry_fn0 :: PureFn (U256)
 uncurry_fn0 = $fn 42
