@@ -7,7 +7,6 @@ build-type:     Simple
 --------------------------------------------------------------------------------
 -- !! THE CODE BELOW SHOULD BE MANAGED BY ATTILA !!
 --------------------------------------------------------------------------------
-
 -- BEGIN attila-cabal-section
 common yol-module-options
     default-language:     GHC2024
@@ -16,6 +15,7 @@ common yol-module-options
                           -Wno-name-shadowing
                           -Wno-missing-signatures
     default-extensions:   UnicodeSyntax
+                          ViewPatterns
                           BlockArguments
                           RebindableSyntax
                           OverloadedStrings

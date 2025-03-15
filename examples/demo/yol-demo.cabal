@@ -13,33 +13,43 @@ copyright:      (c) 2023-2024 Miao, ZhiCheng
 tested-with:    GHC==9.6.2
 build-type:     Simple
 
+
+--------------------------------------------------------------------------------
+-- !! THE CODE BELOW SHOULD BE MANAGED BY ATTILA !!
+--------------------------------------------------------------------------------
+-- BEGIN attila-cabal-section
 common yol-module-options
     default-language:     GHC2024
     ghc-options:          -Wall
+                          -Wunused-packages
                           -Wno-name-shadowing
                           -Wno-missing-signatures
-    default-extensions:   BlockArguments
-                          QualifiedDo
-                          OverloadedStrings
-                          UnicodeSyntax
+    default-extensions:   UnicodeSyntax
+                          ViewPatterns
+                          BlockArguments
                           RebindableSyntax
+                          OverloadedStrings
+                          QualifiedDo
                           ImpredicativeTypes
                           LinearTypes
                           TemplateHaskell
+common base-mixins-options
     mixins:               base hiding (Prelude),
                           base (Prelude as Prelude.Base)
-    build-depends:        base >= 4.13 && < 666,
-                          text >= 2.0.1,
-                          bytestring >= 0.11,
-                          yul-dsl,
-                          yul-dsl-linear-smc,
-                          yol-suite,
-                          linear-base >= 0.3.1,
-                          linear-smc >= 2.2.3
+    build-depends:        base >= 4.13 && < 666
+-- END attila-cabal-section
 
+--------------------------------------------------------------------------------
+-- !! THIS SECTION SHOULD BE MAINTAINED BY YOU !!
+--------------------------------------------------------------------------------
 library
   import:           yol-module-options
+  hs-source-dirs:   src
   exposed-modules:  ERC20
                     Counter
                     Project
-  hs-source-dirs:   src
+  build-depends:    yul-dsl-linear-smc,
+                    yol-suite,
+                    -- text >= 2.0.1,
+                    -- bytestring >= 0.11,
+                    -- yul-dsl,

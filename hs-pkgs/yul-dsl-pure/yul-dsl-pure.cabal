@@ -47,8 +47,8 @@ library
 Test-Suite test-yul-dsl-pure
   import:             basic-options
   type:               exitcode-stdio-1.0
-  default-extensions: BlockArguments
-                      TemplateHaskell
+  default-extensions: TemplateHaskell
+                      ViewPatterns
                       ImpredicativeTypes
   ghc-options:        -Wno-missing-signatures
   hs-source-dirs:     test
