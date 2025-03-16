@@ -61,10 +61,12 @@ build-module-%:
 build-docs:
 	$(CABAL_DOCS) simple-sop eth-abi yul-dsl yul-dsl-pure yul-dsl-linear-smc
 
-build-docs-and-display: build-docs
+build-display-docs:
 	for i in simple-sop eth-abi yul-dsl yul-dsl-pure yul-dsl-linear-smc; do \
-		xdg-open $(DEFAULT_BUILDDIR)/build/*/*/$${i}-*/doc/html/$${i}/index.html; \
+		xdg-open $(DEFAULT_BUILDDIR)/build/*/*/$${i}-*/noopt/doc/html/$${i}/index.html; \
   done
+
+build-docs-and-display: build-docs build-display-docs
 
 build-patches: $(LINEAR_SMC_PATH_FILE)
 
