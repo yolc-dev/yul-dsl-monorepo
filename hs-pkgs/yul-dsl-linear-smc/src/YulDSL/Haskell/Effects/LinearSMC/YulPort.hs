@@ -10,7 +10,8 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
   , discard'l, ignore'l, mkUnit'l, emb'l, const'l, dup2'l, merge'l, split'l
     -- * Type Operations
     -- $TypeOps
-  , coerceType'l, reduceType'l, extendType'l, cons'l, uncons'l
+  , coerceType'l, reduceType'l, extendType'l, consNP'l, unconsNP'l
+  , SequenceableNP'L (sequenceNP'l, unsequenceNP'l)
   ) where
 -- linear-base
 import Prelude.Linear
@@ -133,27 +134,44 @@ split'l (MkP'x ab) = let !(a, b) = split ab in (MkP'x a, MkP'x b)
 ------------------------------------------------------------------------------------------------------------------------
 
 -- | Coerce input yul port to an ABI coercible output yul port.
-coerceType'l :: forall a b eff r. (YulO3 a b r, ABITypeCoercible a b)
-         => P'x eff r a ⊸ P'x eff r b
+coerceType'l :: forall a b eff r. (YulO3 a b r, ABITypeCoercible a b) =>
+  P'x eff r a ⊸ P'x eff r b
 coerceType'l = encode'x YulCoerceType
 
-reduceType'l :: forall a eff r. (YulO3 a (ABITypeDerivedOf a) r)
-         => P'x eff r a ⊸ P'x eff r (ABITypeDerivedOf a)
+reduceType'l :: forall a eff r. (YulO3 a (ABITypeDerivedOf a) r) =>
+  P'x eff r a ⊸ P'x eff r (ABITypeDerivedOf a)
 reduceType'l = encode'x YulReduceType
 
-extendType'l :: forall a eff r. (YulO3 a (ABITypeDerivedOf a) r)
-         => P'x eff r (ABITypeDerivedOf a) ⊸ P'x eff r a
+extendType'l :: forall a eff r. (YulO3 a (ABITypeDerivedOf a) r) =>
+  P'x eff r (ABITypeDerivedOf a) ⊸ P'x eff r a
 extendType'l = encode'x YulExtendType
 
 -- | Prepend an element to a 'NP'.
-cons'l :: forall x xs eff r. YulO3 x (NP xs) r
-       => P'x eff r x ⊸ P'x eff r (NP xs) ⊸ P'x eff r (NP (x:xs))
-cons'l x xs = coerceType'l (merge'l (x, xs))
+consNP'l :: forall x xs eff r. YulO3 x (NP xs) r =>
+  P'x eff r x ⊸ P'x eff r (NP xs) ⊸ P'x eff r (NP (x:xs))
+consNP'l x xs = coerceType'l (merge'l (x, xs))
 
 -- | Split a 'NP' into its first element and the rest.
-uncons'l :: forall x xs eff r. YulO3 x (NP xs) r
-         => P'x eff r (NP (x:xs)) ⊸ (P'x eff r x, P'x eff r (NP xs))
-uncons'l = split'l . coerceType'l
+unconsNP'l :: forall x xs eff r. YulO3 x (NP xs) r =>
+  P'x eff r (NP (x:xs)) ⊸ (P'x eff r x, P'x eff r (NP xs))
+unconsNP'l = split'l . coerceType'l
+
+class SequenceableNP'L s xs where
+  sequenceNP'l :: forall. s (NP xs) ⊸ (NP (MapList s xs), s ())
+  unsequenceNP'l :: forall. NP (MapList s xs) -> s () ⊸ (s (NP xs))
+
+instance YulO1 r => SequenceableNP'L (P'x eff r) '[] where
+  sequenceNP'l snil = (Nil, coerceType'l snil)
+  unsequenceNP'l Nil = coerceType'l
+
+instance ( YulO3 x (NP xs) r
+         , SequenceableNP'L (P'x eff r) xs
+         ) =>
+         SequenceableNP'L (P'x eff r) (x:xs) where
+  sequenceNP'l sxxs = let !(x, sxs) = unconsNP'l sxxs
+                          !(xs, snil) = sequenceNP'l sxs
+                      in (x :* xs, snil)
+  unsequenceNP'l (x :* xs) snil = consNP'l x (unsequenceNP'l xs snil)
 
 ------------------------------------------------------------------------------------------------------------------------
 

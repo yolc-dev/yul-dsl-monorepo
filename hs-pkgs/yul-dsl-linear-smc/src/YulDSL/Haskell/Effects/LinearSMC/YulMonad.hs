@@ -134,7 +134,7 @@ instance forall x xs b r a v1 vn.
          , CurryingNP xs (P'V vn r b) (P'V v1 r) (YulMonad v1 vn r) (YulCat'LVV v1 v1 r a) One
          ) => CurryingNP (x:xs) (P'V vn r b) (P'V v1 r) (YulMonad v1 vn r) (YulCat'LVV v1 v1 r a) One where
   curryingNP cb x = curryingNP @xs @(P'V vn r b) @(P'V v1 r) @(YulMonad v1 vn r) @(YulCat'LVV v1 v1 r a) @One
-                    (\(MkYulCat'LVV fxs) -> cb (MkYulCat'LVV (\a -> (cons'l x (fxs a)))))
+                    (\(MkYulCat'LVV fxs) -> cb (MkYulCat'LVV (\a -> (consNP'l x (fxs a)))))
 
 yulmonad'v :: forall f xs b r vd m1 m1b m2 m2b f' b'.
   ( YulO3 (NP xs) b r

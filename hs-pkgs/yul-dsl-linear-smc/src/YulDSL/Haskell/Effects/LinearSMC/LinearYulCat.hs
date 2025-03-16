@@ -170,7 +170,7 @@ instance forall x xs b r a v1 vn.
          , CurryingNP xs b (P'V v1 r) (P'V vn r) (YulCat'LVV v1 v1 r a) One
          ) => CurryingNP (x:xs) b (P'V v1 r) (P'V vn r) (YulCat'LVV v1 v1 r a) One where
   curryingNP cb x = curryingNP @xs @b @(P'V v1 r) @(P'V vn r) @(YulCat'LVV v1 v1 r a) @One
-                    (\(MkYulCat'LVV fxs) -> cb (MkYulCat'LVV (\a -> (cons'l x (fxs a)))))
+                    (\(MkYulCat'LVV fxs) -> cb (MkYulCat'LVV (\a -> (consNP'l x (fxs a)))))
 
 ------------------------------------------------------------------------------------------------------------------------
 -- (P'P r x1 ⊸ P'P r x2 ⊸ ... P'V vd r b) <=> YulCat'LPV vd r (NP xs) b
@@ -234,7 +234,7 @@ instance forall x xs b r a v1 vn.
          , CurryingNP xs b (P'P r) (P'V vn r) (YulCat'LVV v1 v1 r a) One
          ) => CurryingNP (x:xs) b (P'P r) (P'V vn r) (YulCat'LVV v1 v1 r a) One where
   curryingNP cb x = curryingNP @xs @b @(P'P r) @(P'V vn r) @(YulCat'LVV v1 v1 r a) @One
-                    (\(MkYulCat'LVV fxs) -> cb (MkYulCat'LVV (\a -> (cons'l (unsafeCoerceYulPort x) (fxs a)))))
+                    (\(MkYulCat'LVV fxs) -> cb (MkYulCat'LVV (\a -> (consNP'l (unsafeCoerceYulPort x) (fxs a)))))
 
 ------------------------------------------------------------------------------------------------------------------------
 -- YulCat'LPP ==> (P'P ⊸ P'P ⊸ ... P'P)
@@ -251,4 +251,4 @@ instance forall x xs b r a.
          , CurryingNP xs b (P'P r) (P'P r) (YulCat'LPP r a) One
          ) => CurryingNP (x:xs) b (P'P r) (P'P r) (YulCat'LPP r a) One where
   curryingNP cb x = curryingNP @xs @b @(P'P r) @(P'P r) @(YulCat'LPP r a) @One
-                    (\(MkYulCat'LPP fxs) -> cb (MkYulCat'LPP (\a -> (cons'l (unsafeCoerceYulPort x) (fxs a)))))
+                    (\(MkYulCat'LPP fxs) -> cb (MkYulCat'LPP (\a -> (consNP'l (unsafeCoerceYulPort x) (fxs a)))))

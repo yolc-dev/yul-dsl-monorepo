@@ -125,7 +125,7 @@ callFn'lvv (MkFn f) x =
     mkUnit'l x
     & \(x', u) -> curryingNP @xs @b @(P'V v1 r) @(P'V vn r) @(YulCat'LVV v1 v1 r ()) @One
     $ \(MkYulCat'LVV fxs) -> encodeWith'l id (YulJmpU f)
-    $ cons'l x' (fxs u)
+    $ consNP'l x' (fxs u)
 
 -- | Call pure function with pure yul port and get pure yul port.
 callFn'lpp :: forall f x xs b r.
@@ -137,7 +137,7 @@ callFn'lpp (MkFn f) x =
   mkUnit'l x
   & \(x', u) -> curryingNP @_ @_ @(P'P r) @(P'P r) @(YulCat'LPP r ()) @One
   $ \(MkYulCat'LPP fxs) -> encodeWith'l id (YulJmpU f)
-  $ cons'l x' (fxs u)
+  $ consNP'l x' (fxs u)
 
 type family CallableFn_LVV_OE fn (ie :: PortEffect) where
   CallableFn_LVV_OE (Fn (PureInputVersionedOutput vd)) (VersionedPort v1) = VersionedPort (v1 + vd)
@@ -205,7 +205,7 @@ externalCall (MkExternalFn sel) addr x =
                                             @(YulMonad v1 (v1 + 1) r b')
                                (\(b' :: P'V (v1 + 1) r b) -> LVM.unsafeCoerceLVM (LVM.pure b'))
                                YulId
-      $ go (cons'l x' (fxs u))
+      $ go (consNP'l x' (fxs u))
   where go :: forall. P'x (VersionedPort v1) r (NP (x : xs)) ⊸ P'V v1 r b
         go args = let !(args', u) = mkUnit'l args
                   in encodeWith'l @(VersionedInputOutput 0) @(VersionedPort v1) @(VersionedPort v1)
