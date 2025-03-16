@@ -48,6 +48,7 @@ library
                       template-haskell >= 2.22,
                       linear-base >= 0.3.1,
                       linear-smc >= 2.2.3,
+                      simple-sop,
                       yul-dsl,
                       yul-dsl-pure,
                       yul-dsl-linear-smc:linearly-versioned-monad

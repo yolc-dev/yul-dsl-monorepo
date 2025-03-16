@@ -56,6 +56,11 @@ call4 :: StaticFn (U256 -> U256 -> U256 -> U256 -> U256)
 call4 = $lfn $ uncurry'lvv
   \x1 x2 x3 x4 -> callFn'l foo4 x1 x2 x3 x4
 
+test_withinPureY :: StaticFn (U256 -> U256 -> U256)
+test_withinPureY = $lfn $ uncurry'lvv
+  \x1_l x2_l -> withinPureY @(U256 -> U256 -> U256) (x1_l, x2_l)
+                \x1 x2 -> x1 + x1 * x2
+
 --------------------------------------------------------------------------------
 -- declaring yulmonad functions
 --------------------------------------------------------------------------------

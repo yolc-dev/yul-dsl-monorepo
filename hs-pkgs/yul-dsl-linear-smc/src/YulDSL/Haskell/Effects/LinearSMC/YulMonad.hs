@@ -8,6 +8,8 @@ module YulDSL.Haskell.Effects.LinearSMC.YulMonad
   , yulmonad'v, yulmonad'p
   , module Control.LinearlyVersionedMonad.Combinators
   , Control.Functor.Linear.fmap
+  --
+  , withinPureY
   ) where
 -- linear-base
 import Control.Functor.Linear qualified
@@ -22,6 +24,7 @@ import Control.LinearlyVersionedMonad                qualified as LVM
 import Control.LinearlyVersionedMonad.Combinators
 import Data.LinearContext
 --
+import Data.TupleN                                   (FromNPtoTupleN (fromNPtoTupleN), FromTupleNtoNP (fromTupleNtoNP))
 import YulDSL.Haskell.Effects.LinearSMC.LinearYulCat
 import YulDSL.Haskell.Effects.LinearSMC.YulPort
 
@@ -219,13 +222,28 @@ yulmonad'p f =
 -- Run YulPorts Within a Pure Yul Function
 ------------------------------------------------------------------------------------------------------------------------
 
-withinPureY :: forall f xs b xsTupleN r ioe.
-  ( EquivalentNPOfFunction f xs b
-  , NPtoTupleN (NP (MapList (P'x ioe r) xs)) ~ xsTupleN
-  , ConvertibleTupleNtoNP xsTupleN
-  , YulO3 (NP xs) b r
+withinPureY :: forall f x xs b tplxxs r ioe m1 m2.
+  ( YulO4 x (NP xs) b r
+  -- m1, m2
+  , P'x ioe r ~ m1
+  , YulCat Pure (NP (x:xs)) ~ m2
+  -- tplxxs
+  , TupleNtoNP tplxxs ~ NP (MapList m1 (x:xs))
+  , NPtoTupleN (NP (MapList m1 (x:xs))) ~ tplxxs
+  , ConvertibleTupleNtoNP tplxxs
+  -- xs
+  , SequenceableNP'L m1 (x:xs)
+  -- f
+  , EquivalentNPOfFunction f (x:xs) b
+  , UncurryingNP f (x:xs) b m2 m2 m2 m2 Many
+  , LiftFunction b m2 m2 Many ~ m2 b
   ) =>
-  xsTupleN ->
+  tplxxs ⊸
   PureY f ->
   P'x ioe r b
-withinPureY = undefined
+withinPureY tplxxs f = encode'x cat' sxxs
+  where !(x, xs) = splitNP (fromTupleNtoNP tplxxs)
+        !(x', u) = mkUnit'l x
+        sxxs = unsequenceNP'l (x' :* xs) u :: m1 (NP (x:xs))
+        cat = uncurryingNP @f @(x:xs) @b @m2 @m2 @m2 @m2 f YulId
+        cat' = YulUnsafeCoerceEffect cat
