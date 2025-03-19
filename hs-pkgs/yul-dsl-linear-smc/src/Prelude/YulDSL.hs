@@ -19,7 +19,7 @@ module Prelude.YulDSL
   , module YulDSL.Core
 
     -- * YulDSL/Haskell's Pure Effect Utils
-  , module YulDSL.Haskell.YulUtils.Pure
+  , module YulDSL.Haskell.Lib
 
     -- * YulDSL/Haskell's LinearSMC Support
   , module YulDSL.Haskell.Effects.LinearSMC
@@ -33,7 +33,7 @@ import Prelude.Linear                    hiding (Eq (..), Ord (..))
 -- yul-dsl
 import YulDSL.Core
 -- yul-dsl-pure
-import YulDSL.Haskell.YulUtils.Pure
+import YulDSL.Haskell.Lib
 --
 import YulDSL.Haskell.Effects.LinearSMC
 --

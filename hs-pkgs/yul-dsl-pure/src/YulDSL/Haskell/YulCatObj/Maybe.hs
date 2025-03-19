@@ -10,7 +10,7 @@ Stability   : experimental
 
 = Description
 
-This module defines the 'Num' instance from base library for Maybe 'YulNum' objects.
+This module provides type class instance for Maybe-typed yul objects.
 
 -}
 module YulDSL.Haskell.YulCatObj.Maybe () where
@@ -20,6 +20,9 @@ import YulDSL.StdBuiltIns.ValueType ()
 -- (control-extra)
 import Control.PatternMatchable
 
+--
+-- Maybe objects as yul objects.
+--
 
 instance ValidINTx s n => ABITypeable (Maybe (INTx s n)) where
   type instance ABITypeDerivedOf (Maybe (INTx s n)) = NP [BOOL, INTx s n]
@@ -32,6 +35,10 @@ instance ValidINTx s n => ABITypeable (Maybe (INTx s n)) where
     BOOL False -> Nothing
 instance ValidINTx s n => ABITypeCodec (Maybe (INTx s n))
 instance ValidINTx s n => YulCatObj (Maybe (INTx s n))
+
+--
+-- Num instance
+--
 
 instance (YulO1 r, ValidINTx s n) => Num (YulCat eff r (Maybe (INTx s n))) where
   a + b = YulJmpB (MkYulBuiltIn @"__maybe_add_t_") <.< YulProd a b <.< YulDup

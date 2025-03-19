@@ -222,23 +222,19 @@ yulmonad'p f =
 -- Run YulPorts Within a Pure Yul Function
 ------------------------------------------------------------------------------------------------------------------------
 
-withinPureY :: forall f x xs b tplxxs r ioe m1 m2.
+withinPureY :: forall f x xs b r ioe m1 m2.
   ( YulO4 x (NP xs) b r
   -- m1, m2
   , P'x ioe r ~ m1
   , YulCat Pure (NP (x:xs)) ~ m2
-  -- tplxxs
-  , TupleNtoNP tplxxs ~ NP (MapList m1 (x:xs))
-  , NPtoTupleN (NP (MapList m1 (x:xs))) ~ tplxxs
-  , ConvertibleTupleNtoNP tplxxs
-  -- xs
-  , SequenceableNP'L m1 (x:xs)
-  -- f
+  -- f, x:xs, b
   , EquivalentNPOfFunction f (x:xs) b
+  , ConvertibleNPtoTupleN (NP (MapList m1 (x:xs)))
+  , SequenceableNP'L m1 (x:xs)
   , UncurryingNP f (x:xs) b m2 m2 m2 m2 Many
   , LiftFunction b m2 m2 Many ~ m2 b
   ) =>
-  tplxxs ⊸
+  NPtoTupleN (NP (MapList m1 (x:xs))) ⊸
   PureY f ->
   P'x ioe r b
 withinPureY tplxxs f = encode'x cat' sxxs
@@ -247,3 +243,9 @@ withinPureY tplxxs f = encode'x cat' sxxs
         sxxs = unsequenceNP'l (x' :* xs) u :: m1 (NP (x:xs))
         cat = uncurryingNP @f @(x:xs) @b @m2 @m2 @m2 @m2 f YulId
         cat' = YulUnsafeCoerceEffect cat
+
+-- cond :: P'V va r BOOL ⊸ (Bool ⊸ YulMonad va vb r (P'V vb r a))
+-- cond c f = _
+--   -- LVM.do
+--   -- u <- yembed ()
+--   -- match (YulId :: YulCat eff p p)

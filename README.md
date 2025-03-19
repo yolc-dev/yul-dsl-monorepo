@@ -66,7 +66,7 @@ Ethereum-Compatible & Extensible Types
 > specification](https://docs.soliditylang.org/en/latest/abi-spec.html) implemented in as *core
 > types*, their *type extensions*, including *dependently typed extensions*.
 
-Unlike solidity, and to accommodate Haskell lexical rules, types are all in capitalize letters:
+Unlike solidity, and to accommodate Haskell lexical rules, types are all in capitalized letters:
 
 * Boolean type `BOOL`, and its values `true`, `false`.
 * Address type `ADDR`.
@@ -161,18 +161,18 @@ Milestones
 ----------
 
 - [x] Jan 6th, 2025: public announcement, with the first technical release (unversioned).
-- [ ] End of Feb 2025: version 0.0.1.0 with major features completion.
-- [ ] End of Mar 2025: version 0.0.2.0 with first live in production projects.
+- [ ] End of Apr 2025: version 0.0.1.0 with major features completion.
+- [ ] End of May 2025: version 0.0.2.0 with first live in production projects.
 - ...
 
 Research Topics
 ---------------
 
 - A paper on the linearly versioned monad, the cornerstone of Yolc's linear safety, as a survey of
-  comparing it to other resource management method including monadic regions, CoDensity, etc.
+  comparing it to other resource management methods, including monadic regions, CoDensity, etc.
 - Liquid Haskell integration.
 - Extend core types through dependent types.
-- Portable YulDSL artifact for non-Haskell language embedding and cross-languages modules.
+- Portable YulDSL artifact as multi-languages modules for non-Haskell language usages.
 
 <!--
 Local Variables:

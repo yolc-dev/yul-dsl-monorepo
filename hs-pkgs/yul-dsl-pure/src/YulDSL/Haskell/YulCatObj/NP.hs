@@ -12,12 +12,27 @@ Stability   : experimental
 This module provides the instances for yul morphisms to NP structures.
 
 -}
-module YulDSL.Haskell.YulCatObj.NP where
+module YulDSL.Haskell.YulCatObj.NP
+  ( yulNil, yulCons
+  ) where
 -- yul-dsl
 import YulDSL.Core
 -- (control-extra)
 import Control.PatternMatchable
 
+
+-- | Embed a NP Nil yul morphism.
+yulNil :: forall eff a. YulO1 a => YulCat eff a (NP '[])
+yulNil = YulEmb Nil
+
+-- | Construct a NP yul morphism.
+yulCons :: forall x xs eff r m.
+  ( YulO3 x (NP xs) r
+  , YulCat eff r ~ m
+  ) =>
+  m x -> m (NP xs) -> m (NP (x:xs))
+yulCons mx mxs = YulFork mx mxs >.> YulCoerceType
+infixr 5 `yulCons`
 
 --
 -- sequenceNP instance

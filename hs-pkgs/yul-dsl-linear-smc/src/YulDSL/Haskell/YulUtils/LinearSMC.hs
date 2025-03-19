@@ -9,8 +9,9 @@ module YulDSL.Haskell.YulUtils.LinearSMC
 import Prelude.Linear
 -- yul-dsl
 import YulDSL.Core
-import YulDSL.Haskell.YulUtils.Pure
 import YulDSL.StdBuiltIns.ABICodec                   ()
+-- yul-dsl-pure
+import YulDSL.Haskell.Lib                            (PatternMatchable (match), PureEffectKind (Pure))
 --
 import YulDSL.Haskell.Effects.LinearSMC.LinearYulCat
 import YulDSL.Haskell.Effects.LinearSMC.YulPort

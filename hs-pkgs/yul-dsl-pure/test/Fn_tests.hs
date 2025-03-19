@@ -5,14 +5,12 @@ import Data.Functor                 ((<&>))
 import Test.Hspec
 import Test.QuickCheck
 -- eth-abi
--- import Data.TupleN                  (Solo (MkSolo))
 import Ethereum.ContractABI
 -- yul-dsl
 import YulDSL.Core
 import YulDSL.Eval
--- yul-dsl-pure
-import YulDSL.Haskell.Effects.Pure
-import YulDSL.Haskell.YulUtils.Pure
+--
+import YulDSL.Haskell.Lib
 --
 import TestCommon                   ()
 

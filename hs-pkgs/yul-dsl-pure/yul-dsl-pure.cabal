@@ -33,16 +33,19 @@ library
                       yul-dsl
   -- modules
   exposed-modules:
+    -- Data and Control extensions
+    Data.MPOrd
+    Control.PatternMatchable
+    Control.IfThenElse
     -- YulDSL/Haskell
     YulDSL.Haskell.Effects.Pure
     YulDSL.Haskell.YulCatObj.Maybe
     YulDSL.Haskell.YulCatObj.NP
     YulDSL.Haskell.YulCatObj.TUPLEn
-    YulDSL.Haskell.YulUtils.Pure
-    -- Extra control patterns
-    Data.MPOrd
-    Control.PatternMatchable
-    Control.IfThenElse
+    YulDSL.Haskell.Lib.Instances
+    YulDSL.Haskell.Lib.PureFn
+    YulDSL.Haskell.Lib.TH
+    YulDSL.Haskell.Lib
 
 Test-Suite test-yul-dsl-pure
   import:             basic-options

@@ -8,10 +8,12 @@ Maintainer  : hellwolf@yolc.dev
 Stability   : experimental
 Portability : GHC2024
 
+This module provides the 'IfThenElse' type class for rebindable syntax.
+
 -}
 module Control.IfThenElse where
 
--- | IfThenElse type class for enabling rebindable syntax.
+-- | IfThenElse type class useful for rebindable syntax.
 class IfThenElse a b where
   -- | The ifThenElse function.
   ifThenElse :: forall w. a %w -> b %w -> b %w -> b

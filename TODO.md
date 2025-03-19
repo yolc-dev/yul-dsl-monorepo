@@ -67,7 +67,7 @@ TODO
     - [x] bool
     - [x] intN, uintN
     - [x] address
-    - [x] __validate_t_
+    - [x] `__validate_t_`
   - Integer comparators
     - [x] eq, ne, lt, le, gt, ge
   - Safe integer arithmetic
@@ -82,13 +82,15 @@ TODO
     - [ ] 🟢 Casting BYTESn n to uINTn
     - [ ] 🟢 complete testsuite
   - ABICodec
-    - [x] __abidec_dispatcher_c_, __abidec_from_calldata_t_
-    - [x] __abidec_from_memory_c_, __abidec_from_memory_t_
-    - [x] __abienc_from_stack_c_, __abienc_from_stack_t_
-    - [x] __keccak_c_ for supported types.
-      - [ ] 🟢 __keccak_c_ evaluation function using ABICodec from eth-abi.
+    - [x] `__abidec_dispatcher_c_, __abidec_from_calldata_t_`
+    - [x] `__abidec_from_memory_c_, __abidec_from_memory_t_`
+    - [x] `__abienc_from_stack_c_, __abienc_from_stack_t_`
+    - [x] `__keccak_c_` for supported types.
+      - [ ] 🟢 `__keccak_c_` evaluation function using ABICodec from eth-abi.
     - [ ] 🟢 support dispatcher decoding tuples
     - [ ] 🟢 complete testsuite
+  - Effectful operations
+    - [ ] `__caller` & `msgSender`.
   - Exceptions
     - [x] `__const_revert0_c_`; solidity-equivalent of `revert()`
     - [ ] 🟢 `revertWithMessage`
@@ -111,15 +113,19 @@ TODO
 
 ### yul-dsl-pure
 
-- YulCat syntactic sugars
-  - [x] `Data.IfThenElse` with `RebindableSyntax`.
-  - [x] `Data.PatternMatchable` with `match` and `liftCase`.
+- `Data` & `Control` extensions
+  - [x] `IfThenElse` for rebindable syntax.
+  - [x] `PatternMatchable` and the "match, is, be" verbs.
+  - [x] `MPOrd` for lifted Boolean types.
 - Working with integers
   - [x] Num class with checked integer operations.
   - [x] ⭐ Maybe Num with optional integer operations and Pattern matching of support.
-  - [ ] Type-safe upCast, and safeCast to optional values.
-- Data
-  - [x] MPOrd
+  - [ ] Type-safe `upCast`, and `safeCast` for down-casting to `Maybe` values.
+- Additional yul objects
+  - [x] Maybe a
+    - [] ⚠️ Expand beyond `Maybe (INTx s n)`
+  - [x] NP
+  - [x] TUPLEn
 - Working with pure effect
   - [x] Build pure functions `$fn`.
   - [x] Call pure functions `callFn`.
@@ -129,14 +135,15 @@ TODO
 - [x] 🌟🌟🌟 Linear safety for side effects
   - [x] Compile expression sof linear _data ports_ to YulCat
   - [x] Working with _versioned data port_ through `YulMonad`, a "Linearly Versioned Monad."
-    - [ ] ⚠️ BUG: fix LVM.pure
+    - [ ] ⚠️ Removing over-serialization, to have more parallel computations. Validate using 'diagram'
+          package based visualization.
   - [x] Build linear functions with `$lfn $ uncurry'lvv | $lfn $ uncurry'lpv`.
   - [x] Call functions linearly with `callFn'l`, `callFn'lpp`.
     - [ ] 🟢 `callFnN'l` to call function via N-tuple, in order to support calling 0-ary functions.
 - Working with _data ports_
   - [x] match data port and outputs new data port.
   - [ ] 🟢 Num classes for data ports: mul, abs, sig, etc.
-  - [ ] 🟠 ifThenElse through pattern matching on BOOL data port.
+  - [ ] 🟠 `ycond, ywhen, yunless` through pattern matching on BOOL data port.
 - Working with _versioned data port_ through `YulMonad`, a "Linearly Versioned Monad."
   - [x] Build YulMonad functions: `$lfn $ yulmonad'p` for versioned inputs, and `$lfn $ yulmonad'p`
         for pure inputs.
