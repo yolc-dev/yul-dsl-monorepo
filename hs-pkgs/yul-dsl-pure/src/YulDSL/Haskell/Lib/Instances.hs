@@ -5,7 +5,6 @@ import YulDSL.Core
 import YulDSL.StdBuiltIns.ValueType ()
 -- (data-control-extra)
 import Control.IfThenElse
-import Control.PatternMatchable
 import Data.MPOrd
 
 

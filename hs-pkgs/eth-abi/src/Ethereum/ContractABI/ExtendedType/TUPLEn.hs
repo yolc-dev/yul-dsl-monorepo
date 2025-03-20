@@ -55,18 +55,14 @@ instance (ABITypeCodec a1, ABITypeCodec a2) => ABITypeCodec (a1, a2)
 -- Generate the rest: Tuple3 .. Tuple64
 
 do
-  let mk_tuple_n_t xs = foldl' TH.appT (TH.tupleT (length xs)) (map TH.varT xs)
-  let mk_promoted_list_t = foldr (TH.appT . TH.appT TH.promotedConsT . TH.varT) TH.promotedNilT
   insts <- mapM (\n -> do
-    xs <- replicateM n (TH.newName "a")
-    let tpl = mk_tuple_n_t xs
-    let plist = mk_promoted_list_t xs
-    let clist1 = foldr (\x b -> b `TH.appT` (TH.conT ''ABITypeable `TH.appT` TH.varT x)) (TH.tupleT n) xs
-    let clist2 = foldr (\x b -> b `TH.appT` (TH.conT ''ABITypeCodec `TH.appT` TH.varT x)) (TH.tupleT n) xs
-    [d| instance $(clist1) => ABITypeable $(tpl) where
-          type instance ABITypeDerivedOf $(tpl) = NP $(plist)
+    as <- replicateM n (TH.newName "a")
+    [d| instance $(tupleNFromVarsTWith (TH.conT ''ABITypeable `TH.appT`) as) =>
+                  ABITypeable $(tupleNFromVarsT as) where
+          type instance ABITypeDerivedOf $(tupleNFromVarsT as) = NP $(promotedListFromVarsT as)
           abiToCoreType = $(TH.varE 'fromTupleNtoNP)
           abiFromCoreType = $(TH.varE 'fromNPtoTupleN)
-        instance $(clist2) => ABITypeCodec $(tpl)
+        instance $(tupleNFromVarsTWith (TH.conT ''ABITypeCodec `TH.appT`) as) =>
+                 ABITypeCodec $(tupleNFromVarsT as)
      |]) [3..64]
   pure (concat insts)

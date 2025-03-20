@@ -68,11 +68,6 @@ instance (YulO4 a1 a2 a3 r, YulCat eff r ~ m) =>
     in YulFork mx1 mnpxs >.> YulCoerceType >.> YulExtendType
 
 do
-  let mk_tpl_n_t as = foldl' TH.appT (TH.tupleT (length as)) (fmap TH.varT as)
-  let mk_tplm_n_t as m = foldl' (\b x -> b `TH.appT` (pure m `TH.appT` x))
-                         (TH.tupleT (length as)) (fmap TH.varT as)
-  let mk_yulo_n_t as = foldr (\a b -> b `TH.appT` (TH.conT ''YulO1 `TH.appT` TH.varT a))
-                       (TH.tupleT (length as)) (reverse as)
   insts <- mapM (\n -> do
     -- type variables: r, a, as...
     r <- TH.newName "r"
@@ -83,24 +78,32 @@ do
     xs <- replicateM (n - 1) (TH.newName "x")
     -- m
     m <- [t| YulCat $(TH.varT =<< TH.newName "eff") $(TH.varT r) |]
-    [d| instance ( $(mk_yulo_n_t (r : a : as))
-                 , SingleCasePattern $(pure m) YulCatObj $(mk_tpl_n_t as) $(mk_tplm_n_t as m)
+    [d| instance ( $(tupleNFromVarsTWith (TH.conT ''YulO1 `TH.appT`) (r : a : as))
+                 , SingleCasePattern $(pure m) YulCatObj
+                                     $(tupleNFromVarsT as)
+                                     $(tupleNFromVarsTWith (pure m `TH.appT`) as)
                  ) =>
-                 SingleCasePattern $(pure m) YulCatObj $(mk_tpl_n_t (a : as)) $(mk_tplm_n_t (a : as) m) where
+                 SingleCasePattern $(pure m) YulCatObj
+                                   $(tupleNFromVarsT (a : as))
+                                   $(tupleNFromVarsTWith (pure m `TH.appT`) (a : as)) where
           is mtpl_ =
             let mxxs_ = mtpl_ >.> YulReduceType >.> YulCoerceType
                 mx1_  = mxxs_  >.> YulExl
-                $(TH.tupP (fmap TH.varP xs)) = is (mxxs_  >.> YulExr >.> YulExtendType :: $(pure m) $(mk_tpl_n_t as))
+                $(TH.tupP (fmap TH.varP xs)) = is (mxxs_  >.> YulExr >.> YulExtendType
+                                                   :: $(pure m) $(tupleNFromVarsT as))
             in $(TH.tupE (TH.varE 'mx1_ : fmap TH.varE xs))
 
-        instance $(mk_yulo_n_t (r : a : as)) =>
-                 PatternMatchable $(pure m) YulCatObj $(mk_tpl_n_t (a : as)) $(mk_tplm_n_t (a : as) m) where
+        instance $(tupleNFromVarsTWith (TH.conT ''YulO1 `TH.appT`) (r : a : as)) =>
+                 PatternMatchable $(pure m) YulCatObj
+                                  $(tupleNFromVarsT (a : as))
+                                  $(tupleNFromVarsTWith (pure m `TH.appT`) (a : as)) where
 
-        instance $(mk_yulo_n_t (r : a : as)) =>
-                 InjectivePattern $(pure m) YulCatObj $(mk_tpl_n_t (a : as)) $(mk_tplm_n_t (a : as) m) where
+        instance $(tupleNFromVarsTWith (TH.conT ''YulO1 `TH.appT`) (r : a : as)) =>
+                 InjectivePattern $(pure m) YulCatObj $(tupleNFromVarsT (a : as))
+                                  $(tupleNFromVarsTWith (pure m `TH.appT`) (a : as)) where
           be $(TH.tupP (fmap TH.varP (x : xs))) =
             let mnpxs_ = ( $(TH.varE 'be `TH.appE` TH.tupE (fmap TH.varE xs))
-                           :: $(pure m) $(mk_tpl_n_t as)
+                           :: $(pure m) $(tupleNFromVarsT as)
                          ) >.> YulReduceType
             in YulFork $(TH.varE x) mnpxs_ >.> YulCoerceType >.> YulExtendType
       |]) [4..15]

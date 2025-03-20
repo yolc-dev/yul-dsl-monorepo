@@ -1,17 +1,21 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE TemplateHaskell     #-}
 module YulDSL.Haskell.Lib.PureFn
   -- * Build And Call PureFn
   -- $PureFn
-  ( PureFn (MkPureFn), fn', callFn
+  ( PureFn (MkPureFn), fn', fn, callFn
   -- * Technical Notes
   -- $yulCatVal
   ) where
+-- template-haskell
+import Language.Haskell.TH         qualified as TH
 -- eth-abi
 import Ethereum.ContractABI
 -- yul-dsl
 import YulDSL.Core.YulCat
 --
 import YulDSL.Haskell.Effects.Pure
+import YulDSL.Haskell.Lib.TH
 
 -- | Function without side effects, hence pure.
 data PureFn f where
@@ -55,6 +59,10 @@ fn' :: forall f xs b m.
 fn' cid f = let cat = uncurryingNP @f @xs @b @m @m @m @m f YulId
             in MkPureFn (MkFn (cid, cat))
 
+-- | Create a 'PureFn' with automatic id based on function definition source location.
+fn :: TH.Q TH.Exp
+fn = [e| fn' $locId |]
+
 -- | Call a 'PureFn' by currying it with pure yul categorical values of @r ↝ xn@ until a pure yul categorical value of
 -- @r ↝ b@ is returned.
 callFn :: forall f xs b r m.
@@ -80,4 +88,3 @@ callFn (MkPureFn (MkFn (cid, cat))) =
 -- One may also wrap it around an effect kind, e.g. @Pure (r ⤳ a)@ means a pure yul categorical value of @r ⤳ a@.
 --
 -- From category theory perspective, it is a hom-set @YulCat(-, a)@ that is contravariant of @a@.
---

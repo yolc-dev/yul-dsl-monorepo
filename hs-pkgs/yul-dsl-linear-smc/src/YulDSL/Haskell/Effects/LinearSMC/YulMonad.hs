@@ -24,7 +24,6 @@ import Control.LinearlyVersionedMonad                qualified as LVM
 import Control.LinearlyVersionedMonad.Combinators
 import Data.LinearContext
 --
-import Data.TupleN                                   (FromNPtoTupleN (fromNPtoTupleN), FromTupleNtoNP (fromTupleNtoNP))
 import YulDSL.Haskell.Effects.LinearSMC.LinearYulCat
 import YulDSL.Haskell.Effects.LinearSMC.YulPort
 
