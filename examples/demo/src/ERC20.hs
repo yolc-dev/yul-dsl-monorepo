@@ -3,7 +3,7 @@ import Control.LinearlyVersionedMonad qualified as LVM
 import Prelude.YulDSL
 
 -- | Ethereum contract is a Yul Object in Yolc.
-object = mkYulObject "ERC20" emptyCtor
+object = mkYulObject "ERC20" yulNoop
   [ staticFn "balanceOf" balanceOf
   , omniFn   "transfer"  transfer
   , omniFn   "mint"      mint

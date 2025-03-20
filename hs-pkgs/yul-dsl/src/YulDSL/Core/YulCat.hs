@@ -23,41 +23,49 @@ safety to the practice of EVM programming.
 
 -}
 module YulDSL.Core.YulCat
-  ( -- * Effect Classification
-    IsEffectNotPure, MayEffectWorld, AssertPureEffect, AssertStaticEffect, AssertOmniEffect
+  -- * Effect Classification
+  (IsEffectNotPure, MayEffectWorld, AssertPureEffect, AssertStaticEffect, AssertOmniEffect
   , YulCatEffectClass (..), KnownYulCatEffect (classifyYulCatEffect)
   , SYulCatEffectClass (SYulCatEffectClass), classifySYulCatEffect
   , YulO1, YulO2, YulO3, YulO4, YulO5, YulO6
-    -- * YulCat, the Categorical DSL of Yul
+  -- * YulCat, the Categorical DSL of Yul
   , YulCat (..), AnyYulCat (..)
   , YulCatNP, Y
   , NamedYulCat, NamedYulCatNP
   , Fn (MkFn, unFn), ClassifiedFn (withClassifiedFn), unsafeCoerceFn
   , ExternalFn (MkExternalFn), declareExternalFn
+  -- * Control and Exceptions
   , (>.>), (<.<)
+  , yulNoop
   , yulIfThenElse
-    -- * YulCat Stringify Functions
+  , yulRevert
+  , yulKeccak256
+  -- * SimplNP
+  , yulNil, yulCons
+  -- * YulCat Stringify Functions
   , yulCatCompactShow, yulCatToUntypedLisp, yulCatFingerprint
   ) where
 -- base
-import Data.Kind                   (Constraint)
-import GHC.TypeError               (Assert, ErrorMessage (Text), Unsatisfiable)
-import Text.Printf                 (printf)
+import Data.Kind                    (Constraint)
+import GHC.TypeError                (Assert, ErrorMessage (Text), Unsatisfiable)
+import Text.Printf                  (printf)
 -- bytestring
-import Data.ByteString             qualified as BS
-import Data.ByteString.Char8       qualified as BS_Char8
+import Data.ByteString              qualified as BS
+import Data.ByteString.Char8        qualified as BS_Char8
 -- memory
-import Data.ByteArray              qualified as BA
+import Data.ByteArray               qualified as BA
 -- crypton
-import Crypto.Hash                 qualified as Hash
+import Crypto.Hash                  qualified as Hash
 -- text
-import Data.Text.Lazy              qualified as T
+import Data.Text.Lazy               qualified as T
 -- eth-abi
 import Ethereum.ContractABI
 --
 import CodeGenUtils.CodeFormatters
 import YulDSL.Core.YulBuiltIn
 import YulDSL.Core.YulCatObj
+import YulDSL.StdBuiltIns.ABICodec  ()
+import YulDSL.StdBuiltIns.Exception ()
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -176,6 +184,11 @@ data YulCat (eff :: k) a b where
   YulUnsafeCoerceEffect :: forall k1 k2 (eff1 :: k1) (eff2 :: k2) a b. YulO2 a b
                         => YulCat eff1 a b %1-> YulCat eff2 a b
 
+
+------------------------------------------------------------------------------------------------------------------------
+-- Various YulCat Wrappers
+------------------------------------------------------------------------------------------------------------------------
+
 -- | Existential wrapper of the 'YulCat'.
 data AnyYulCat = forall eff a b. (YulO2 a b) => MkAnyYulCat (YulCat eff a b)
 
@@ -225,6 +238,10 @@ declareExternalFn :: forall f xs b.
                   => String -> ExternalFn f
 declareExternalFn fname = MkExternalFn (mkTypedSelector @(NP xs) fname)
 
+------------------------------------------------------------------------------------------------------------------------
+-- Control and Exceptions
+------------------------------------------------------------------------------------------------------------------------
+
 -- | Convenience operator for left to right composition of 'YulCat'.
 (>.>) :: forall eff a b c. YulO3 a b c => YulCat eff a b %1-> YulCat eff b c %1-> YulCat eff a c
 m >.> n = n `YulComp` m
@@ -237,22 +254,71 @@ m >.> n = n `YulComp` m
 -- see https://hackage.haskell.org/package/base-4.20.0.1/docs/Control-Category.html
 infixr 1 >.>, <.<
 
+-- | No-op pure morphism.
+yulNoop :: AnyYulCat
+yulNoop = MkAnyYulCat (YulDis @_ @())
+
+-- | Helper function for 'YulITE'.
 yulIfThenElse :: forall eff a r. YulO2 a r
               => YulCat eff r BOOL %1-> YulCat eff r a %1-> YulCat eff r a %1-> YulCat eff r a
 yulIfThenElse c a b = YulFork c YulId >.> YulITE a b
 
+-- | Revert without any message.
+yulRevert :: forall eff a b. (YulO2 a b) => YulCat eff a b
+yulRevert = YulDis >.> YulJmpB (MkYulBuiltIn @"__const_revert0_c_" @() @b)
+
+-- | Wrapper for built-in keccak256 yul function.
+yulKeccak256 :: forall eff a r. YulO2 r a => YulCat eff r a -> YulCat eff r B32
+yulKeccak256 x = x >.> YulJmpB (MkYulBuiltIn @"__keccak_c_" @a @B32)
+
 ------------------------------------------------------------------------------------------------------------------------
--- SimpleNP Helpers
+-- SimpleNP
 ------------------------------------------------------------------------------------------------------------------------
+
+-- | Embed a NP Nil yul morphism.
+yulNil :: forall eff a. YulO1 a => YulCat eff a (NP '[])
+yulNil = YulEmb Nil
+
+-- | Construct a NP yul morphism.
+yulCons :: forall x xs eff r m.
+  ( YulO3 x (NP xs) r
+  , YulCat eff r ~ m
+  ) =>
+  m x -> m (NP xs) -> m (NP (x:xs))
+yulCons mx mxs = YulFork mx mxs >.> YulCoerceType
+
+-- same as (:) or (:*)
+infixr 5 `yulCons`
+
+--
+-- TranversableNP and DistributiveNP instances
+--
+
+instance (YulO3 x (NP xs) r, YulCat eff r ~ s) =>
+         ConstructibleNP (YulCat eff r) x xs Many where
+  consNP sx sxs = YulFork sx sxs >.> YulCoerceType
+  unconsNP xxs = (x, xs)
+    where xxs' = xxs  >.> YulCoerceType
+          x    = xxs' >.> YulExl
+          xs   = xxs' >.> YulExr
+
+instance YulO1 r => TraversableNP (YulCat eff r) '[] where
+  sequenceNP _ = Nil
+instance YulO1 r => DistributiveNP (YulCat eff r) '[] where
+  distributeNP _ = YulEmb Nil
+
+instance (YulO3 x (NP xs) r, TraversableNP (YulCat eff r) xs) =>
+         TraversableNP (YulCat eff r) (x:xs)
+instance (YulO3 x (NP xs) r, DistributiveNP (YulCat eff r) xs) =>
+         DistributiveNP (YulCat eff r) (x:xs)
 
 --
 -- UncurryingNP instances
 --
 
 -- ^ Base case: @uncurryingNP (x) => NP '[] -> x@
-instance forall x r eff.
-         ( YulO2 x r
-         ) => UncurryingNP (x) '[] x (YulCat eff r) (YulCat eff r) (YulCat eff r) (YulCat eff r) Many where
+instance forall x r eff. YulO2 x r =>
+         UncurryingNP (x) '[] x (YulCat eff r) (YulCat eff r) (YulCat eff r) (YulCat eff r) Many where
   uncurryingNP x _ = x
 
 -- ^ Inductive case: @uncurryingNP (x -> ...xs -> b) => (x, uncurryingNP (... xs -> b)) => NP (x:xs) -> b@
@@ -261,11 +327,7 @@ instance forall x xs b g r eff.
          , EquivalentNPOfFunction g xs b
          , UncurryingNP g xs b (YulCat eff r) (YulCat eff r) (YulCat eff r) (YulCat eff r) Many
          ) => UncurryingNP (x -> g) (x:xs) b (YulCat eff r) (YulCat eff r) (YulCat eff r) (YulCat eff r) Many where
-  uncurryingNP f xxs = uncurryingNP @g @xs @b @(YulCat eff r) @(YulCat eff r) @(YulCat eff r) @(YulCat eff r) @Many
-                       (f x) xs
-    where xxs' = xxs  >.> YulCoerceType
-          x    = xxs' >.> YulExl
-          xs   = xxs' >.> YulExr
+  uncurryingNP f xxs = let (x, xs) = unconsNP xxs in uncurryingNP @g @xs @b @(YulCat eff r) @(YulCat eff r) (f x) xs
 
 --
 -- CurryingNP instances
@@ -283,8 +345,7 @@ instance forall x xs b r eff.
          ( YulO5 x (NP xs) b (NP (x:xs)) r
          , CurryingNP xs b (YulCat eff r) (YulCat eff r) (YulCat eff r) Many
          ) => CurryingNP (x:xs) b (YulCat eff r) (YulCat eff r) (YulCat eff r) Many where
-  curryingNP cb x = curryingNP @xs @b @(YulCat eff r) @(YulCat eff r)
-                    (\xs -> cb (YulFork x xs >.> YulCoerceType))
+  curryingNP cb x = curryingNP @xs @b @(YulCat eff r) @(YulCat eff r) (cb . consNP x)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- YulCat Stringify Functions

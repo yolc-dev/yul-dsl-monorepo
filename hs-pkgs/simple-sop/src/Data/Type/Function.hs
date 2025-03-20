@@ -1,5 +1,6 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE LinearTypes         #-}
+{-# LANGUAGE AllowAmbiguousTypes    #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE LinearTypes            #-}
 {-|
 
 Copyright   : (c) 2024-2025 Miao, ZhiCheng
@@ -22,7 +23,9 @@ module Data.Type.Function
   , UncurryNP'Fst, UncurryNP'Snd, UncurryNP'Multiplicity, UncurryNP
   , CurryNP, CurryingNP'Head, CurryingNP'Tail
   , EquivalentNPOfFunction
-  , CurryingNP (curryingNP), UncurryingNP(uncurryingNP)
+  , UncurryingNP(uncurryingNP), UncurriableNP
+  , CurryingNP (curryingNP), CurriableNP
+  , CallableFunction (callNP, (<$*>))
   -- re-export multiplicity types
   , Multiplicity (Many, One)
   ) where
@@ -90,12 +93,18 @@ class UncurryingNP f (xs :: [Type]) b
       (m2 :: Type -> Type) (m2b :: Type -> Type)
       (p :: Multiplicity) where
   uncurryingNP :: forall.
-    ( UncurryNP'Fst f ~ xs
-    , UncurryNP'Snd f ~ b
+    ( UncurryNP'Fst f ~ xs, UncurryNP'Snd f ~ b
       -- rewrite the second lift function into its one-arity form
     , LiftFunction (NP xs -> b) m2 m2b p ~ (m2 (NP xs) %p-> m2b b)
-    ) => LiftFunction           f  m1 m1b p  -- ^ from this lifted function
-    %p-> LiftFunction (NP xs -> b) m2 m2b p  -- ^ to this lifted function
+    ) =>
+    LiftFunction           f  m1 m1b p %p-> -- ^ from this lifted function
+    LiftFunction (NP xs -> b) m2 m2b p      -- ^ to this lifted function
+
+type UncurriableNP f xs b m1 m1b m2 m2b p =
+  ( EquivalentNPOfFunction f xs b
+  , UncurryingNP f xs b m1 m1b m2 m2b p
+  , LiftFunction b m2 m2b p ~ m2b b
+  )
 
 -- | Currying a function of @NP xs@ to @b@.
 class CurryingNP (xs :: [Type]) b
@@ -106,5 +115,23 @@ class CurryingNP (xs :: [Type]) b
     ( CurryNP (NP xs) b ~ f
       -- rewrite the first lift function into its one-arity form
     , LiftFunction (NP xs -> b) m2 mb p ~ (m2 (NP xs) %p-> mb b)
-    ) => LiftFunction (NP xs -> b) m2 mb p -- ^ from this lifted function
-    %p-> LiftFunction           f  m1 mb p -- ^ to this lifted function
+    ) =>
+    LiftFunction (NP xs -> b) m2 mb p %p-> -- ^ from this lifted function
+    LiftFunction           f  m1 mb p      -- ^ to this lifted function
+
+type CurriableNP xs b m1 mb m2 p =
+  ( CurryingNP xs b m1 mb m2 p
+  , LiftFunction b m2 mb p ~ mb b
+  )
+
+class CallableFunction fn m mb p | fn -> m, fn -> mb, fn -> p where
+  callNP, (<$*>) :: forall f x xs b.
+    EquivalentNPOfFunction f xs b =>
+    fn f -> (m x %p -> LiftFunction (CurryNP (NP xs) b) m mb p)
+  (<$*>) = callNP @_ @_ @_ @_ @f @x @xs @b
+
+{-|
+>>> f foo a b c = (foo `callNP` a b c, foo <$*> a b c)
+>>> :type f
+-}
+infixl 4 `callNP`, <$*>

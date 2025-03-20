@@ -10,8 +10,7 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
   , discard'l, ignore'l, mkUnit'l, emb'l, const'l, dup2'l, merge'l, split'l
     -- * Type Operations
     -- $TypeOps
-  , coerceType'l, reduceType'l, extendType'l, consNP'l, unconsNP'l
-  , SequenceableNP'L (sequenceNP'l, unsequenceNP'l)
+  , coerceType'l, reduceType'l, extendType'l
   ) where
 -- linear-base
 import Prelude.Linear
@@ -146,32 +145,20 @@ extendType'l :: forall a eff r. (YulO3 a (ABITypeDerivedOf a) r) =>
   P'x eff r (ABITypeDerivedOf a) ⊸ P'x eff r a
 extendType'l = encode'x YulExtendType
 
--- | Prepend an element to a 'NP'.
-consNP'l :: forall x xs eff r. YulO3 x (NP xs) r =>
-  P'x eff r x ⊸ P'x eff r (NP xs) ⊸ P'x eff r (NP (x:xs))
-consNP'l x xs = coerceType'l (merge'l (x, xs))
+--
+-- NP type
+--
 
--- | Split a 'NP' into its first element and the rest.
-unconsNP'l :: forall x xs eff r. YulO3 x (NP xs) r =>
-  P'x eff r (NP (x:xs)) ⊸ (P'x eff r x, P'x eff r (NP xs))
-unconsNP'l = split'l . coerceType'l
+instance YulO3 x (NP xs) r => ConstructibleNP (P'x eff r) x xs One where
+  consNP x xs = coerceType'l (merge'l (x, xs))
+  unconsNP = split'l . coerceType'l
 
-class SequenceableNP'L s xs where
-  sequenceNP'l :: forall. s (NP xs) ⊸ (NP (MapList s xs), s ())
-  unsequenceNP'l :: forall. NP (MapList s xs) -> s () ⊸ (s (NP xs))
-
-instance YulO1 r => SequenceableNP'L (P'x eff r) '[] where
-  sequenceNP'l snil = (Nil, coerceType'l snil)
-  unsequenceNP'l Nil = coerceType'l
-
-instance ( YulO3 x (NP xs) r
-         , SequenceableNP'L (P'x eff r) xs
-         ) =>
-         SequenceableNP'L (P'x eff r) (x:xs) where
-  sequenceNP'l sxxs = let !(x, sxs) = unconsNP'l sxxs
-                          !(xs, snil) = sequenceNP'l sxs
-                      in (x :* xs, snil)
-  unsequenceNP'l (x :* xs) snil = consNP'l x (unsequenceNP'l xs snil)
+instance YulO1 r => LinearTraversableNP (P'x eff r) '[] where
+  linearSequenceNP snil = (Nil, coerceType'l snil)
+instance YulO1 r => LinearDistributiveNP (P'x eff r) '[] where
+  linearDistributeNP Nil = coerceType'l
+instance (YulO3 x (NP xs) r , LinearTraversableNP (P'x eff r) xs) => LinearTraversableNP (P'x eff r) (x:xs)
+instance (YulO3 x (NP xs) r , LinearDistributiveNP (P'x eff r) xs) => LinearDistributiveNP (P'x eff r) (x:xs)
 
 ------------------------------------------------------------------------------------------------------------------------
 

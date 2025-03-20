@@ -128,14 +128,13 @@ instance forall x xs b g v1 vn r a.
   uncurryingNP f (MkYulCat'LVV h) = MkYulCat'LVV
     (\xxs ->
         dup2'l xxs
-      & \(xxs1, xxs2) -> split'l (coerceType'l @(NP (x:xs)) @(x, NP xs) (h xxs1))
+      & \(xxs1, xxs2) -> unconsNP (h xxs1)
       & \(x, xs) -> let !(MkYulCat'LVV g) =
-                          (uncurryingNP
-                            @g @xs @b
-                            @(P'V v1 r) @(P'V vn r) @(YulCat'LVV v1 v1 r a) @(YulCat'LVV v1 vn r a) @One
-                            (f x)
-                            (MkYulCat'LVV (\a -> ignore'l (discard'l a) xs))
-                          )
+                          uncurryingNP
+                          @g @xs @b
+                          @(P'V v1 r) @(P'V vn r) @(YulCat'LVV v1 v1 r a) @(YulCat'LVV v1 vn r a) @One
+                          (f x)
+                          (MkYulCat'LVV (\a -> ignore'l (discard'l a) xs))
                     in g xxs2
     )
 
@@ -143,21 +142,15 @@ instance forall x xs b g v1 vn r a.
 uncurry'lvv :: forall f xs b r vd m1 m1b m2 m2b.
   ( YulO3 (NP xs) b r
   --
-  , EquivalentNPOfFunction f xs b
-  --
   , P'V  0 r ~ m1
   , P'V vd r ~ m1b
   , YulCat'LVV 0  0 r (NP xs) ~ m2
   , YulCat'LVV 0 vd r (NP xs) ~ m2b
-  --
-  , LiftFunction b m2 m2b One ~ m2b b
-  --
-  , UncurryingNP f xs b m1 m1b m2 m2b One
-  )
-  => LiftFunction f m1 m1b One      -- ^ @LiftFunction           f  m1 m1b One@
-  -> (P'V 0 r (NP xs) ⊸ P'V vd r b) -- ^ @LiftFunction (NP xs -> b) m1 m1b One@
-uncurry'lvv f = let !(MkYulCat'LVV f') = uncurryingNP @f @xs @b @m1 @m1b @m2 @m2b @One f (MkYulCat'LVV id)
-                in f'
+  , UncurriableNP f xs b m1 m1b m2 m2b One
+  ) =>
+  LiftFunction f m1 m1b One ->   -- ^ @LiftFunction           f  m1 m1b One@
+  (P'V 0 r (NP xs) ⊸ P'V vd r b) -- ^ @LiftFunction (NP xs -> b) m1 m1b One@
+uncurry'lvv f = let !(MkYulCat'LVV f') = uncurryingNP @f @xs @b @m1 @m1b @m2 @m2b @One f (MkYulCat'LVV id) in f'
 
 instance forall x v1 vn r a.
          ( YulO3 x r a
@@ -170,7 +163,7 @@ instance forall x xs b r a v1 vn.
          , CurryingNP xs b (P'V v1 r) (P'V vn r) (YulCat'LVV v1 v1 r a) One
          ) => CurryingNP (x:xs) b (P'V v1 r) (P'V vn r) (YulCat'LVV v1 v1 r a) One where
   curryingNP cb x = curryingNP @xs @b @(P'V v1 r) @(P'V vn r) @(YulCat'LVV v1 v1 r a) @One
-                    (\(MkYulCat'LVV fxs) -> cb (MkYulCat'LVV (\a -> (consNP'l x (fxs a)))))
+    (\(MkYulCat'LVV fxs) -> cb (MkYulCat'LVV (\a -> (consNP x (fxs a)))))
 
 ------------------------------------------------------------------------------------------------------------------------
 -- (P'P r x1 ⊸ P'P r x2 ⊸ ... P'V vd r b) <=> YulCat'LPV vd r (NP xs) b
@@ -180,10 +173,11 @@ instance forall x vd r a.
          ( YulO3 x r a
          , LiftFunction x (P'P r) (P'V vd r) One ~ P'V vd r x
          ) => UncurryingNP (x) '[] x (P'P r) (P'V vd r) (YulCat'LPP r a) (YulCat'LPV vd r a) One where
-  uncurryingNP x (MkYulCat'LPP h) = MkYulCat'LPV (\a -> h a                   -- :: P'P (NP '[])
-                                                        & coerceType'l @_ @() -- :: P'P ()
-                                                        & unsafeCoerceYulPort -- :: P'V vn ()
-                                                        & \u -> ignore'l u x) -- :: P'V vn x
+  uncurryingNP x (MkYulCat'LPP h) = MkYulCat'LPV
+    (\a -> h a                   -- :: P'P (NP '[])
+           & coerceType'l @_ @() -- :: P'P ()
+           & unsafeCoerceYulPort -- :: P'V vn ()
+           & \u -> ignore'l u x) -- :: P'V vn x
 
 instance forall x xs b g vd r a.
          ( YulO5 x (NP xs) b r a
@@ -192,14 +186,13 @@ instance forall x xs b g vd r a.
   uncurryingNP f (MkYulCat'LPP h) = MkYulCat'LPV
     (\xxs ->
         dup2'l xxs
-      & \(xxs1, xxs2) -> split'l (coerceType'l @(NP (x:xs)) @(x, NP xs) (h xxs1))
+      & \(xxs1, xxs2) -> unconsNP (h xxs1)
       & \(x, xs) -> let !(MkYulCat'LPV g) =
-                          (uncurryingNP
-                           @g @xs @b
-                           @(P'P r) @(P'V vd r) @(YulCat'LPP r a) @(YulCat'LPV vd r a) @One
-                           (f x)
-                           (MkYulCat'LPP (\a -> ignore'l (discard'l a) xs))
-                          )
+                          uncurryingNP
+                          @g @xs @b
+                          @(P'P r) @(P'V vd r) @(YulCat'LPP r a) @(YulCat'LPV vd r a) @One
+                          (f x)
+                          (MkYulCat'LPP (\a -> ignore'l (discard'l a) xs))
                     in g xxs2
     )
 
@@ -207,19 +200,14 @@ instance forall x xs b g vd r a.
 uncurry'lpv :: forall f xs b r vd m1 m1b m2 m2b.
   ( YulO3 (NP xs) b r
   --
-  , EquivalentNPOfFunction f xs b
-  --
   , P'P    r ~ m1
   , P'V vd r ~ m1b
   , YulCat'LPP r (NP xs)    ~ m2
   , YulCat'LPV vd r (NP xs) ~ m2b
-  --
-  , LiftFunction b m2 m2b One ~ m2b b
-  --
-  , UncurryingNP f xs b m1 m1b m2 m2b One
-  )
-  => LiftFunction f m1 m1b One
-  -> (P'P r (NP xs) ⊸ P'V vd r b)
+  , UncurriableNP f xs b m1 m1b m2 m2b One
+  ) =>
+  LiftFunction f m1 m1b One ->
+  (P'P r (NP xs) ⊸ P'V vd r b)
 uncurry'lpv f = let !(MkYulCat'LPV f') = (uncurryingNP @f @xs @b @m1 @m1b @m2 @m2b @One f (MkYulCat'LPP id))
                 in f'
 
@@ -234,7 +222,7 @@ instance forall x xs b r a v1 vn.
          , CurryingNP xs b (P'P r) (P'V vn r) (YulCat'LVV v1 v1 r a) One
          ) => CurryingNP (x:xs) b (P'P r) (P'V vn r) (YulCat'LVV v1 v1 r a) One where
   curryingNP cb x = curryingNP @xs @b @(P'P r) @(P'V vn r) @(YulCat'LVV v1 v1 r a) @One
-                    (\(MkYulCat'LVV fxs) -> cb (MkYulCat'LVV (\a -> (consNP'l (unsafeCoerceYulPort x) (fxs a)))))
+    (\(MkYulCat'LVV fxs) -> cb (MkYulCat'LVV (\a -> (consNP (unsafeCoerceYulPort x) (fxs a)))))
 
 ------------------------------------------------------------------------------------------------------------------------
 -- YulCat'LPP ==> (P'P ⊸ P'P ⊸ ... P'P)
@@ -251,4 +239,4 @@ instance forall x xs b r a.
          , CurryingNP xs b (P'P r) (P'P r) (YulCat'LPP r a) One
          ) => CurryingNP (x:xs) b (P'P r) (P'P r) (YulCat'LPP r a) One where
   curryingNP cb x = curryingNP @xs @b @(P'P r) @(P'P r) @(YulCat'LPP r a) @One
-                    (\(MkYulCat'LPP fxs) -> cb (MkYulCat'LPP (\a -> (consNP'l (unsafeCoerceYulPort x) (fxs a)))))
+                    (\(MkYulCat'LPP fxs) -> cb (MkYulCat'LPP (\a -> (consNP (unsafeCoerceYulPort x) (fxs a)))))

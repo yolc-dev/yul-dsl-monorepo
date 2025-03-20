@@ -92,7 +92,7 @@ add_maybe_int96_with_default = fn' @(Maybe I96 -> Maybe I96 -> I96 -> I96) $locI
     Just z  -> z
 
 object :: YulObject
-object = mkYulObject "NumTests" emptyCtor
+object = mkYulObject "NumTests" yulNoop
   [ pureFn "cmp_uint256" cmp_uint256
   , pureFn "cmp_uint192" cmp_uint192
   , pureFn "cmp_uint128" cmp_uint128

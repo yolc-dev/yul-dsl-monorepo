@@ -2,7 +2,7 @@ module Counter where
 import Control.LinearlyVersionedMonad qualified as LVM
 import Prelude.YulDSL
 
-object = mkYulObject "Counter" emptyCtor
+object = mkYulObject "Counter" yulNoop
   [ staticFn "getCounter" getCounter
   , omniFn   "incCounter" incCounter
   -- , staticFn "GetCounter" getCounter'

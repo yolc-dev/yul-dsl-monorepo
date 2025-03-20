@@ -21,44 +21,6 @@ import YulDSL.Core
 import Control.PatternMatchable
 
 
--- | Embed a NP Nil yul morphism.
-yulNil :: forall eff a. YulO1 a => YulCat eff a (NP '[])
-yulNil = YulEmb Nil
-
--- | Construct a NP yul morphism.
-yulCons :: forall x xs eff r m.
-  ( YulO3 x (NP xs) r
-  , YulCat eff r ~ m
-  ) =>
-  m x -> m (NP xs) -> m (NP (x:xs))
-yulCons mx mxs = YulFork mx mxs >.> YulCoerceType
-infixr 5 `yulCons`
-
---
--- sequenceNP instance
---
-
-instance ( YulO3 x (NP xs) r
-         , YulCat eff r ~ s
-         ) =>
-         ConstructibleNP (YulCat eff r) x xs where
-  consNP sx sxs = YulFork sx sxs >.> YulCoerceType
-  unconsNP xxs = (x, xs)
-    where xxs' = xxs  >.> YulCoerceType
-          x    = xxs' >.> YulExl
-          xs   = xxs' >.> YulExr
-
-instance YulO1 r => SequenceableNP (YulCat eff r) '[] where
-  sequenceNP _ = Nil
-  unsequenceNP _ = YulEmb Nil
-
--- ^ A yul morphism to a NP structure is sequenceable.
-instance ( YulO3 x (NP xs) r
-         , YulCat eff r ~ s
-         , SequenceableNP s xs
-         ) =>
-         SequenceableNP (YulCat eff r) (x:xs) where
-
 --
 -- SingleCasePattern instances
 --
@@ -70,7 +32,8 @@ instance ( YulO3 x (NP xs) r
          , YulCat eff r ~ m
          , MapList m xs ~ mxs
          , MapList m (x:xs) ~ mxxs
-         , SequenceableNP m (x:xs)
+         , TraversableNP m (x:xs)
+         , DistributiveNP m (x:xs)
          , SingleCasePattern m YulCatObj (NP xs) (NP mxs)
          ) =>
          SingleCasePattern (YulCat eff r) YulCatObj (NP (x:xs)) (NP mxxs) where
@@ -81,14 +44,15 @@ instance ( YulO3 x (NP xs) r
 --
 
 instance YulO1 r => PatternMatchable (YulCat eff r) YulCatObj (NP '[]) (NP '[]) where
-  couldBe = unsequenceNP
+  couldBe = distributeNP
 
 instance ( YulO3 x (NP xs) r
          , YulCat eff r ~ m
          , MapList m xs ~ mxs
          , MapList m (x:xs) ~ mxxs
-         , SequenceableNP m (x:xs)
+         , DistributiveNP m (x:xs)
+         , TraversableNP m (x:xs)
          , SingleCasePattern m YulCatObj (NP xs) (NP mxs)
          ) =>
          PatternMatchable (YulCat eff r) YulCatObj (NP (x:xs)) (NP mxxs) where
-  couldBe = unsequenceNP
+  couldBe = distributeNP

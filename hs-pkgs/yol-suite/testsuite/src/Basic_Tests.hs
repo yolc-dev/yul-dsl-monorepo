@@ -42,7 +42,7 @@ callExternalFoo2 :: OmniFn (ADDR -> U256 -> U256 -> U256)
 callExternalFoo2 = $lfn $ yulmonad'v
   \to val1 val2 -> externalCall external_foo2 to val1 val2
 
-object = mkYulObject "BasicTests" emptyCtor
+object = mkYulObject "BasicTests" yulNoop
   [ pureFn   "embUnit$p" embUnit'p
   , pureFn   "embTrue$p" embTrue'p
   , pureFn   "revertIfTrue" revertIfTrue

@@ -136,7 +136,7 @@ instance forall x xs b r a v1 vn.
          , CurryingNP xs (P'V vn r b) (P'V v1 r) (YulMonad v1 vn r) (YulCat'LVV v1 v1 r a) One
          ) => CurryingNP (x:xs) (P'V vn r b) (P'V v1 r) (YulMonad v1 vn r) (YulCat'LVV v1 v1 r a) One where
   curryingNP cb x = curryingNP @xs @(P'V vn r b) @(P'V v1 r) @(YulMonad v1 vn r) @(YulCat'LVV v1 v1 r a) @One
-                    (\(MkYulCat'LVV fxs) -> cb (MkYulCat'LVV (\a -> (consNP'l x (fxs a)))))
+                    (\(MkYulCat'LVV fxs) -> cb (MkYulCat'LVV (\a -> (consNP x (fxs a)))))
 
 yulmonad'v :: forall f xs b r vd m1 m1b m2 m2b f' b'.
   ( YulO3 (NP xs) b r
@@ -229,7 +229,7 @@ withinPureY :: forall f x xs b r ioe m1 m2.
   -- f, x:xs, b
   , EquivalentNPOfFunction f (x:xs) b
   , ConvertibleNPtoTupleN (NP (MapList m1 (x:xs)))
-  , SequenceableNP'L m1 (x:xs)
+  , LinearDistributiveNP m1 (x:xs)
   , UncurryingNP f (x:xs) b m2 m2 m2 m2 Many
   , LiftFunction b m2 m2 Many ~ m2 b
   ) =>
@@ -239,7 +239,7 @@ withinPureY :: forall f x xs b r ioe m1 m2.
 withinPureY tplxxs f = encode'x cat' sxxs
   where !(x, xs) = splitNP (fromTupleNtoNP tplxxs)
         !(x', u) = mkUnit'l x
-        sxxs = unsequenceNP'l (x' :* xs) u :: m1 (NP (x:xs))
+        sxxs = linearDistributeNP (x' :* xs) u :: m1 (NP (x:xs))
         cat = uncurryingNP @f @(x:xs) @b @m2 @m2 @m2 @m2 f YulId
         cat' = YulUnsafeCoerceEffect cat
 

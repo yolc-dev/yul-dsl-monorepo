@@ -48,16 +48,13 @@ instance ClassifiedFn PureFn PureEffect where
 -- It returns: @Pure (NP xs ↝ b)@
 fn' :: forall f xs b m.
   ( YulO2 (NP xs) b
-  , EquivalentNPOfFunction f xs b
   , YulCat'P (NP xs) ~ m
-  , UncurryingNP f xs b m m m m Many
-  , LiftFunction b m m Many ~ m b
-  )
-  => String
-  -> LiftFunction f m m Many    -- ^ uncurrying function type
-  -> PureFn (CurryNP (NP xs) b) -- ^ result type, or its short form @m b@
-fn' cid f = let cat = uncurryingNP @f @xs @b @m @m @m @m f YulId
-            in MkPureFn (MkFn (cid, cat))
+  , UncurriableNP f xs b m m m m Many
+  ) =>
+  String ->
+  LiftFunction f m m Many -> -- ^ uncurrying function type
+  PureFn (CurryNP (NP xs) b) -- ^ result type, or its short form @m b@
+fn' cid f = let cat = uncurryingNP @f @xs @b @m @m @m @m f YulId in MkPureFn (MkFn (cid, cat))
 
 -- | Create a 'PureFn' with automatic id based on function definition source location.
 fn :: TH.Q TH.Exp
@@ -66,17 +63,14 @@ fn = [e| fn' $locId |]
 -- | Call a 'PureFn' by currying it with pure yul categorical values of @r ↝ xn@ until a pure yul categorical value of
 -- @r ↝ b@ is returned.
 callFn :: forall f xs b r m.
-          ( YulO3 (NP xs) b r
-          , EquivalentNPOfFunction f xs b
-          , YulCat'P r ~ m
-          , CurryingNP xs b m m m Many
-          , LiftFunction b m m Many ~ m b
-          )
-       => PureFn f                -- ^ a 'PureFn' of function type @f@
-       -> LiftFunction f m m Many -- ^ a currying function type
-callFn (MkPureFn (MkFn (cid, cat))) =
-  curryingNP @xs @b @m @m @m @Many
-  (\xs -> xs >.> YulJmpU (cid, cat))
+  ( YulO3 (NP xs) b r
+  , YulCat'P r ~ m
+  , EquivalentNPOfFunction f xs b
+  , CurriableNP xs b m m m Many
+  ) =>
+  PureFn f ->             -- ^ a 'PureFn' of function type @f@
+  LiftFunction f m m Many -- ^ a currying function type
+callFn (MkPureFn (MkFn (cid, cat))) = curryingNP @xs @b @m @m @m (\xs -> xs >.> YulJmpU (cid, cat))
 
 -- $yulCatVal
 --
