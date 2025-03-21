@@ -18,10 +18,10 @@ import YulDSL.Haskell.Effects.LinearSMC.YulPort
 
 
 yulKeccak256'l :: forall a eff r. YulO2 r a => P'x eff r a ⊸ P'x eff r B32
-yulKeccak256'l = encode'x (YulJmpB (MkYulBuiltIn @"__keccak_c_" @a @B32))
+yulKeccak256'l = encodeP'x (YulJmpB (MkYulBuiltIn @"__keccak_c_" @a @B32))
 
 yulCaller'l :: forall r eff. YulO1 r => P'x eff r () ⊸ P'x eff r ADDR
-yulCaller'l = encode'x YulCaller
+yulCaller'l = encodeP'x YulCaller
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $PatternMatching

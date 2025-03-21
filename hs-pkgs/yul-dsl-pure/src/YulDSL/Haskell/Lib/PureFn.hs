@@ -1,9 +1,10 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE TemplateHaskell     #-}
+{-# LANGUAGE AllowAmbiguousTypes  #-}
+{-# LANGUAGE TemplateHaskell      #-}
+{-# LANGUAGE UndecidableInstances #-}
 module YulDSL.Haskell.Lib.PureFn
   -- * Build And Call PureFn
   -- $PureFn
-  ( PureFn (MkPureFn), fn', fn, callFn
+  ( PureFn (MkPureFn), fn', fn
   -- * Technical Notes
   -- $yulCatVal
   ) where
@@ -21,11 +22,11 @@ import YulDSL.Haskell.Lib.TH
 data PureFn f where
   MkPureFn :: Fn Pure f -> PureFn f
 
--- -- | Function without side effects and bottom, hence total.
--- newtype TotalFn f = MkPureFn (Fn Total f)
-
 instance ClassifiedFn PureFn PureEffect where
   withClassifiedFn g (MkPureFn f) = g f
+
+-- -- | Function without side effects and bottom, hence total.
+-- newtype TotalFn f = MkPureFn (Fn Total f)
 
 -- | Create a 'PureFn' by uncyrrying a currying function @f@ of pure yul categorical values.
 --
@@ -60,17 +61,22 @@ fn' cid f = let cat = uncurryingNP @f @xs @b @m @m @m @m f YulId in MkPureFn (Mk
 fn :: TH.Q TH.Exp
 fn = [e| fn' $locId |]
 
--- | Call a 'PureFn' by currying it with pure yul categorical values of @r ↝ xn@ until a pure yul categorical value of
--- @r ↝ b@ is returned.
-callFn :: forall f xs b r m.
-  ( YulO3 (NP xs) b r
-  , YulCat'P r ~ m
-  , EquivalentNPOfFunction f xs b
-  , CurriableNP xs b m m m Many
-  ) =>
-  PureFn f ->             -- ^ a 'PureFn' of function type @f@
-  LiftFunction f m m Many -- ^ a currying function type
-callFn (MkPureFn (MkFn (cid, cat))) = curryingNP @xs @b @m @m @m (\xs -> xs >.> YulJmpU (cid, cat))
+instance ( YulO4 x (NP xs) b r
+         , YulCat'P r ~ m
+         , CurriableNP xs b (YulCat'P r) (YulCat'P r) (YulCat'P r) Many
+         ) =>
+         CallableFunctionNP PureFn x xs b (YulCat'P r) (YulCat'P r) Many where
+  callNP (MkPureFn (MkFn (cid, cat))) x = curryingNP @xs @b @m @m @m (\xs -> consNP x xs >.> YulJmpU (cid, cat))
+
+instance YulO2 b r =>
+         CallableFunctionN PureFn '[] b (YulCat'P r) (YulCat'P r) Many where
+  callN (MkPureFn (MkFn (cid, cat))) () = yulNil >.> YulJmpU (cid, cat)
+
+instance ( YulO4 x (NP xs) b r
+         , DistributiveNP (YulCat'P r) (x:xs)
+         ) =>
+         CallableFunctionN PureFn (x:xs) b (YulCat'P r) (YulCat'P r) Many where
+  callN (MkPureFn (MkFn (cid, cat))) tpl = distributeNP (fromTupleNtoNP tpl) >.> YulJmpU (cid, cat)
 
 -- $yulCatVal
 --

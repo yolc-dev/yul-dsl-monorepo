@@ -103,8 +103,8 @@ instance forall x v1 vn r a.
          ) => UncurryingNP (P'V vn r x) '[] (P'V vn r x)
          (P'V v1 r) (YulMonad v1 vn r)
          (YulCat'LVV v1 v1 r a) (YulCat'LVM v1 vn r a) One where
-  uncurryingNP x (MkYulCat'LVV h) = MkYulCat'LVM
-    \a -> tossToUnit (h a) LVM.>> x
+  uncurryingNP x (MkYulCat'LVV h) = MkYulCat'LVM \a ->
+    tossToUnit (h a) LVM.>> x
 
 instance forall x xs b g v1 vn r a.
          ( YulO5 x (NP xs) b r a
@@ -113,17 +113,8 @@ instance forall x xs b g v1 vn r a.
          (P'V v1 r) (YulMonad v1 vn r)
          (YulCat'LVV v1 v1 r a) (YulCat'LVM v1 vn r a) One where
   uncurryingNP f (MkYulCat'LVV h) = MkYulCat'LVM
-    \xxs ->
-      dup2'l xxs
-    & \(xxs1, xxs2) -> split'l (coerceType'l @(NP (x:xs)) @(x, NP xs) (h xxs1))
-    & \(x, xs) -> let !(MkYulCat'LVM g) =
-                        (uncurryingNP
-                          @g @xs @(P'V vn r b)
-                          @(P'V v1 r) @(YulMonad v1 vn r) @(YulCat'LVV v1 v1 r a) @(YulCat'LVM v1 vn r a) @One
-                          (f x)
-                          (MkYulCat'LVV (\a -> ignore'l (discard'l a) xs))
-                        )
-                  in g xxs2
+    (uncurryNP'lx @g @x @xs @(P'V vn r b) @(P'V v1 r) @(YulMonad v1 vn r) @(YulCat'LVV v1 v1 r) @(YulCat'LVM v1 vn r)
+     f h MkYulCat'LVV (\(MkYulCat'LVM g) -> g))
 
 instance forall x v1 vn r a.
          ( YulO3 x r a
@@ -173,27 +164,17 @@ instance forall x v1 vn r a.
          ) => UncurryingNP (P'V vn r x) '[] (P'V vn r x)
          (P'P r) (YulMonad v1 vn r)
          (YulCat'LPP r a) (YulCat'LPM v1 vn r a) One where
-  uncurryingNP x (MkYulCat'LPP h) = MkYulCat'LPM
-    \a -> tossToUnit (unsafeCoerceYulPort (h a & coerceType'l @_ @())) LVM.>> x
+  uncurryingNP x (MkYulCat'LPP h) = MkYulCat'LPM \a ->
+    tossToUnit (unsafeCoerceYulPort (h a & coerceType'l @_ @())) LVM.>> x
 
 instance forall x xs b g v1 vn r a.
          ( YulO5 x (NP xs) b r a
          , UncurryingNP g xs (P'V vn r b) (P'P r) (YulMonad v1 vn r) (YulCat'LPP r a) (YulCat'LPM v1 vn r a) One
          ) => UncurryingNP (x -> g) (x:xs) (P'V vn r b)
-         (P'P r) (YulMonad v1 vn r)
-         (YulCat'LPP r a) (YulCat'LPM v1 vn r a) One where
+         (P'P r) (YulMonad v1 vn r) (YulCat'LPP r a) (YulCat'LPM v1 vn r a) One where
   uncurryingNP f (MkYulCat'LPP h) = MkYulCat'LPM
-    \xxs ->
-      dup2'l xxs
-    & \(xxs1, xxs2) -> split'l (coerceType'l @(NP (x:xs)) @(x, NP xs) (h xxs1))
-    & \(x, xs) -> let !(MkYulCat'LPM g) =
-                        (uncurryingNP
-                          @g @xs @(P'V vn r b)
-                          @(P'P r) @(YulMonad v1 vn r) @(YulCat'LPP r a) @(YulCat'LPM v1 vn r a) @One
-                          (f x)
-                          (MkYulCat'LPP (\a -> ignore'l (discard'l a) xs))
-                        )
-                  in g xxs2
+    (uncurryNP'lx @g @x @xs @(P'V vn r b) @(P'P r) @(YulMonad v1 vn r) @(YulCat'LPP r) @(YulCat'LPM v1 vn r)
+     f h MkYulCat'LPP (\(MkYulCat'LPM g) -> g))
 
 yulmonad'p :: forall f xs b r vd m1 m1b m2 m2b f' b'.
   ( YulO3 (NP xs) b r
@@ -236,7 +217,7 @@ withinPureY :: forall f x xs b r ioe m1 m2.
   NPtoTupleN (NP (MapList m1 (x:xs))) ⊸
   PureY f ->
   P'x ioe r b
-withinPureY tplxxs f = encode'x cat' sxxs
+withinPureY tplxxs f = encodeP'x cat' sxxs
   where !(x, xs) = splitNP (fromTupleNtoNP tplxxs)
         !(x', u) = mkUnit'l x
         sxxs = linearDistributeNP (x' :* xs) u :: m1 (NP (x:xs))

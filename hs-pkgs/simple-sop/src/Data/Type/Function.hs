@@ -25,7 +25,7 @@ module Data.Type.Function
   , EquivalentNPOfFunction
   , UncurryingNP(uncurryingNP), UncurriableNP
   , CurryingNP (curryingNP), CurriableNP
-  , CallableFunction (callNP, (<$*>))
+  , CallableFunctionNP (callNP, (<$*>)), CallableFunctionN(callN, (<$#>))
   -- re-export multiplicity types
   , Multiplicity (Many, One)
   ) where
@@ -34,6 +34,7 @@ import Data.Kind     (Type)
 import GHC.Base      (Multiplicity (..))
 --
 import Data.SimpleNP
+import Data.TupleN
 
 
 -- | Lift a currying function type from its simplified form, denoted as @f@, into a new form.
@@ -91,7 +92,7 @@ type EquivalentNPOfFunction f xs b =
 class UncurryingNP f (xs :: [Type]) b
       (m1 :: Type -> Type) (m1b :: Type -> Type)
       (m2 :: Type -> Type) (m2b :: Type -> Type)
-      (p :: Multiplicity) where
+      (p :: Multiplicity) | m1 -> p where
   uncurryingNP :: forall.
     ( UncurryNP'Fst f ~ xs, UncurryNP'Snd f ~ b
       -- rewrite the second lift function into its one-arity form
@@ -110,7 +111,7 @@ type UncurriableNP f xs b m1 m1b m2 m2b p =
 class CurryingNP (xs :: [Type]) b
       (m1 :: Type -> Type) (mb :: Type -> Type)
       (m2 :: Type -> Type)
-      (p :: Multiplicity) where
+      (p :: Multiplicity) | m2 -> p where
   curryingNP :: forall f.
     ( CurryNP (NP xs) b ~ f
       -- rewrite the first lift function into its one-arity form
@@ -124,14 +125,19 @@ type CurriableNP xs b m1 mb m2 p =
   , LiftFunction b m2 mb p ~ mb b
   )
 
-class CallableFunction fn m mb p | fn -> m, fn -> mb, fn -> p where
-  callNP, (<$*>) :: forall f x xs b.
-    EquivalentNPOfFunction f xs b =>
+class CallableFunctionNP fn x xs b m mb p | fn m -> mb, fn m -> p where
+  callNP, (<$*>) :: forall f.
+    ( EquivalentNPOfFunction f (x:xs) b
+    ) =>
     fn f -> (m x %p -> LiftFunction (CurryNP (NP xs) b) m mb p)
-  (<$*>) = callNP @_ @_ @_ @_ @f @x @xs @b
+  (<$*>) = callNP @fn @x @xs @b @m @mb @p
 
-{-|
->>> f foo a b c = (foo `callNP` a b c, foo <$*> a b c)
->>> :type f
--}
-infixl 4 `callNP`, <$*>
+infixl 4 <$*>
+
+class CallableFunctionN fn xs b m mb p | fn mb -> m, fn m -> mb, fn m -> p where
+  callN, (<$#>) :: forall f.
+    ( EquivalentNPOfFunction f xs b
+    , ConvertibleNPtoTupleN (NP (MapList m xs))
+    ) =>
+    fn f -> NPtoTupleN (NP (MapList m xs)) -> mb b
+  (<$#>) = callN @fn @xs @b @m @mb @p

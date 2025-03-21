@@ -86,7 +86,7 @@ class DecodableYulPortDiagram ie oe eff | ie oe -> eff where
   decode'l :: forall a b. YulO2 a b
     => (forall r. YulO1 r => P'x ie r a ⊸ P'x oe r b)
     -> YulCat eff a b
-  decode'l f = YulUnsafeCoerceEffect (decode'x (unsafeCoerceYulPortDiagram f))
+  decode'l f = YulUnsafeCoerceEffect (decodeP'x (unsafeCoerceYulPortDiagram f))
 
 instance DecodableYulPortDiagram (VersionedPort 0) (VersionedPort vd) (VersionedInputOutput vd)
 instance DecodableYulPortDiagram PurePort (VersionedPort vd) (PureInputVersionedOutput vd)
@@ -101,7 +101,7 @@ class EncodableYulPortDiagram eff ie oe where
     => (P'x oe r b ⊸ c)
     -> YulCat eff a b
     -> (P'x ie r a ⊸ c)
-  encodeWith'l f c x = f (unsafeCoerceYulPort (encode'x (YulUnsafeCoerceEffect c) x))
+  encodeWith'l f c x = f (unsafeCoerceYulPort (encodeP'x (YulUnsafeCoerceEffect c) x))
 
 instance (va + vd ~ vb) => EncodableYulPortDiagram (VersionedInputOutput vd) (VersionedPort va) (VersionedPort vb)
 instance EncodableYulPortDiagram (PureInputVersionedOutput v) PurePort (VersionedPort v)
@@ -111,32 +111,19 @@ instance EncodableYulPortDiagram eff PurePort PurePort
 -- (P'V v1 r x1 ⊸ P'V v1 r x2 ⊸ ... P'V vn r b) <=> YulCat'LVV v1 vn r (NP xs) b
 ------------------------------------------------------------------------------------------------------------------------
 
-instance forall x v1 vn r a.
-         ( YulO3 x r a
-         , LiftFunction x (P'V v1 r) (P'V vn r) One ~ P'V vn r x
-         ) => UncurryingNP (x) '[] x (P'V v1 r) (P'V vn r) (YulCat'LVV v1 v1 r a) (YulCat'LVV v1 vn r a) One where
-  uncurryingNP x (MkYulCat'LVV h) = MkYulCat'LVV
-    (\a -> h a                   -- :: P'V v1 (NP '[])
-           & coerceType'l @_ @() -- :: P'V v1 ()
-           & unsafeCoerceYulPort -- :: P'V vn ()
-           & \u -> ignore'l u x) -- :: P'V vn x
+instance forall b v1 vn r a.
+         ( YulO3 b r a
+         , LiftFunction b (P'V v1 r) (P'V vn r) One ~ P'V vn r b
+         ) => UncurryingNP b '[] b (P'V v1 r) (P'V vn r) (YulCat'LVV v1 v1 r a) (YulCat'LVV v1 vn r a) One where
+  uncurryingNP b (MkYulCat'LVV h) = MkYulCat'LVV (unsafeUncurryNil'lx b h)
 
 instance forall x xs b g v1 vn r a.
          ( YulO5 x (NP xs) b r a
          , UncurryingNP g xs b (P'V v1 r) (P'V vn r) (YulCat'LVV v1 v1 r a) (YulCat'LVV v1 vn r a) One
          ) => UncurryingNP (x -> g) (x:xs) b (P'V v1 r) (P'V vn r) (YulCat'LVV v1 v1 r a) (YulCat'LVV v1 vn r a) One where
   uncurryingNP f (MkYulCat'LVV h) = MkYulCat'LVV
-    (\xxs ->
-        dup2'l xxs
-      & \(xxs1, xxs2) -> unconsNP (h xxs1)
-      & \(x, xs) -> let !(MkYulCat'LVV g) =
-                          uncurryingNP
-                          @g @xs @b
-                          @(P'V v1 r) @(P'V vn r) @(YulCat'LVV v1 v1 r a) @(YulCat'LVV v1 vn r a) @One
-                          (f x)
-                          (MkYulCat'LVV (\a -> ignore'l (discard'l a) xs))
-                    in g xxs2
-    )
+    (uncurryNP'lx @g @x @xs @b @(P'V v1 r) @(P'V vn r) @(YulCat'LVV v1 v1 r) @(YulCat'LVV v1 vn r)
+     f h MkYulCat'LVV (\(MkYulCat'LVV g) -> g))
 
 -- | Convert a currying function to a yul port diagram of versioned input output.
 uncurry'lvv :: forall f xs b r vd m1 m1b m2 m2b.
@@ -169,32 +156,19 @@ instance forall x xs b r a v1 vn.
 -- (P'P r x1 ⊸ P'P r x2 ⊸ ... P'V vd r b) <=> YulCat'LPV vd r (NP xs) b
 ------------------------------------------------------------------------------------------------------------------------
 
-instance forall x vd r a.
-         ( YulO3 x r a
-         , LiftFunction x (P'P r) (P'V vd r) One ~ P'V vd r x
-         ) => UncurryingNP (x) '[] x (P'P r) (P'V vd r) (YulCat'LPP r a) (YulCat'LPV vd r a) One where
-  uncurryingNP x (MkYulCat'LPP h) = MkYulCat'LPV
-    (\a -> h a                   -- :: P'P (NP '[])
-           & coerceType'l @_ @() -- :: P'P ()
-           & unsafeCoerceYulPort -- :: P'V vn ()
-           & \u -> ignore'l u x) -- :: P'V vn x
+instance forall b vd r a.
+         ( YulO3 b a r
+         , LiftFunction b (P'P r) (P'V vd r) One ~ P'V vd r b
+         ) => UncurryingNP b '[] b (P'P r) (P'V vd r) (YulCat'LPP r a) (YulCat'LPV vd r a) One where
+  uncurryingNP b (MkYulCat'LPP h) = MkYulCat'LPV (unsafeUncurryNil'lx b h)
 
 instance forall x xs b g vd r a.
          ( YulO5 x (NP xs) b r a
          , UncurryingNP g xs b (P'P r) (P'V vd r) (YulCat'LPP r a) (YulCat'LPV vd r a) One
          ) => UncurryingNP (x -> g) (x:xs) b (P'P r) (P'V vd r) (YulCat'LPP r a) (YulCat'LPV vd r a) One where
   uncurryingNP f (MkYulCat'LPP h) = MkYulCat'LPV
-    (\xxs ->
-        dup2'l xxs
-      & \(xxs1, xxs2) -> unconsNP (h xxs1)
-      & \(x, xs) -> let !(MkYulCat'LPV g) =
-                          uncurryingNP
-                          @g @xs @b
-                          @(P'P r) @(P'V vd r) @(YulCat'LPP r a) @(YulCat'LPV vd r a) @One
-                          (f x)
-                          (MkYulCat'LPP (\a -> ignore'l (discard'l a) xs))
-                    in g xxs2
-    )
+    (uncurryNP'lx @g @x @xs @b @(P'P r) @(P'V vd r) @(YulCat'LPP r) @(YulCat'LPV vd r)
+     f h MkYulCat'LPP (\(MkYulCat'LPV g) -> g))
 
 -- | Convert a currying function to a yul port diagram of pure input and versioned output.
 uncurry'lpv :: forall f xs b r vd m1 m1b m2 m2b.

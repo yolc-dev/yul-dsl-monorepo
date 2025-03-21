@@ -22,7 +22,7 @@ rangeSum'p :: PureFn (U256 -> U256 -> U256 -> U256)
 rangeSum'p = $fn \from step until ->
   let j = from + step
   in from + if j <= until
-            then callFn rangeSum'p j step until
+            then (rangeSum'p <$*>) j step until
             else 0
 
 rangeSum'l :: StaticFn (U256 -> U256 -> U256 -> U256)

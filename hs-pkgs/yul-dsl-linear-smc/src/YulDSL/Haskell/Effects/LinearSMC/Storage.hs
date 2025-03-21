@@ -43,14 +43,14 @@ class ( YulO2 a b, Versionable'L ie v
 
 instance ( YulO1 b, ABIWordValue b, Versionable'L ie v
          ) => SReferenceable ie v r B32 b where
-  sget s = ypure (encode'x YulSGet (ver'l s))
-  sput s x = encode'x YulSPut (merge'l (ver'l s, x))
+  sget s = ypure (encodeP'x YulSGet (ver'l s))
+  sput s x = encodeP'x YulSPut (merge'l (ver'l s, x))
              & \u -> MkLVM (unsafeAxiom, , unsafeCoerceYulPort u)
 
 instance ( YulO1 a, ABIWordValue a, Versionable'L ie v
          ) => SReferenceable ie v r (REF a) a where
-  sget s = ypure (encode'x YulSGet (reduceType'l (ver'l s)))
-  sput s x = encode'x YulSPut (merge'l (reduceType'l (ver'l s), x))
+  sget s = ypure (encodeP'x YulSGet (reduceType'l (ver'l s)))
+  sput s x = encodeP'x YulSPut (merge'l (reduceType'l (ver'l s), x))
               & \u -> MkLVM (unsafeAxiom, , unsafeCoerceYulPort u)
 
 ------------------------------------------------------------------------------------------------------------------------

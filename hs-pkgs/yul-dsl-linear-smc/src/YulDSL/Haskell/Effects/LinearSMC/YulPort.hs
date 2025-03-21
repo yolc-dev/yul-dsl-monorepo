@@ -1,10 +1,12 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 module YulDSL.Haskell.Effects.LinearSMC.YulPort
   ( -- * Yul Port Definitions
     -- $LinearPortDefs
     PortEffect (PurePort, VersionedPort)
-  , P'x (MkP'x), P'V, P'P, unP'x, encode'x, decode'x
+  , P'x (MkP'x), P'V, P'P, unP'x, encodeP'x, decodeP'x
   , Versionable'L (ver'l)
   , unsafeCoerceYulPort, unsafeCoerceYulPortDiagram
+  , unsafeUncurryNil'lx, uncurryNP'lx
     -- * General Yul Port Operations
     -- $GeneralOps
   , discard'l, ignore'l, mkUnit'l, emb'l, const'l, dup2'l, merge'l, split'l
@@ -52,15 +54,17 @@ type P'V v = P'x (VersionedPort v)
 unP'x :: P'x eff r a ⊸ P (YulCat PortEffect) r a
 unP'x (MkP'x x) = x
 
-encode'x :: forall (eff :: PortEffect) a b r. YulO3 r a b
+encodeP'x :: forall (eff :: PortEffect) a b r. YulO3 r a b
   => YulCat PortEffect a b
   ⊸ (P'x eff r a ⊸ P'x eff r b)
-encode'x c (MkP'x a) = MkP'x $ encode c a
+encodeP'x c (MkP'x a) = MkP'x $ encode c a
 
-decode'x :: forall (eff :: PortEffect) a b. YulO2 a b
+decodeP'x :: forall (eff :: PortEffect) a b. YulO2 a b
   => (forall r. YulO1 r => P'x eff r a ⊸ P'x eff r b)
   -> YulCat PortEffect a b
-decode'x f = decode (\a -> unP'x (f (MkP'x a)))
+decodeP'x f = decode (\a -> unP'x (f (MkP'x a)))
+
+-- Versionable ports
 
 class Versionable'L ie v where
   ver'l :: forall a r. YulO2 a r => P'x ie r a ⊸ P'V v r a
@@ -85,6 +89,40 @@ unsafeCoerceYulPort = UnsafeLinear.coerce
 unsafeCoerceYulPortDiagram :: forall (eff1 :: PortEffect) (eff2 :: PortEffect) (eff3 :: PortEffect) r a b.
     (P'x eff1 r a ⊸ P'x eff2 r b) ⊸ (P'x eff3 r a ⊸ P'x eff3 r b)
 unsafeCoerceYulPortDiagram f x = unsafeCoerceYulPort (f (unsafeCoerceYulPort x))
+
+-- uncurryNP'lx
+
+unsafeUncurryNil'lx :: forall a b r ie oe m1.
+  YulO3 a b r =>
+  P'x oe r b ⊸
+  (m1 a ⊸ P'x ie r (NP '[])) ->
+  (m1 a ⊸ P'x oe r b)
+unsafeUncurryNil'lx b h a =
+  h a                   -- :: P'V v1 (NP '[])
+  & coerceType'l @_ @() -- :: P'V v1 ()
+  & unsafeCoerceYulPort -- :: P'V vn ()
+  & \u -> ignore'l u b
+
+uncurryNP'lx :: forall g x xs b m1 m1b m2_ m2b_ r a ie.
+  ( YulO4 x (NP xs) r a
+  , P'x ie r ~ m1
+  , UncurryNP'Fst g ~ xs, UncurryNP'Snd g ~ b
+  , LiftFunction b (m2_ a) (m2b_ a) One ~ (m2b_ a) b
+  , UncurryingNP g xs b m1 m1b (m2_ a) (m2b_ a) One
+  , YulCatObj (NP xs)
+  ) =>
+  (m1 x ⊸ LiftFunction g m1 m1b One) ->      -- f
+  (m1 a ⊸ m1 (NP (x : xs))) ->               -- h
+  ((m1 a ⊸ m1 (NP xs)) ⊸ (m2_ a) (NP xs)) -> -- mk
+  ((m2b_ a) b ⊸ (m1 a ⊸ m1b b)) ->           -- un
+  (m1 a ⊸ m1b b)
+uncurryNP'lx f h mk un xxs =
+  dup2'l xxs
+  & \(xxs1, xxs2) -> unconsNP (h xxs1)
+  & \(x, xs) -> let g = uncurryingNP @g @xs @b @m1 @m1b @(m2_ a) @(m2b_ a) @One
+                        (f x)
+                        (mk (\a -> ignore'l (discard'l a) xs))
+                in (un g) xxs2
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $GeneralOps
@@ -135,15 +173,15 @@ split'l (MkP'x ab) = let !(a, b) = split ab in (MkP'x a, MkP'x b)
 -- | Coerce input yul port to an ABI coercible output yul port.
 coerceType'l :: forall a b eff r. (YulO3 a b r, ABITypeCoercible a b) =>
   P'x eff r a ⊸ P'x eff r b
-coerceType'l = encode'x YulCoerceType
+coerceType'l = encodeP'x YulCoerceType
 
 reduceType'l :: forall a eff r. (YulO3 a (ABITypeDerivedOf a) r) =>
   P'x eff r a ⊸ P'x eff r (ABITypeDerivedOf a)
-reduceType'l = encode'x YulReduceType
+reduceType'l = encodeP'x YulReduceType
 
 extendType'l :: forall a eff r. (YulO3 a (ABITypeDerivedOf a) r) =>
   P'x eff r (ABITypeDerivedOf a) ⊸ P'x eff r a
-extendType'l = encode'x YulExtendType
+extendType'l = encodeP'x YulExtendType
 
 --
 -- NP type
@@ -167,29 +205,29 @@ instance (YulO3 x (NP xs) r , LinearDistributiveNP (P'x eff r) xs) => LinearDist
 --
 
 instance (YulO1 r, ValidINTx s n) => MPEq (P'x eff r (INTx s n)) (P'x eff r BOOL) where
-  a == b = encode'x (YulJmpB (MkYulBuiltIn @"__cmp_eq_t_")) (merge'l (a, b))
-  a /= b = encode'x (YulJmpB (MkYulBuiltIn @"__cmp_ne_t_")) (merge'l (a, b))
+  a == b = encodeP'x (YulJmpB (MkYulBuiltIn @"__cmp_eq_t_")) (merge'l (a, b))
+  a /= b = encodeP'x (YulJmpB (MkYulBuiltIn @"__cmp_ne_t_")) (merge'l (a, b))
 
 -- | 'MPOrd' instance for the yul ports.
 instance (YulO1 r, ValidINTx s n) => MPOrd (P'x eff r (INTx s n)) (P'x eff r BOOL) where
-  a  < b = encode'x (YulJmpB (MkYulBuiltIn @"__cmp_lt_t_")) (merge'l (a, b))
-  a <= b = encode'x (YulJmpB (MkYulBuiltIn @"__cmp_le_t_")) (merge'l (a, b))
-  a  > b = encode'x (YulJmpB (MkYulBuiltIn @"__cmp_gt_t_")) (merge'l (a, b))
-  a >= b = encode'x (YulJmpB (MkYulBuiltIn @"__cmp_ge_t_")) (merge'l (a, b))
+  a  < b = encodeP'x (YulJmpB (MkYulBuiltIn @"__cmp_lt_t_")) (merge'l (a, b))
+  a <= b = encodeP'x (YulJmpB (MkYulBuiltIn @"__cmp_le_t_")) (merge'l (a, b))
+  a  > b = encodeP'x (YulJmpB (MkYulBuiltIn @"__cmp_gt_t_")) (merge'l (a, b))
+  a >= b = encodeP'x (YulJmpB (MkYulBuiltIn @"__cmp_ge_t_")) (merge'l (a, b))
 
 --
 -- Num instances for (P'x eff r)
 --
 
 instance (YulO1 r, ValidINTx s n) => Additive (P'x eff r (INTx s n)) where
-  a + b = encode'x (YulJmpB (MkYulBuiltIn @"__checked_add_t_")) (merge'l (a, b))
+  a + b = encodeP'x (YulJmpB (MkYulBuiltIn @"__checked_add_t_")) (merge'l (a, b))
 
 instance (YulO1 r, ValidINTx s n) => AddIdentity (P'x eff r (INTx s n)) where
   -- Note: uni-port is forbidden in linear-smc, but linear-base AdditiveGroup requires this instance.
   zero = error "unit is undefined for linear ports"
 
 instance (YulO1 r, ValidINTx s n) => AdditiveGroup (P'x eff r (INTx s n)) where
-  a - b = encode'x (YulJmpB (MkYulBuiltIn @"__checked_sub_t_")) (merge'l (a, b))
+  a - b = encodeP'x (YulJmpB (MkYulBuiltIn @"__checked_sub_t_")) (merge'l (a, b))
 
 instance (YulO1 r, ValidINTx s n) => Multiplicative (P'x eff r (INTx s n)) where
-  a * b = encode'x (YulJmpB (MkYulBuiltIn @"__checked_mul_t_")) (merge'l (a, b))
+  a * b = encodeP'x (YulJmpB (MkYulBuiltIn @"__checked_mul_t_")) (merge'l (a, b))
