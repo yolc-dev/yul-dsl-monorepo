@@ -218,7 +218,7 @@ withinPureY :: forall f x xs b r ioe m1 m2.
   PureY f ->
   P'x ioe r b
 withinPureY tplxxs f = encodeP'x cat' sxxs
-  where !(x, xs) = splitNP (fromTupleNtoNP tplxxs)
+  where !(x, xs) = splitNonEmptyNP (fromTupleNtoNP tplxxs)
         !(x', u) = mkUnit'l x
         sxxs = linearDistributeNP (x' :* xs) u :: m1 (NP (x:xs))
         cat = uncurryingNP @f @(x:xs) @b @m2 @m2 @m2 @m2 f YulId
