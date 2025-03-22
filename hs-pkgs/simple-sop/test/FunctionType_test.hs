@@ -40,23 +40,23 @@ test_tf_ncurry_examples = and
   ]
 
 test_tf_uncurrying_head_examples = and
-  [ fromBoolKind @(CurryingNP'Head (Bool) == ())
-  , fromBoolKind @(CurryingNP'Head (Int -> Bool) == Int)
-  , fromBoolKind @(CurryingNP'Head (Int -> Float -> Bool) == Int)
-  , fromBoolKind @(CurryingNP'Head (Int %1-> Float %1-> Bool) == Int)
+  [ fromBoolKind @(CurryNP'Head (Bool) == ())
+  , fromBoolKind @(CurryNP'Head (Int -> Bool) == Int)
+  , fromBoolKind @(CurryNP'Head (Int -> Float -> Bool) == Int)
+  , fromBoolKind @(CurryNP'Head (Int %1-> Float %1-> Bool) == Int)
   ]
 
 test_tf_uncurrying_tail_examples = and
-  [ fromBoolKind @(CurryingNP'Tail (Bool) == Bool)
-  , fromBoolKind @(CurryingNP'Tail (Int -> Bool) == Bool)
-  , fromBoolKind @(CurryingNP'Tail (Int -> Float -> Bool) == (Float -> Bool))
-  , fromBoolKind @(CurryingNP'Tail (Int %1-> Float %1-> Bool) == (Float %1-> Bool))
-  , fromBoolKind @(CurryingNP'Tail (Int -> Float %1-> Bool) == (Float %1-> Bool)) -- tolerated
+  [ fromBoolKind @(CurryNP'Tail (Bool) == Bool)
+  , fromBoolKind @(CurryNP'Tail (Int -> Bool) == Bool)
+  , fromBoolKind @(CurryNP'Tail (Int -> Float -> Bool) == (Float -> Bool))
+  , fromBoolKind @(CurryNP'Tail (Int %1-> Float %1-> Bool) == (Float %1-> Bool))
+  , fromBoolKind @(CurryNP'Tail (Int -> Float %1-> Bool) == (Float %1-> Bool)) -- tolerated
   ]
 
 tests = describe "Data.Type.Function" $ do
   it "LiftFunction examples" test_tf_lift_function_examples
   it "UncurryNP examples" test_tf_uncurry_examples
   it "CurryNP examples" test_tf_ncurry_examples
-  it "UncurryingNP'Head" test_tf_uncurrying_head_examples
-  it "UncurryingNP'Tail" test_tf_uncurrying_tail_examples
+  it "UncurryNP'Head" test_tf_uncurrying_head_examples
+  it "UncurryNP'Tail" test_tf_uncurrying_tail_examples

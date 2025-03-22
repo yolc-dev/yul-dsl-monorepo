@@ -89,32 +89,33 @@ lfn = [e| lfn' $locId |]
 ------------------------------------------------------------------------------------------------------------------------
 
 -- | Call pure function with pure yul port and get pure yul port.
-callFn'lpp :: forall f x xs b r.
+callFn'lpp :: forall f x xs b g r.
   ( YulO4 x (NP xs) b r
   , EquivalentNPOfFunction f (x:xs) b
-  , CurriableNP xs b (P'P r) (P'P r) (YulCat'LPP r ()) One
+  , EquivalentNPOfFunction g xs b
+  , CurriableNP g xs b (P'P r) (P'P r) (YulCat'LPP r ()) One
   ) =>
   Fn Pure f ->
   (P'P r x ⊸ LiftFunction (CurryNP (NP xs) b) (P'P r) (P'P r) One)
 callFn'lpp (MkFn f) x =
   mkUnit'l x
-  & \(x', u) -> curryingNP @_ @_ @(P'P r) @(P'P r) @(YulCat'LPP r ()) @One
+  & \(x', u) -> curryNP @g @_ @_ @(P'P r) @(P'P r) @(YulCat'LPP r ()) @One
   $ \(MkYulCat'LPP fxs) -> encodeWith'l id (YulJmpU f)
   $ consNP x' (fxs u)
 
 -- | Call functions with versioned yul port and get versioned yul port.
-callFn'lvv :: forall f v1 vd vn x xs b r.
+callFn'lvv :: forall f v1 vd vn x xs b g r.
   ( v1 + vd ~ vn
   , YulO4 x (NP xs) b r
   , EquivalentNPOfFunction f (x:xs) b
-  , CurriableNP xs b (P'V v1 r) (P'V vn r) (YulCat'LVV v1 v1 r ()) One
+  , CurriableNP g xs b (P'V v1 r) (P'V vn r) (YulCat'LVV v1 v1 r ()) One
   ) =>
   Fn (VersionedInputOutput vd) f ->
   (P'V v1 r x ⊸ LiftFunction (CurryNP (NP xs) b) (P'V v1 r) (P'V vn r) One)
 -- ^ All other function kinds is coerced into calling as if it is a versioned input output.
 callFn'lvv (MkFn f) x =
   mkUnit'l x
-  & \(x', u) -> curryingNP @xs @b @(P'V v1 r) @(P'V vn r) @(YulCat'LVV v1 v1 r ()) @One
+  & \(x', u) -> curryNP @g @xs @b @(P'V v1 r) @(P'V vn r) @(YulCat'LVV v1 v1 r ()) @One
   $ \(MkYulCat'LVV fxs) -> encodeWith'l id (YulJmpU f)
   $ consNP x' (fxs u)
 
@@ -139,11 +140,11 @@ type family CallableFn_LVV_YE fn (ie :: PortEffect) where
 -- | Calling @fnEff@ kind of yul function will increase data version by @vd@.
 class CallableFn'LVV fn (ie :: PortEffect) f where
   -- | Call functions with versioned yul port and get versioned yul port.
-  callFn'l :: forall x xs b r oe.
+  callFn'l :: forall g x xs b r oe.
     ( CallableFn_LVV_OE fn ie ~ oe
     , YulO4 x (NP xs) b r
     , EquivalentNPOfFunction f (x:xs) b
-    , CurriableNP xs b (P'x ie r) (P'x oe r) (CallableFn_LVV_YE fn ie r ()) One
+    , CurriableNP g xs b (P'x ie r) (P'x oe r) (CallableFn_LVV_YE fn ie r ()) One
     ) =>
     fn f ->
     (P'x ie r x ⊸ LiftFunction (CurryNP (NP xs) b) (P'x ie r) (P'x oe r) One)
@@ -166,11 +167,12 @@ instance CallableFn'LVV PureFn PurePort f where
 -- calling external functions (Yul Monadic)
 ------------------------------------------------------------------------------------------------------------------------
 
-externalCall :: forall f x xs b b' r v1 addrEff.
+externalCall :: forall f x xs b g b' r v1 addrEff.
   ( YulO4 x (NP xs) b r
   , P'V (v1 + 1) r b ~ b'
   , EquivalentNPOfFunction f (x:xs) b
-  , CurriableNP xs b' (P'V v1 r) (YulMonad v1 (v1 + 1) r) (YulCat'LVV v1 v1 r ()) One
+  , EquivalentNPOfFunction g xs b'
+  , CurriableNP g xs b' (P'V v1 r) (YulMonad v1 (v1 + 1) r) (YulCat'LVV v1 v1 r ()) One
   ) =>
   ExternalFn f ->
   P'x addrEff r ADDR ⊸
@@ -178,7 +180,7 @@ externalCall :: forall f x xs b b' r v1 addrEff.
 externalCall (MkExternalFn sel) addr x =
   mkUnit'l x
   & \(x', u) ->
-      curryingNP @_ @_ @(P'V v1 r) @(YulMonad v1 (v1 + 1) r) @(YulCat'LVV v1 v1 r ()) @One
+      curryNP @g @xs @b' @(P'V v1 r) @(YulMonad v1 (v1 + 1) r) @(YulCat'LVV v1 v1 r ()) @One
       $ \(MkYulCat'LVV fxs) -> encodeWith'l @(VersionedInputOutput 1) @(VersionedPort v1) @(VersionedPort (v1 + 1))
                                             @_ @_ @_ {- r a b -}
                                             @(YulMonad v1 (v1 + 1) r b')

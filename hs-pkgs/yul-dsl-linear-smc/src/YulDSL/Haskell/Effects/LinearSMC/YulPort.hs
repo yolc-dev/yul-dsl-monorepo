@@ -108,7 +108,7 @@ uncurryNP'lx :: forall g x xs b m1 m1b m2_ m2b_ r a ie.
   , P'x ie r ~ m1
   , UncurryNP'Fst g ~ xs, UncurryNP'Snd g ~ b
   , LiftFunction b (m2_ a) (m2b_ a) One ~ (m2b_ a) b
-  , UncurryingNP g xs b m1 m1b (m2_ a) (m2b_ a) One
+  , UncurriableNP g xs b m1 m1b (m2_ a) (m2b_ a) One
   , YulCatObj (NP xs)
   ) =>
   (m1 x ⊸ LiftFunction g m1 m1b One) ->      -- f
@@ -119,7 +119,7 @@ uncurryNP'lx :: forall g x xs b m1 m1b m2_ m2b_ r a ie.
 uncurryNP'lx f h mk un xxs =
   dup2'l xxs
   & \(xxs1, xxs2) -> unconsNP (h xxs1)
-  & \(x, xs) -> let g = uncurryingNP @g @xs @b @m1 @m1b @(m2_ a) @(m2b_ a) @One
+  & \(x, xs) -> let g = uncurryNP @g @xs @b @m1 @m1b @(m2_ a) @(m2b_ a) @One
                         (f x)
                         (mk (\a -> ignore'l (discard'l a) xs))
                 in (un g) xxs2

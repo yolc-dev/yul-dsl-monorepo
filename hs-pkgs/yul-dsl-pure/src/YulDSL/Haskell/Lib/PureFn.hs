@@ -55,18 +55,19 @@ fn' :: forall f xs b m.
   String ->
   LiftFunction f m m Many -> -- ^ uncurrying function type
   PureFn (CurryNP (NP xs) b) -- ^ result type, or its short form @m b@
-fn' cid f = let cat = uncurryingNP @f @xs @b @m @m @m @m f YulId in MkPureFn (MkFn (cid, cat))
+fn' cid f = let cat = uncurryNP @f @xs @b @m @m @m @m f YulId in MkPureFn (MkFn (cid, cat))
 
 -- | Create a 'PureFn' with automatic id based on function definition source location.
 fn :: TH.Q TH.Exp
 fn = [e| fn' $locId |]
 
 instance ( YulO4 x (NP xs) b r
+         , EquivalentNPOfFunction f xs b
          , YulCat'P r ~ m
-         , CurriableNP xs b (YulCat'P r) (YulCat'P r) (YulCat'P r) Many
+         , CurriableNP f xs b (YulCat'P r) (YulCat'P r) (YulCat'P r) Many
          ) =>
          CallableFunctionNP PureFn x xs b (YulCat'P r) (YulCat'P r) Many where
-  callNP (MkPureFn (MkFn (cid, cat))) x = curryingNP @xs @b @m @m @m (\xs -> consNP x xs >.> YulJmpU (cid, cat))
+  callNP (MkPureFn (MkFn (cid, cat))) x = curryNP @f @xs @b @m @m @m (\xs -> consNP x xs >.> YulJmpU (cid, cat))
 
 instance YulO2 b r =>
          CallableFunctionN PureFn '[] b (YulCat'P r) (YulCat'P r) Many where

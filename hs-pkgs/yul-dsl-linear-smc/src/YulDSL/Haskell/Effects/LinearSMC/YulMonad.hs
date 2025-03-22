@@ -100,34 +100,36 @@ newtype YulCat'LVM v1 vn r a b = MkYulCat'LVM (P'V v1 r a ⊸ YulMonad v1 vn r b
 instance forall x v1 vn r a.
          ( YulO3 x r a
          , LiftFunction x (P'V v1 r) (P'V vn r) One ~ P'V vn r x
-         ) => UncurryingNP (P'V vn r x) '[] (P'V vn r x)
+         ) => UncurriableNP (P'V vn r x) '[] (P'V vn r x)
          (P'V v1 r) (YulMonad v1 vn r)
          (YulCat'LVV v1 v1 r a) (YulCat'LVM v1 vn r a) One where
-  uncurryingNP x (MkYulCat'LVV h) = MkYulCat'LVM \a ->
+  uncurryNP x (MkYulCat'LVV h) = MkYulCat'LVM \a ->
     tossToUnit (h a) LVM.>> x
 
 instance forall x xs b g v1 vn r a.
          ( YulO5 x (NP xs) b r a
-         , UncurryingNP g xs (P'V vn r b) (P'V v1 r) (YulMonad v1 vn r) (YulCat'LVV v1 v1 r a) (YulCat'LVM v1 vn r a) One
-         ) => UncurryingNP (x -> g) (x:xs) (P'V vn r b)
+         , UncurriableNP g xs (P'V vn r b) (P'V v1 r) (YulMonad v1 vn r) (YulCat'LVV v1 v1 r a) (YulCat'LVM v1 vn r a) One
+         ) => UncurriableNP (x -> g) (x:xs) (P'V vn r b)
          (P'V v1 r) (YulMonad v1 vn r)
          (YulCat'LVV v1 v1 r a) (YulCat'LVM v1 vn r a) One where
-  uncurryingNP f (MkYulCat'LVV h) = MkYulCat'LVM
+  uncurryNP f (MkYulCat'LVV h) = MkYulCat'LVM
     (uncurryNP'lx @g @x @xs @(P'V vn r b) @(P'V v1 r) @(YulMonad v1 vn r) @(YulCat'LVV v1 v1 r) @(YulCat'LVM v1 vn r)
      f h MkYulCat'LVV (\(MkYulCat'LVM g) -> g))
 
-instance forall x v1 vn r a.
-         ( YulO3 x r a
-         , LiftFunction (CurryNP (NP '[]) x) (P'V v1 r) (YulMonad v1 vn r) One ~ YulMonad v1 vn r x
-         ) => CurryingNP '[] (P'V vn r x) (P'V v1 r) (YulMonad v1 vn r) (YulCat'LVV v1 v1 r a) One where
-  curryingNP cb = cb (MkYulCat'LVV (\a -> coerceType'l (discard'l a)))
+instance forall b v1 vn r a.
+         ( YulO3 b r a
+         , EquivalentNPOfFunction b '[] b
+         , LiftFunction (CurryNP (NP '[]) b) (P'V v1 r) (YulMonad v1 vn r) One ~ YulMonad v1 vn r b
+         , LiftFunction (CurryNP (NP '[]) b) (YulCat'LVV v1 v1 r a) (YulMonad v1 vn r) One ~ YulMonad v1 vn r b
+         ) => CurriableNP (P'V vn r b) '[] (P'V vn r b) (P'V v1 r) (YulMonad v1 vn r) (YulCat'LVV v1 v1 r a) One where
+  curryNP fNP = fNP (MkYulCat'LVV (\a -> coerceType'l (discard'l a)))
 
-instance forall x xs b r a v1 vn.
+instance forall g x xs b r a v1 vn.
          ( YulO5 x (NP xs) b r a
-         , CurryingNP xs (P'V vn r b) (P'V v1 r) (YulMonad v1 vn r) (YulCat'LVV v1 v1 r a) One
-         ) => CurryingNP (x:xs) (P'V vn r b) (P'V v1 r) (YulMonad v1 vn r) (YulCat'LVV v1 v1 r a) One where
-  curryingNP cb x = curryingNP @xs @(P'V vn r b) @(P'V v1 r) @(YulMonad v1 vn r) @(YulCat'LVV v1 v1 r a) @One
-                    (\(MkYulCat'LVV fxs) -> cb (MkYulCat'LVV (\a -> (consNP x (fxs a)))))
+         , CurriableNP g xs (P'V vn r b) (P'V v1 r) (YulMonad v1 vn r) (YulCat'LVV v1 v1 r a) One
+         ) => CurriableNP (x -> g) (x:xs) (P'V vn r b) (P'V v1 r) (YulMonad v1 vn r) (YulCat'LVV v1 v1 r a) One where
+  curryNP fNP x = curryNP @g @xs @(P'V vn r b) @(P'V v1 r) @(YulMonad v1 vn r) @(YulCat'LVV v1 v1 r a) @One
+                    (\(MkYulCat'LVV fxs) -> fNP (MkYulCat'LVV (\a -> (consNP x (fxs a)))))
 
 yulmonad'v :: forall f xs b r vd m1 m1b m2 m2b f' b'.
   ( YulO3 (NP xs) b r
@@ -143,12 +145,12 @@ yulmonad'v :: forall f xs b r vd m1 m1b m2 m2b f' b'.
   , LiftFunction b' m2 m2b One ~ m2b b'
   -- constraint f'
   , EquivalentNPOfFunction f' xs b'
-  , UncurryingNP f' xs b' m1 m1b m2 m2b One
+  , UncurriableNP f' xs b' m1 m1b m2 m2b One
   )
   => LiftFunction f' m1 m1b One     -- ^ LiftFunction               f1  m1 m1b One
   -> (P'V 0 r (NP xs) ⊸ P'V vd r b) -- ^ LiftFunction (NP (():xs) -> b) m1 m1b One
 yulmonad'v f =
-  let !(MkYulCat'LVM f') = uncurryingNP @f' @xs @b' @m1 @m1b @m2 @m2b @One f (MkYulCat'LVV id)
+  let !(MkYulCat'LVM f') = uncurryNP @f' @xs @b' @m1 @m1b @m2 @m2b @One f (MkYulCat'LVV id)
   in \xs -> mkUnit'l xs & \(xs', u) -> runYulMonad u (f' xs')
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -161,18 +163,18 @@ newtype YulCat'LPM v1 vn r a b = MkYulCat'LPM (P'P r a ⊸ YulMonad v1 vn r b)
 instance forall x v1 vn r a.
          ( YulO3 x r a
          , LiftFunction x (P'P r) (P'V vn r) One ~ P'V vn r x
-         ) => UncurryingNP (P'V vn r x) '[] (P'V vn r x)
+         ) => UncurriableNP (P'V vn r x) '[] (P'V vn r x)
          (P'P r) (YulMonad v1 vn r)
          (YulCat'LPP r a) (YulCat'LPM v1 vn r a) One where
-  uncurryingNP x (MkYulCat'LPP h) = MkYulCat'LPM \a ->
+  uncurryNP x (MkYulCat'LPP h) = MkYulCat'LPM \a ->
     tossToUnit (unsafeCoerceYulPort (h a & coerceType'l @_ @())) LVM.>> x
 
 instance forall x xs b g v1 vn r a.
          ( YulO5 x (NP xs) b r a
-         , UncurryingNP g xs (P'V vn r b) (P'P r) (YulMonad v1 vn r) (YulCat'LPP r a) (YulCat'LPM v1 vn r a) One
-         ) => UncurryingNP (x -> g) (x:xs) (P'V vn r b)
+         , UncurriableNP g xs (P'V vn r b) (P'P r) (YulMonad v1 vn r) (YulCat'LPP r a) (YulCat'LPM v1 vn r a) One
+         ) => UncurriableNP (x -> g) (x:xs) (P'V vn r b)
          (P'P r) (YulMonad v1 vn r) (YulCat'LPP r a) (YulCat'LPM v1 vn r a) One where
-  uncurryingNP f (MkYulCat'LPP h) = MkYulCat'LPM
+  uncurryNP f (MkYulCat'LPP h) = MkYulCat'LPM
     (uncurryNP'lx @g @x @xs @(P'V vn r b) @(P'P r) @(YulMonad v1 vn r) @(YulCat'LPP r) @(YulCat'LPM v1 vn r)
      f h MkYulCat'LPP (\(MkYulCat'LPM g) -> g))
 
@@ -190,12 +192,12 @@ yulmonad'p :: forall f xs b r vd m1 m1b m2 m2b f' b'.
   , LiftFunction b' m2 m2b One ~ m2b b'
   --
   , EquivalentNPOfFunction f' xs b'
-  , UncurryingNP f' xs b' m1 m1b m2 m2b One
+  , UncurriableNP f' xs b' m1 m1b m2 m2b One
   )
   => LiftFunction f' m1 m1b One   -- ^ LiftFunction               f1  m1 m1b One
   -> (P'P r (NP xs) ⊸ P'V vd r b) -- ^ LiftFunction (NP (():xs) -> b) m1 m1b One
 yulmonad'p f =
-  let !(MkYulCat'LPM f') = uncurryingNP @f' @xs @b' @m1 @m1b @m2 @m2b @One f (MkYulCat'LPP id)
+  let !(MkYulCat'LPM f') = uncurryNP @f' @xs @b' @m1 @m1b @m2 @m2b @One f (MkYulCat'LPP id)
   in \xs -> mkUnit'l xs & \(xs', u) -> runYulMonad u (f' xs')
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -211,8 +213,7 @@ withinPureY :: forall f x xs b r ioe m1 m2.
   , EquivalentNPOfFunction f (x:xs) b
   , ConvertibleNPtoTupleN (NP (MapList m1 (x:xs)))
   , LinearDistributiveNP m1 (x:xs)
-  , UncurryingNP f (x:xs) b m2 m2 m2 m2 Many
-  , LiftFunction b m2 m2 Many ~ m2 b
+  , UncurriableNP f (x:xs) b m2 m2 m2 m2 Many
   ) =>
   NPtoTupleN (NP (MapList m1 (x:xs))) ⊸
   PureY f ->
@@ -221,7 +222,7 @@ withinPureY tplxxs f = encodeP'x cat' sxxs
   where !(x, xs) = splitNonEmptyNP (fromTupleNtoNP tplxxs)
         !(x', u) = mkUnit'l x
         sxxs = linearDistributeNP (x' :* xs) u :: m1 (NP (x:xs))
-        cat = uncurryingNP @f @(x:xs) @b @m2 @m2 @m2 @m2 f YulId
+        cat = uncurryNP @f @(x:xs) @b @m2 @m2 @m2 @m2 f YulId
         cat' = YulUnsafeCoerceEffect cat
 
 -- cond :: P'V va r BOOL ⊸ (Bool ⊸ YulMonad va vb r (P'V vb r a))

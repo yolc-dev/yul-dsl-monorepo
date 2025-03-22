@@ -313,39 +313,46 @@ instance (YulO3 x (NP xs) r, DistributiveNP (YulCat eff r) xs) =>
          DistributiveNP (YulCat eff r) (x:xs)
 
 --
--- UncurryingNP instances
+-- UncurryNP instances
 --
 
 -- ^ Base case: @uncurryingNP (x) => NP '[] -> x@
-instance forall x r eff. YulO2 x r =>
-         UncurryingNP (x) '[] x (YulCat eff r) (YulCat eff r) (YulCat eff r) (YulCat eff r) Many where
-  uncurryingNP x _ = x
+instance forall b r eff.
+         ( YulO2 b r
+         , EquivalentNPOfFunction b '[] b
+         , LiftFunction b (YulCat eff r) (YulCat eff r) Many ~ YulCat eff r b
+         ) =>
+         UncurriableNP b '[] b (YulCat eff r) (YulCat eff r) (YulCat eff r) (YulCat eff r) Many where
+  uncurryNP b _ = b
 
 -- ^ Inductive case: @uncurryingNP (x -> ...xs -> b) => (x, uncurryingNP (... xs -> b)) => NP (x:xs) -> b@
-instance forall x xs b g r eff.
+instance forall g x xs b r eff.
          ( YulO4 x (NP xs) b r
-         , EquivalentNPOfFunction g xs b
-         , UncurryingNP g xs b (YulCat eff r) (YulCat eff r) (YulCat eff r) (YulCat eff r) Many
-         ) => UncurryingNP (x -> g) (x:xs) b (YulCat eff r) (YulCat eff r) (YulCat eff r) (YulCat eff r) Many where
-  uncurryingNP f xxs = let (x, xs) = unconsNP xxs in uncurryingNP @g @xs @b @(YulCat eff r) @(YulCat eff r) (f x) xs
+         , UncurriableNP g xs b (YulCat eff r) (YulCat eff r) (YulCat eff r) (YulCat eff r) Many
+         ) =>
+         UncurriableNP (x -> g) (x:xs) b (YulCat eff r) (YulCat eff r) (YulCat eff r) (YulCat eff r) Many where
+  uncurryNP f xxs = let (x, xs) = unconsNP xxs in uncurryNP @g @xs @b @(YulCat eff r) @(YulCat eff r) (f x) xs
 
 --
--- CurryingNP instances
+-- CurryNP instances
 --
 
 -- ^ Base case: @curryingNP (NP '[] -> b) => b@
 instance forall b r eff.
          ( YulO2 b r
+         , EquivalentNPOfFunction b '[] b
          , LiftFunction b (YulCat eff r) (YulCat eff r) Many ~ YulCat eff r b
-         ) => CurryingNP '[] b (YulCat eff r) (YulCat eff r) (YulCat eff r) Many where
-  curryingNP cb = cb (YulDis >.> YulReduceType)
+         ) =>
+         CurriableNP b '[] b (YulCat eff r) (YulCat eff r) (YulCat eff r) Many where
+  curryNP fNP = fNP (YulDis >.> YulReduceType)
 
 -- ^ Inductive case: @curryingNP (NP (x:xs) -> b) => x -> curryingNP (NP xs -> b)@
-instance forall x xs b r eff.
+instance forall g x xs b r eff.
          ( YulO5 x (NP xs) b (NP (x:xs)) r
-         , CurryingNP xs b (YulCat eff r) (YulCat eff r) (YulCat eff r) Many
-         ) => CurryingNP (x:xs) b (YulCat eff r) (YulCat eff r) (YulCat eff r) Many where
-  curryingNP cb x = curryingNP @xs @b @(YulCat eff r) @(YulCat eff r) (cb . consNP x)
+         , CurriableNP g xs b (YulCat eff r) (YulCat eff r) (YulCat eff r) Many
+         ) =>
+         CurriableNP (x -> g) (x:xs) b (YulCat eff r) (YulCat eff r) (YulCat eff r) Many where
+  curryNP fNP x = curryNP @g @xs @b @(YulCat eff r) @(YulCat eff r) (fNP . consNP x)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- YulCat Stringify Functions
