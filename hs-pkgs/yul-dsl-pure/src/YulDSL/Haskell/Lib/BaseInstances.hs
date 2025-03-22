@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
-module YulDSL.Haskell.Lib.Instances() where
+module YulDSL.Haskell.Lib.BaseInstances () where
 -- yul-dsl
 import YulDSL.Core
 import YulDSL.StdBuiltIns.ValueType ()

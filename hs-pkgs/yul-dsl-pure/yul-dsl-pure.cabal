@@ -42,8 +42,7 @@ library
     YulDSL.Haskell.YulCatObj.Maybe
     YulDSL.Haskell.YulCatObj.NP
     YulDSL.Haskell.YulCatObj.TUPLEn
-    YulDSL.Haskell.Lib.Instances
-    YulDSL.Haskell.Lib.PureFn
+    YulDSL.Haskell.Lib.BaseInstances
     YulDSL.Haskell.Lib.TH
     YulDSL.Haskell.Lib
 

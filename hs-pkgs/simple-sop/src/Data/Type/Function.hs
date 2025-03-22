@@ -116,19 +116,19 @@ class ( EquivalentNPOfFunction f xs b
     LiftFunction (NP xs -> b) m2 mb p %p-> -- ^ from this lifted function
     LiftFunction           f  m1 mb p      -- ^ to this lifted function
 
-class CallableFunctionNP fn x xs b m mb p | fn m -> mb, fn m -> p where
-  callNP, (<$*>) :: forall f.
-    ( EquivalentNPOfFunction f (x:xs) b
-    ) =>
+class ( EquivalentNPOfFunction f (x:xs) b
+      ) =>
+      CallableFunctionNP fn f x xs b m mb p | fn m -> mb, fn m -> p where
+  callNP, (<$*>) :: forall.
     fn f -> (m x %p -> LiftFunction (CurryNP (NP xs) b) m mb p)
-  (<$*>) = callNP @fn @x @xs @b @m @mb @p
+  (<$*>) = callNP @fn @f @x @xs @b @m @mb @p
 
 infixl 4 <$*>
 
-class CallableFunctionN fn xs b m mb p | fn mb -> m, fn m -> mb, fn m -> p where
-  callN, (<$#>) :: forall f.
-    ( EquivalentNPOfFunction f xs b
-    , ConvertibleNPtoTupleN (NP (MapList m xs))
-    ) =>
+class ( EquivalentNPOfFunction f xs b
+      , ConvertibleNPtoTupleN (NP (MapList m xs))
+      ) =>
+      CallableFunctionN fn f xs b m mb p | fn mb -> m, fn m -> mb, fn m -> p where
+  callN, (<$#>) :: forall.
     fn f -> NPtoTupleN (NP (MapList m xs)) -> mb b
-  (<$#>) = callN @fn @xs @b @m @mb @p
+  (<$#>) = callN @fn @f @xs @b @m @mb @p
