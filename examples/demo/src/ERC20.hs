@@ -29,8 +29,8 @@ transfer = $lfn $ yulmonad'p \from_p to_p amount_p -> LVM.do
   (to_p, receiverBalanceRef_p) <- pass to_p (shmapRef balanceMap)
   -- calculate new balances
   (amount, newSenderBalance) <- pass (ver'l amount_p)
-    \amount -> ypure $ balanceOf `callFn'l` (ver'l from_p) - amount
-  let newReceiverBalance = balanceOf `callFn'l` (ver'l to_p) + amount
+    \amount -> ypure $ balanceOf `callNP` (ver'l from_p) - amount
+  let newReceiverBalance = balanceOf `callNP` (ver'l to_p) + amount
   -- update storages
   sputs $
     senderBalanceRef_p   := newSenderBalance   :|
@@ -43,7 +43,7 @@ mint :: OmniFn (ADDR -> U256 -> ())
 mint = $lfn $ yulmonad'p \to_p amount_p -> LVM.do
   -- fetch balance of the account
   (to_p, balanceBefore) <- pass to_p \to_p ->
-    ypure $ balanceOf `callFn'l` ver'l to_p
+    ypure $ balanceOf `callNP` ver'l to_p
 
   -- use linear port values safely
   (to_p, amount_p) <- passN_ (to_p, amount_p) \(to_p, amount_p) ->

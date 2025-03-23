@@ -57,8 +57,7 @@ type YulCat'P = YulCat Pure
 ------------------------------------------------------------------------------------------------------------------------
 
 -- | Function without side effects, hence pure.
-data PureFn f where
-  MkPureFn :: Fn Pure f -> PureFn f
+newtype PureFn f = MkPureFn (Fn Pure f)
 
 instance ClassifiedFn PureFn PureEffect where
   withClassifiedFn g (MkPureFn f) = g f
@@ -102,27 +101,19 @@ fn = [e| fn' $locId |]
 instance forall f x xs b g r.
          ( YulO4 x (NP xs) b r
          , EquivalentNPOfFunction f (x:xs) b
-         , EquivalentNPOfFunction g xs b
          , CurriableNP g xs b (YulCat'P r) (YulCat'P r) (YulCat'P r) Many
          ) =>
-         CallableFunctionNP PureFn f x xs b (YulCat'P r) (YulCat'P r) Many where
+         CallableFunctionNP PureFn f x xs b (YulCat'P r) (YulCat'P r) b Many where
   callNP (MkPureFn (MkFn (cid, cat))) x = curryNP @g @xs @b @(YulCat'P r) @(YulCat'P r) @(YulCat'P r)
     (\xs -> consNP x xs >.> YulJmpU (cid, cat))
 
-instance forall b r.
-         ( YulO2 b r
-         , EquivalentNPOfFunction b '[] b
+instance forall f xs b r.
+         ( YulO3 (NP xs) b r
+         , EquivalentNPOfFunction f xs b
+         , ConvertibleNPtoTupleN (NP (MapList (YulCat'P r) xs))
+         , DistributiveNP (YulCat'P r) xs
          ) =>
-         CallableFunctionN PureFn b '[] b (YulCat'P r) (YulCat'P r) Many where
-  callN (MkPureFn (MkFn (cid, cat))) () = yulNil >.> YulJmpU (cid, cat)
-
-instance forall f x xs b r.
-         ( YulO4 x (NP xs) b r
-         , EquivalentNPOfFunction f (x:xs) b
-         , ConvertibleNPtoTupleN (NP (MapList (YulCat'P r) (x:xs)))
-         , DistributiveNP (YulCat'P r) (x:xs)
-         ) =>
-         CallableFunctionN PureFn f (x:xs) b (YulCat'P r) (YulCat'P r) Many where
+         CallableFunctionN PureFn f xs b (YulCat'P r) (YulCat'P r) Many where
   callN (MkPureFn (MkFn (cid, cat))) tpl = distributeNP (fromTupleNtoNP tpl) >.> YulJmpU (cid, cat)
 
 -- $yulCatVal

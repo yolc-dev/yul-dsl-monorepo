@@ -15,13 +15,13 @@ counter = $fn $
 
 getCounter :: StaticFn (() -> U256)
 getCounter = $lfn $ yulmonad'p
-  \u -> sget (callFn'l counter u)
+  \u -> sget (callNP counter u)
 
 incCounter :: OmniFn (U256 -> ())
 incCounter = $lfn $ yulmonad'p
   \inc_p -> LVM.do
   u <- yembed ()
-  (counterRef, currentValue) <- pass (callFn'l counter u) sget
+  (counterRef, currentValue) <- pass (callNP counter u) sget
   sput counterRef (currentValue + ver'l inc_p)
 
 -- -- | Storage map of conters

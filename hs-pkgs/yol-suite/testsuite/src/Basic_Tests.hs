@@ -22,12 +22,12 @@ rangeSum'p :: PureFn (U256 -> U256 -> U256 -> U256)
 rangeSum'p = $fn \from step until ->
   let j = from + step
   in from + if j <= until
-            then (rangeSum'p <$*>) j step until
+            then callNP rangeSum'p j step until
             else 0
 
 rangeSum'l :: StaticFn (U256 -> U256 -> U256 -> U256)
 rangeSum'l = $lfn $ yulmonad'p
-  \from'p step'p until'p -> ypure $ ver'l $ callFn'l rangeSum'p from'p step'p until'p
+  \from'p step'p until'p -> ypure $ ver'l $ callNP rangeSum'p from'p step'p until'p
 
 callExternalFoo0 :: OmniFn (ADDR -> U256)
 callExternalFoo0 = $lfn $ yulmonad'v
