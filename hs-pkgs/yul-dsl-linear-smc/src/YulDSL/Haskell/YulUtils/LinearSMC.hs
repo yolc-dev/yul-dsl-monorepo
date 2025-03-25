@@ -1,7 +1,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 module YulDSL.Haskell.YulUtils.LinearSMC
   ( yulKeccak256'l
-  , yulCaller'l
+  , ycaller
     -- $PatternMatching
   , match'l
   ) where
@@ -13,15 +13,17 @@ import YulDSL.StdBuiltIns.ABICodec                   ()
 -- yul-dsl-pure
 import YulDSL.Haskell.Lib                            (PatternMatchable (match), PureEffectKind (Pure))
 --
+import Control.LinearlyVersionedMonad                qualified as LVM
 import YulDSL.Haskell.Effects.LinearSMC.LinearYulCat
+import YulDSL.Haskell.Effects.LinearSMC.YulMonad
 import YulDSL.Haskell.Effects.LinearSMC.YulPort
 
 
 yulKeccak256'l :: forall a eff r. YulO2 r a => P'x eff r a ⊸ P'x eff r B32
 yulKeccak256'l = encodeP'x (YulJmpB (MkYulBuiltIn @"__keccak_c_" @a @B32))
 
-yulCaller'l :: forall r eff. YulO1 r => P'x eff r () ⊸ P'x eff r ADDR
-yulCaller'l = encodeP'x YulCaller
+ycaller :: forall r va. YulO1 r => YulMonad va va r (P'V va r ADDR)
+ycaller = yembed () LVM.>>= ypure . encodeP'x YulCaller
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $PatternMatching

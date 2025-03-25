@@ -14,15 +14,25 @@ contract CounterProgramTest is Test {
     counter = createCounterProgram();
   }
 
-  function testGlobalCounterValue() external view {
-    assertEq(counter.getCounter(), 0);
-    assertEq(counter.getCounter(), 0);
+  function testGlobalCounter(uint32 a, uint32 b) external {
+    assertEq(counter.getGlobalCounter(), 0);
+    assertEq(counter.getGlobalCounter(), 0);
+    counter.incGlobalCounter(a);
+    assertEq(counter.getGlobalCounter(), a, "1");
+    counter.incGlobalCounter(b);
+    assertEq(counter.getGlobalCounter(), uint256(a) + b, "2");
   }
 
-  function testGlobaoIncCounter(uint32 a, uint32 b) external {
+  function testUserCounter(uint32 a, uint32 b) external {
+    assertEq(counter.getCounter(ALICE), 0);
+    assertEq(counter.getCounter(BOB), 0);
+    vm.startPrank(ALICE);
     counter.incCounter(a);
-    assertEq(counter.getCounter(), a, "1");
+    vm.stopPrank();
+    vm.startPrank(BOB);
     counter.incCounter(b);
-    assertEq(counter.getCounter(), uint256(a) + b, "2");
+    vm.stopPrank();
+    assertEq(counter.getCounter(ALICE), a);
+    assertEq(counter.getCounter(BOB), b);
   }
 }

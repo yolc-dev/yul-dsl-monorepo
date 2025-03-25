@@ -64,25 +64,25 @@ call_fn0 :: PureFn (U256)
 call_fn0 = $fn
   do uncurry_fn0 <$*> ()
 
--- call_fn0' :: PureFn (U256)
--- call_fn0' = $fn
---   do callNP' uncurry_fn0
+call_fn0' :: PureFn (U256)
+call_fn0' = $fn
+  do call0 uncurry_fn0
 
 call_fn1 :: PureFn (U256 -> U256)
 call_fn1 = $fn
-  \a -> callNP uncurry_fn1 a
+  \a -> call uncurry_fn1 a
 
 call_fn2 :: PureFn (U256 -> U256)
 call_fn2 = $fn
-  \a -> callNP uncurry_fn2 a a
+  \a -> call uncurry_fn2 a a
 
 call_fn3 :: PureFn (U256 -> U256)
 call_fn3 = $fn
-  \a -> callNP uncurry_fn3 a a a
+  \a -> call uncurry_fn3 a a a
 
 call_fn4 :: PureFn (U256 -> U256)
 call_fn4 = $fn
-  \a -> callNP uncurry_fn4 a a a a
+  \a -> call uncurry_fn4 a a a a
 
 test_simple_fn :: Gen Bool
 test_simple_fn = chooseInteger (0, toInteger (maxBound @U32)) <&>

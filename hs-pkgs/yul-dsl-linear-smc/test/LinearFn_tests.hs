@@ -38,23 +38,23 @@ foo4 = $lfn $ uncurry'lvv
 
 call0 :: StaticFn (() -> U256)
 call0 = $lfn $ uncurry'lvv
-  \u -> callNP foo0 u
+  \u -> call foo0 u
 
 call1 :: StaticFn (U256 -> U256)
 call1 = $lfn $ uncurry'lvv
-  \x -> callNP foo1 x
+  \x -> call foo1 x
 
 call2 :: StaticFn (U256 -> U256 -> U256)
 call2 = $lfn $ uncurry'lvv
-  \x1 x2 -> callNP foo2 x1 x2
+  \x1 x2 -> call foo2 x1 x2
 
 call3 :: StaticFn (U256 -> U256 -> U256 -> U256)
 call3 = $lfn $ uncurry'lvv
-  \x1 x2 x3 -> callNP foo3 x1 x2 x3
+  \x1 x2 x3 -> call foo3 x1 x2 x3
 
 call4 :: StaticFn (U256 -> U256 -> U256 -> U256 -> U256)
 call4 = $lfn $ uncurry'lvv
-  \x1 x2 x3 x4 -> callNP foo4 x1 x2 x3 x4
+  \x1 x2 x3 x4 -> call foo4 x1 x2 x3 x4
 
 test_withinPureY :: StaticFn (U256 -> U256 -> U256)
 test_withinPureY = $lfn $ uncurry'lvv
@@ -68,11 +68,11 @@ test_withinPureY = $lfn $ uncurry'lvv
 bar0 :: StaticFn (U256)
 bar0 = $lfn $ yulmonad'p $ LVM.do
   u <- yembed ()
-  ypure (callNP foo0 u)
+  ypure (call foo0 u)
 
 bar1 :: StaticFn (U256 -> U256)
 bar1 = $lfn $ yulmonad'p
-  \x1 -> ypure (callNP foo1 (ver'l x1))
+  \x1 -> ypure (call foo1 (ver'l x1))
 
 bar3 :: StaticFn (U256 -> U256 -> U256 -> U256)
 bar3 = $lfn $ yulmonad'p
@@ -103,7 +103,7 @@ fooSPut = $lfn $ yulmonad'p
 callSPut :: OmniFn (B32 -> U256 -> ())
 callSPut = $lfn $ yulmonad'p
   \addr_p var_p -> LVM.do
-  callNP fooSPut (ver'l addr_p) (ver'l var_p)
+  ycall fooSPut (ver'l addr_p) (ver'l var_p)
 
 --
 

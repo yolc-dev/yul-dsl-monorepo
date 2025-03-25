@@ -17,7 +17,7 @@ module YulDSL.Haskell.Effects.Pure
     PureEffectKind (Pure, Total)
   , PureY, YulCat'P
     -- $PureFn
-  , PureFn (MkPureFn), fn', fn
+  , PureFn (MkPureFn), fn', fn, call0
     -- * Technical Notes
     -- $yulCatVal
   ) where
@@ -98,14 +98,20 @@ fn' cid f = let cat = uncurryNP @f @xs @b @m @m @m @m f YulId in MkPureFn (MkFn 
 fn :: TH.Q TH.Exp
 fn = [e| fn' $locId |]
 
-instance forall f x xs b g r.
-         ( YulO4 x (NP xs) b r
+instance forall f x xs b g a.
+         ( YulO4 x (NP xs) b a
          , EquivalentNPOfFunction f (x:xs) b
-         , CurriableNP g xs b (YulCat'P r) (YulCat'P r) (YulCat'P r) Many
+         , CurriableNP g xs b (YulCat'P a) (YulCat'P a) (YulCat'P a) Many
          ) =>
-         CallableFunctionNP PureFn f x xs b (YulCat'P r) (YulCat'P r) b Many where
-  callNP (MkPureFn (MkFn (cid, cat))) x = curryNP @g @xs @b @(YulCat'P r) @(YulCat'P r) @(YulCat'P r)
+         CallableFunctionNP PureFn f x xs b (YulCat'P a) (YulCat'P a) Many where
+  call (MkPureFn (MkFn (cid, cat))) x = curryNP @g @xs @b @(YulCat'P a) @(YulCat'P a) @(YulCat'P a)
     (\xs -> consNP x xs >.> YulJmpU (cid, cat))
+
+call0 :: forall b a.
+  ( YulO2 b a
+  , EquivalentNPOfFunction b '[] b
+  ) => PureFn b -> YulCat'P a b
+call0 f = callN f ()
 
 instance forall f xs b r.
          ( YulO3 (NP xs) b r
@@ -115,6 +121,7 @@ instance forall f xs b r.
          ) =>
          CallableFunctionN PureFn f xs b (YulCat'P r) (YulCat'P r) Many where
   callN (MkPureFn (MkFn (cid, cat))) tpl = distributeNP (fromTupleNtoNP tpl) >.> YulJmpU (cid, cat)
+
 
 -- $yulCatVal
 --

@@ -3,39 +3,44 @@ import Control.LinearlyVersionedMonad qualified as LVM
 import Prelude.YulDSL
 
 object = mkYulObject "Counter" yulNoop
-  [ staticFn "getCounter" getCounter
+  [ staticFn "getGlobalCounter" getGlobalCounter
+  , omniFn   "incGlobalCounter" incGlobalCounter
+  , staticFn "getCounter" getCounter
   , omniFn   "incCounter" incCounter
-  -- , staticFn "GetCounter" getCounter'
-  -- , omniFn   "GetCounter" incCounter'
   ]
 
-counter :: PureFn (() -> REF U256)
-counter = $fn $
-  const (YulEmb (keyRef "Yolc.Demo.Counter.Storage.Counter.Global"))
+globalCounterLoc :: PureFn (REF U256)
+globalCounterLoc = $fn do
+  YulEmb (keyRef "Yolc.Demo.Counter.Storage.Counter.Global")
 
-getCounter :: StaticFn (() -> U256)
+incGlobalCounter :: OmniFn (U256 -> ())
+incGlobalCounter = $lfn $ yulmonad'p
+  \inc_p -> LVM.do
+    counterRef <- $ycall0 globalCounterLoc
+    (counterRef, currentValue) <- pass counterRef sget
+    sput counterRef (currentValue + ver'l inc_p)
+
+getGlobalCounter :: StaticFn U256
+getGlobalCounter = $lfn $ yulmonad'p $ LVM.do
+  counterRef <- $ycall0 globalCounterLoc
+  sget counterRef
+
+-- | Storage map of user counters
+counterMap :: SHMap ADDR U256
+counterMap = shmap "Yolc.Demo.Counter.Storage.Counter.PerUser"
+
+getCounter :: StaticFn (ADDR -> U256)
 getCounter = $lfn $ yulmonad'p
-  \u -> sget (callNP counter u)
+  \acc -> counterMap `shmapGet` acc
 
 incCounter :: OmniFn (U256 -> ())
 incCounter = $lfn $ yulmonad'p
   \inc_p -> LVM.do
-  u <- yembed ()
-  (counterRef, currentValue) <- pass (callNP counter u) sget
-  sput counterRef (currentValue + ver'l inc_p)
-
--- -- | Storage map of conters
--- counterMap :: SHMap ADDR U256
--- counterMap = shmap "Yolc.Demo.Counter.Storage.Counter.PerUser"
-
--- getCounter' :: StaticFn (ADDR -> U256)
--- getCounter' = $lfn $ yulmonad'p
---   \acc -> counterMap `shmapGet` acc
-
--- incCounter' :: OmniFn (U256 -> ())
--- incCounter' = $lfn $ yulmonad'p
---   \inc_p -> LVM.do
---   u <- yembed()
---   (acc, counterRef) <- pass (yulCaller'l u) (counterMap `shmapRef`)
---   let currentValue = callFn'l getCounter' acc
---   sput counterRef (currentValue + ver'l inc_p)
+    acc <- ycaller
+    counterRef <- counterMap `shmapRef` acc
+    (counterRef, newValue) <- pass counterRef \counterRef -> LVM.do
+      currentValue <- sget counterRef
+      ypure $ withinPureY @(U256 -> U256 -> U256)
+              (currentValue, ver'l inc_p)
+              (\a b -> a + b)
+    sput counterRef newValue

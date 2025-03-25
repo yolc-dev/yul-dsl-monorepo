@@ -76,8 +76,9 @@ instance Versionable'L PurePort v where
   ver'l = unsafeCoerceYulPort
 
 -- -- | Pure port can be converted to any versioned port.
--- ver'l :: forall a v r. YulO2 a r
---       => P'P r a ⊸ P'V v r a
+-- ver'l :: forall a v r.
+--   YulO2 a r
+--   => P'P r a ⊸ P'V v r a
 -- ver'l = unsafeCoerceYulPort
 
 -- | Unsafe coerce yul port' effects.

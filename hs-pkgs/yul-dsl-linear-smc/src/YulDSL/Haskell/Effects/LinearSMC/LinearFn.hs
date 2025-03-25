@@ -12,6 +12,7 @@ Stability   : experimental
 module YulDSL.Haskell.Effects.LinearSMC.LinearFn
   ( -- * Build Linear Yul Functions
     StaticFn, OmniFn, lfn', lfn
+  , ycall, ycall0', ycall0, ycallN
     -- * Call External Smart Contract Functions
   , externalCall
   ) where
@@ -86,7 +87,7 @@ lfn :: TH.Q TH.Exp
 lfn = [e| lfn' $locId |]
 
 ------------------------------------------------------------------------------------------------------------------------
--- callFn'l
+-- Callable Linear Functions
 ------------------------------------------------------------------------------------------------------------------------
 
 instance forall f x xs b g r.
@@ -94,48 +95,134 @@ instance forall f x xs b g r.
          , EquivalentNPOfFunction f (x:xs) b
          , CurriableNP g xs b (P'P r) (P'P r) (YulCat'LPP r ()) One
          ) =>
-         CallableFunctionNP PureFn f x xs b (P'P r) (P'P r) b One where
-  callNP (MkPureFn f) x =
-    unsafeCoerceFn f
-    & \(MkFn f') -> mkUnit'l x
-    & \(x', u) -> curryNP @g @xs @b @(P'P r) @(P'P r) @(YulCat'LPP r ()) @One
-                  \(MkYulCat'LPP fxs) -> encodeWith'l id (YulJmpU f') (consNP x' (fxs u))
+         CallableFunctionNP PureFn f x xs b (P'P r) (P'P r) One where
+  call (MkPureFn (MkFn f')) x =
+    let !(x', u) = mkUnit'l x
+    in curryNP @g @xs @b @(P'P r) @(P'P r) @(YulCat'LPP r ()) @One
+       \(MkYulCat'LPP fxs) -> encodeWith'l id (YulJmpU f') (consNP x' (fxs u))
 
 instance forall f x xs b va g r.
          ( YulO4 x (NP xs) b r
          , EquivalentNPOfFunction f (x:xs) b
          , CurriableNP g xs b (P'V va r) (P'V va r) (YulCat'LVV va va r ()) One
          ) =>
-         CallableFunctionNP PureFn f x xs b (P'V va r) (P'V va r) b One where
-  callNP (MkPureFn f) x =
-    (unsafeCoerceFn f :: Fn (VersionedInputOutput 0) f)
-    & \(MkFn f') -> mkUnit'l x
-    & \(x', u) -> curryNP @g @xs @b @(P'V va r) @(P'V va r) @(YulCat'LVV va va r ()) @One
-                  \(MkYulCat'LVV fxs) -> encodeWith'l id (YulJmpU f') (consNP x' (fxs u))
+         CallableFunctionNP PureFn f x xs b (P'V va r) (P'V va r) One where
+  call (MkPureFn f) x =
+    let f' = unFn (unsafeCoerceFn f :: Fn (VersionedInputOutput 0) f)
+        !(x', u) = mkUnit'l x
+    in curryNP @g @xs @b @(P'V va r) @(P'V va r) @(YulCat'LVV va va r ()) @One
+       \(MkYulCat'LVV fxs) -> encodeWith'l id (YulJmpU f') (consNP x' (fxs u))
 
 instance forall f x xs b va g r.
          ( YulO4 x (NP xs) b r
          , EquivalentNPOfFunction f (x:xs) b
          , CurriableNP g xs b (P'V va r) (P'V va r) (YulCat'LVV va va r ()) One
          ) =>
-         CallableFunctionNP StaticFn f x xs b (P'V va r) (P'V va r) b One where
-  callNP (MkStaticFn f) = callNP (MkPureFn (unsafeCoerceFn f))
+         CallableFunctionNP StaticFn f x xs b (P'V va r) (P'V va r) One where
+  call (MkStaticFn f) = call (MkPureFn (unsafeCoerceFn f))
 
-instance forall f x xs b va vb g r.
-         ( YulO4 x (NP xs) b r
-         , va + 1 ~ vb
-         , EquivalentNPOfFunction f (x:xs) b
-         , CurriableNP g xs (P'V vb r b) (P'V va r) (YulMonad va vb r) (YulCat'LVV va va r ()) One
+--
+-- ycall
+--
+
+class YulMonadCallableFunctionNP fn vd | fn -> vd where
+  ycall :: forall f xs x b va vb g r fncls.
+    ( YulO4 x (NP xs) b r
+    , va + vd ~ vb
+    , ClassifiedFn fn fncls
+    , EquivalentNPOfFunction f (x:xs) b
+    , CurriableNP g xs (P'V vb r b) (P'V va r) (YulMonad va vb r) (YulCat'LVV va va r ()) One
+    ) =>
+    fn f ->
+    P'V va r x ⊸
+    LiftFunction (CurryNP (NP xs) (P'V vb r b)) (P'V va r) (YulMonad va vb r) One
+  ycall f x =
+    let f' = unFn (withClassifiedFn unsafeCoerceFn f :: Fn (VersionedInputOutput vd) f)
+        !(x', u) = mkUnit'l x
+    in curryNP @g @xs @(P'V vb r b) @(P'V va r) @(YulMonad va vb r) @(YulCat'LVV va va r ()) @One
+       \(MkYulCat'LVV fxs) -> encodeWith'l
+                              (LVM.unsafeCoerceLVM . ypure)
+                              (YulJmpU f')
+                              $ consNP x' (fxs u)
+
+instance YulMonadCallableFunctionNP PureFn 0
+instance YulMonadCallableFunctionNP StaticFn 0
+instance YulMonadCallableFunctionNP OmniFn 1
+
+--
+-- ycall0
+--
+
+class YulMonadCallableFunctionNil fn vd | fn -> vd where
+  ycall0' :: forall va r b fncls.
+    ( YulO2 b r
+    , EquivalentNPOfFunction b '[] b
+    , ClassifiedFn fn fncls
+    ) =>
+    fn b -> (P'V va r () ⊸ YulMonad va (va + vd) r (P'V (va + vd) r b))
+  ycall0' f u =
+    let f' = unFn (withClassifiedFn unsafeCoerceFn f :: Fn (VersionedInputOutput vd) b)
+    in encodeWith'l (LVM.unsafeCoerceLVM . ypure) (YulJmpU f') (coerceType'l u)
+
+instance YulMonadCallableFunctionNil PureFn 0
+instance YulMonadCallableFunctionNil StaticFn 0
+instance YulMonadCallableFunctionNil OmniFn 1
+
+ycall0 :: TH.Q TH.Exp
+ycall0 = [| \f -> yembed () LVM.>>= \u -> ycall0' f u |]
+
+--
+-- ycallN
+--
+
+class YulMonadCallableFunctionN fn f xs b r va vd | fn -> vd where
+  ycallN :: forall fncls.
+    ( YulO3 (NP xs) b r
+    , ConvertibleNPtoTupleN (NP (MapList (P'V va r) xs))
+    , ClassifiedFn fn fncls
+    , EquivalentNPOfFunction f xs b
+    ) =>
+    fn f ->
+    NPtoTupleN (NP (MapList (P'V va r) xs)) ⊸
+    YulMonad va (va + vd) r (P'V (va + vd) r b)
+
+instance YulMonadCallableFunctionN PureFn b '[] b r va 0 where
+  ycallN (MkPureFn f) () =
+    let f' = unFn (unsafeCoerceFn f :: Fn (VersionedInputOutput 0) b)
+    in yembed () LVM.>>=
+       \u -> encodeWith'l ypure (YulJmpU f') (coerceType'l u)
+
+instance forall f x xs b r va.
+         ( YulO2 x (NP xs)
+         , DistributiveNP (P'V va r) (x:xs)
          ) =>
-         CallableFunctionNP OmniFn f x xs b (P'V va r) (YulMonad va vb r) (P'V vb r b) One where
-  callNP (MkOmniFn f) x =
-    (unsafeCoerceFn f :: Fn (VersionedInputOutput 1) f)
-    & \(MkFn f') -> mkUnit'l x
-    & \(x', u) -> curryNP @g @xs @(P'V vb r b) @(P'V va r) @(YulMonad va vb r) @(YulCat'LVV va va r ()) @One
-                  \(MkYulCat'LVV fxs) -> encodeWith'l
-                                         (LVM.unsafeCoerceLVM . ypure)
-                                         (YulJmpU f')
-                                         $ consNP x' (fxs u)
+         YulMonadCallableFunctionN PureFn f (x:xs) b r va 0 where
+  ycallN (MkPureFn f) tpl =
+    let f' = unFn (unsafeCoerceFn f :: Fn (VersionedInputOutput 0) f)
+        xxs = distributeNP (fromTupleNtoNP tpl) :: P'V va r (NP (x:xs))
+    in ypure (encodeWith'l id (YulJmpU f') xxs)
+
+instance YulMonadCallableFunctionN PureFn f xs b r va 0 =>
+         YulMonadCallableFunctionN StaticFn f xs b r va 0 where
+  ycallN (MkStaticFn f) = ycallN (MkPureFn (unsafeCoerceFn f))
+
+instance YulMonadCallableFunctionN OmniFn b '[] b r va 1 where
+  ycallN (MkOmniFn f) () =
+    let f' = unFn (unsafeCoerceFn f :: Fn (VersionedInputOutput 1) b)
+    in yembed () LVM.>>=
+       \u -> encodeWith'l (LVM.unsafeCoerceLVM . ypure) (YulJmpU f') (coerceType'l u)
+
+instance forall f x xs b r va.
+         ( YulO4 x (NP xs) b r
+         , EquivalentNPOfFunction f (x:xs) b
+         , DistributiveNP (P'V va r) (x:xs)
+         , ConvertibleNPtoTupleN (NP (MapList (P'V va r) (x:xs)))
+         ) =>
+         YulMonadCallableFunctionN OmniFn f (x:xs) b r va 1 where
+  ycallN (MkOmniFn f) tpl =
+    let f' = unFn (unsafeCoerceFn f :: Fn (VersionedInputOutput 1) f)
+        xxs = distributeNP (fromTupleNtoNP tpl) :: P'V va r (NP (x:xs))
+    in (LVM.unsafeCoerceLVM . ypure) (encodeWith'l id (YulJmpU f') xxs)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- calling external functions (Yul Monadic)

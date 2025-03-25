@@ -37,11 +37,7 @@ class (ABITypeable a, ABITypeCodec a, Show a) => YulCatObj a where
 -- NP
 instance YulCatObj (NP '[])
 instance (YulCatObj x, YulCatObj (NP xs)) => YulCatObj (NP (x:xs))
--- Value Types
-instance YulCatObj BOOL
-instance ValidINTx s n => YulCatObj (INTx s n)
-instance YulCatObj ADDR
-instance ValidINTn n => YulCatObj (BYTESn n)
+
 -- TupleN (3..15)
 instance YulCatObj ()
 instance YulCatObj a => YulCatObj (Solo a)
@@ -52,8 +48,16 @@ do
       as <- replicateM n (TH.newName "a")
       -- NOTE! Haskell2010 only demands the Show instance to support up to Tuple15
       [d| instance $(tupleNFromVarsTWith (TH.conT ''YulCatObj `TH.appT`) as) =>
-                   YulCatObj $(tupleNFromVarsT as) |]
+                   YulCatObj $(tupleNFromVarsT as)
+        |]
     ) [3..15]
   pure (concat insts)
+
+-- Value Types
+instance YulCatObj BOOL
+instance ValidINTx s n => YulCatObj (INTx s n)
+instance YulCatObj ADDR
+instance ValidINTn n => YulCatObj (BYTESn n)
+
 -- REF
 instance YulCatObj a => YulCatObj (REF a)

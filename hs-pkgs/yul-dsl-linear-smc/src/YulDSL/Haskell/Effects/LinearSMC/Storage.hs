@@ -118,9 +118,7 @@ sputN tpl = sputNP (fromTupleNtoNP tpl)
 -- sputs
 ------------------------------------------------------------------------------------------------------------------------
 
-data StorageAssignment v r = forall a b ie.
-                             ( SReferenceable ie v r a b
-                             ) => P'x ie r a := P'V v r b
+data StorageAssignment v r = forall a b ie. SReferenceable ie v r a b => P'x ie r a := P'V v r b
 
 sassign :: forall v r. YulO1 r => StorageAssignment v r ⊸ YulMonad v (v + 1) r (P'V (v + 1) r ())
 sassign (to := x) = sput to x

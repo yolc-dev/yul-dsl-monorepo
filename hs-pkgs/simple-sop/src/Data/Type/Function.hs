@@ -1,6 +1,7 @@
 {-# LANGUAGE AllowAmbiguousTypes    #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE LinearTypes            #-}
+{-# LANGUAGE TypeFamilyDependencies #-}
 {-|
 
 Copyright   : (c) 2024-2025 Miao, ZhiCheng
@@ -25,7 +26,7 @@ module Data.Type.Function
   , EquivalentNPOfFunction
   , UncurriableNP (uncurryNP)
   , CurriableNP (curryNP)
-  , CallableFunctionNP (callNP), CallableFunctionN (callN, (<$*>))
+  , CallableFunctionNP (call), CallableFunctionN (callN, (<$*>))
   -- re-export multiplicity types
   , Multiplicity (Many, One)
   ) where
@@ -41,7 +42,7 @@ import Data.TupleN
 --
 --   This lifted function consists of a type function, @m@, for each argument, followed by a multiplicity arrow of @p@,
 --   and uses a type function @mb@, for the result of the lifted function.
-type family LiftFunction f (m  :: Type -> Type) (mb :: Type -> Type) (p :: Multiplicity)  where
+type family LiftFunction f (m  :: Type -> Type) (mb :: Type -> Type) (p :: Multiplicity) where
   LiftFunction (x1 -> g) m mb p = m x1 %p-> LiftFunction g m mb p
   LiftFunction       (b) _ mb _ = mb b
 
@@ -84,7 +85,6 @@ type family CurryNP'Tail f where
 -- | Declare the equivalence between a currying function form @f@ and @NP xs -> b@.
 type EquivalentNPOfFunction f xs b =
   ( CurryNP (NP xs) b ~ f
-
   , UncurryNP'Fst f ~ xs
   , UncurryNP'Snd f ~ b
   )
@@ -113,14 +113,24 @@ class ( EquivalentNPOfFunction f xs b
 
 class ( EquivalentNPOfFunction f (x:xs) b
       ) =>
-      CallableFunctionNP fn f x xs b m mb b' p | fn m -> mb p, fn mb b -> b' where
-  callNP :: forall.
-    fn f -> (m x %p -> LiftFunction (CurryNP (NP xs) b') m mb p)
+      CallableFunctionNP fn f x xs b m mb p | fn m -> mb p where
+  call :: forall. fn f -> (m x %p -> LiftFunction (CurryNP (NP xs) b) m mb p)
 
 class ( EquivalentNPOfFunction f xs b
       , ConvertibleNPtoTupleN (NP (MapList m xs))
       ) =>
       CallableFunctionN fn f xs b m mb p | fn mb -> m p where
-  callN, (<$*>) :: forall.
-    fn f -> NPtoTupleN (NP (MapList m xs)) -> mb b
+  callN, (<$*>) :: forall. fn f -> NPtoTupleN (NP (MapList m xs)) %p -> mb b
   (<$*>) = callN
+
+--
+--
+--
+
+-- type family SafeHead xs where
+--   SafeHead '[] = ()
+--   SafeHead (x:_) = x
+
+-- type family SafeTail xs where
+--   SafeTail '[] = '[]
+--   SafeTail (_:xs) = xs
