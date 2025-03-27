@@ -21,6 +21,7 @@ module Ethereum.ContractABI.ExtendedType.TUPLEn
   ) where
 -- base
 import Control.Monad                     (replicateM)
+import Data.Tuple                        (Solo (MkSolo))
 -- (simple-np)
 import Data.TupleN
 -- template-haskell

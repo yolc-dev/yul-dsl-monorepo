@@ -138,8 +138,7 @@ TODO
     - [ ] ⚠️ Removing over-serialization, to have more parallel computations. Validate using 'diagram'
           package based visualization.
   - [x] Build linear functions with `$lfn $ uncurry'lvv | $lfn $ uncurry'lpv`.
-  - [x] Call functions linearly with `callFn'l`, `callFn'lpp`.
-    - [ ] 🟢 `callFnN'l` to call function via N-tuple, in order to support calling 0-ary functions.
+  - [x] Call functions linearly with `call`, `ycall`, `$ycall0`, `ycallN`.
 - Working with _data ports_
   - [x] match data port and outputs new data port.
   - [ ] 🟢 Num classes for data ports: mul, abs, sig, etc.
@@ -183,13 +182,17 @@ TODO
 
 ## TODOs beyond 0.1.0.0
 
-# yul-dsl
+### General
+
+- First party function type.
+
+### yul-dsl
 
 - YulCat
   - Type safety
     - [ ] ❓ further encode total functions in type
 
-# yol-suite
+### yol-suite
 
 - yolc
   - Advanced program deployment strategy:

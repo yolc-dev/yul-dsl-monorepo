@@ -13,6 +13,9 @@ This module provides the ordering related type classes suitable for eDSLs using 
 
 -}
 module Data.MPOrd where
+-- yul-dsl
+import YulDSL.Core
+
 
 -- | Multi-parameter equality type class where boolean type is @b@
 class MPEq a b | a -> b where
@@ -28,3 +31,20 @@ class MPEq a b => MPOrd a b | a -> b where
 
 -- To be consistent with base library.
 infixr 4 <, <=, >, >=, ==, /=
+
+--
+-- BOOL instances
+--
+
+-- ^ 'MPEq' instance for YulCat INTx.
+instance (YulO1 r, ValidINTx s n) => MPEq (YulCat eff r (INTx s n)) (YulCat eff r BOOL) where
+  a == b = YulJmpB (MkYulBuiltIn @"__cmp_eq_t_") <.< YulProd a b <.< YulDup
+  a /= b = YulJmpB (MkYulBuiltIn @"__cmp_ne_t_") <.< YulProd a b <.< YulDup
+
+
+-- ^ 'MPOrd' instance for YulCat INTx.
+instance (YulO1 r, ValidINTx s n) => MPOrd (YulCat eff r (INTx s n)) (YulCat eff r BOOL) where
+  a  < b = YulJmpB (MkYulBuiltIn @"__cmp_lt_t_") <.< YulProd a b <.< YulDup
+  a <= b = YulJmpB (MkYulBuiltIn @"__cmp_le_t_") <.< YulProd a b <.< YulDup
+  a  > b = YulJmpB (MkYulBuiltIn @"__cmp_gt_t_") <.< YulProd a b <.< YulDup
+  a >= b = YulJmpB (MkYulBuiltIn @"__cmp_ge_t_") <.< YulProd a b <.< YulDup

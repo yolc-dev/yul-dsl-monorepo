@@ -3,18 +3,14 @@ module YulDSL.Haskell.Data.SHMap
   , shmapRef, shmapGet, shmapPut
   ) where
 -- base
-import GHC.TypeLits                              (type (+))
+import GHC.TypeLits                   (type (+))
 -- linear-base
-import Prelude.Linear                            (String, fromInteger, type (~))
+import Prelude.Linear                 (String, fromInteger, type (~))
 -- yul-dsl
 import YulDSL.Core
 --
-import Control.LinearlyVersionedMonad            qualified as LVM
-import Data.Num.Linear.YulDSL                    ()
-import YulDSL.Haskell.Effects.LinearSMC.Storage
-import YulDSL.Haskell.Effects.LinearSMC.YulMonad
-import YulDSL.Haskell.Effects.LinearSMC.YulPort
-import YulDSL.Haskell.YulUtils.LinearSMC
+import Control.LinearlyVersionedMonad qualified as LVM
+import YulDSL.Haskell.LibLinearSMC
 
 
 -- | A Storage Hash-Map (SHMap) with a U256 root-key.
@@ -32,7 +28,7 @@ shmapRef :: forall a b ie r v.
   YulMonad v v r (P'x ie r (REF b))
 shmapRef (SHMap key) a = LVM.do
   key' <- embed key
-  LVM.pure (extendType'l (yulKeccak256'l (merge'l (key', a))))
+  LVM.pure (extendType'l (keccak256'l (merge'l (key', a))))
 
 -- | Get a value from the storage hash-map.
 shmapGet :: forall a b ie r v.

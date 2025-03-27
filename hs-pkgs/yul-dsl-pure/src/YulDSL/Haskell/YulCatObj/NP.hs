@@ -12,9 +12,7 @@ Stability   : experimental
 This module provides the instances for yul morphisms to NP structures.
 
 -}
-module YulDSL.Haskell.YulCatObj.NP
-  ( yulNil, yulCons
-  ) where
+module YulDSL.Haskell.YulCatObj.NP () where
 -- yul-dsl
 import YulDSL.Core
 -- (control-extra)

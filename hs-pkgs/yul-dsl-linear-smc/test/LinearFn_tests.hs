@@ -56,11 +56,6 @@ call4 :: StaticFn (U256 -> U256 -> U256 -> U256 -> U256)
 call4 = $lfn $ uncurry'lvv
   \x1 x2 x3 x4 -> call foo4 x1 x2 x3 x4
 
-test_withinPureY :: StaticFn (U256 -> U256 -> U256)
-test_withinPureY = $lfn $ uncurry'lvv
-  \x1_l x2_l -> withinPureY @(U256 -> U256 -> U256) (x1_l, x2_l)
-                \x1 x2 -> x1 + x1 * x2
-
 --------------------------------------------------------------------------------
 -- declaring yulmonad functions
 --------------------------------------------------------------------------------
@@ -82,15 +77,10 @@ bar3 = $lfn $ yulmonad'p
 -- pattern matching
 --------------------------------------------------------------------------------
 
-match_maybe :: StaticFn (Maybe U256 -> U256)
-match_maybe = $lfn $ uncurry'lvv
-  \x1 -> match'l x1 \case
-    Just c  -> c
-    Nothing -> 0
-
-match_tuple3 :: StaticFn ((BOOL, U256, U256) -> U256)
-match_tuple3 = $lfn $ uncurry'lvv $
-  flip match'l \(b, x, y) -> if b then x else y
+test_withinPureY :: StaticFn (U256 -> U256 -> U256)
+test_withinPureY = $lfn $ uncurry'lvv
+  \x1_l x2_l -> withinPureY @(U256 -> U256 -> U256) (x1_l, x2_l)
+                \x1 x2 -> x1 + x1 * x2
 
 --------------------------------------------------------------------------------
 -- storage effect

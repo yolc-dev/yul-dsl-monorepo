@@ -12,31 +12,20 @@ This module packages all the goodies prelude-worthy for programming "YulDSL" in 
 -}
 module Prelude.YulDSL
   ( -- * Module linear-base
-    module Data.MPOrd
-  , module Prelude.Linear
-
+    module Prelude.Linear
     -- * YulDSL Core
   , module YulDSL.Core
-
-    -- * YulDSL/Haskell's Pure Effect Utils
-  , module YulDSL.Haskell.Lib
-
-    -- * YulDSL/Haskell's LinearSMC Support
-  , module YulDSL.Haskell.Effects.LinearSMC
-  , module YulDSL.Haskell.YulUtils.LinearSMC
+    -- * YulDSL/Haskell/LinearSMC
+  , module YulDSL.Haskell.LibLinearSMC
   , module YulDSL.Haskell.Data.SHMap
   ) where
 -- linear-base, replacing Eq/Ord with MPOrd
-import Data.MPOrd
-import Data.Num.Linear.YulDSL            ()
-import Prelude.Linear                    hiding (Eq (..), Ord (..))
+import Prelude.Linear              hiding (Eq (..), Ord (..))
 -- yul-dsl
 import YulDSL.Core
 -- yul-dsl-pure
-import YulDSL.Haskell.Lib
+import YulDSL.Haskell.LibPure
 --
-import YulDSL.Haskell.Effects.LinearSMC
---
-import YulDSL.Haskell.YulUtils.LinearSMC
+import YulDSL.Haskell.LibLinearSMC
 --
 import YulDSL.Haskell.Data.SHMap

@@ -21,7 +21,7 @@ import Prelude.Linear
 -- yul-dsl
 import YulDSL.Core
 -- yul-dsl-pure
-import YulDSL.Haskell.Lib                       (PureEffectKind (Pure))
+import YulDSL.Haskell.LibPure                   (PureEffectKind (Pure))
 --
 import YulDSL.Haskell.Effects.LinearSMC.YulPort
 
@@ -116,13 +116,15 @@ instance forall b v1 vn r a.
          , EquivalentNPOfFunction b '[] b
          , LiftFunction b (P'V v1 r) (P'V vn r) One ~ P'V vn r b
          , LiftFunction b (YulCat'LVV v1 v1 r a) (YulCat'LVV v1 vn r a) One ~ YulCat'LVV v1 vn r a b
-         ) => UncurriableNP b '[] b (P'V v1 r) (P'V vn r) (YulCat'LVV v1 v1 r a) (YulCat'LVV v1 vn r a) One where
+         ) =>
+         UncurriableNP b '[] b (P'V v1 r) (P'V vn r) (YulCat'LVV v1 v1 r a) (YulCat'LVV v1 vn r a) One where
   uncurryNP b (MkYulCat'LVV h) = MkYulCat'LVV (unsafeUncurryNil'lx b h)
 
 instance forall g x xs b v1 vn r a.
          ( YulO5 x (NP xs) b r a
          , UncurriableNP g xs b (P'V v1 r) (P'V vn r) (YulCat'LVV v1 v1 r a) (YulCat'LVV v1 vn r a) One
-         ) => UncurriableNP (x -> g) (x:xs) b (P'V v1 r) (P'V vn r) (YulCat'LVV v1 v1 r a) (YulCat'LVV v1 vn r a) One where
+         ) =>
+         UncurriableNP (x -> g) (x:xs) b (P'V v1 r) (P'V vn r) (YulCat'LVV v1 v1 r a) (YulCat'LVV v1 vn r a) One where
   uncurryNP f (MkYulCat'LVV h) = MkYulCat'LVV
     (uncurryNP'lx @g @x @xs @b @(P'V v1 r) @(P'V vn r) @(YulCat'LVV v1 v1 r) @(YulCat'LVV v1 vn r)
      f h MkYulCat'LVV (\(MkYulCat'LVV g) -> g))

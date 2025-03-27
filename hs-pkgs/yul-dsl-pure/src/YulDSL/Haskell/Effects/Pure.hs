@@ -18,17 +18,17 @@ module YulDSL.Haskell.Effects.Pure
   , PureY, YulCat'P
     -- $PureFn
   , PureFn (MkPureFn), fn', fn, call0
+    -- * Template Haskell Support
+  , locId
     -- * Technical Notes
     -- $yulCatVal
   ) where
 -- template-haskell
-import Language.Haskell.TH   qualified as TH
+import Language.Haskell.TH  qualified as TH
 -- eth-abi
 import Ethereum.ContractABI
 -- yul-dsl
 import YulDSL.Core.YulCat
---
-import YulDSL.Haskell.Lib.TH
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -122,6 +122,15 @@ instance forall f xs b r.
          CallableFunctionN PureFn f xs b (YulCat'P r) (YulCat'P r) Many where
   callN (MkPureFn (MkFn (cid, cat))) tpl = distributeNP (fromTupleNtoNP tpl) >.> YulJmpU (cid, cat)
 
+-- | Automatically generate a source location based id using template haskell.
+locId :: TH.Q TH.Exp
+locId = do
+  loc <- TH.location
+  let modname = TH.loc_module loc
+      -- normalize module name: replace "."
+      modname' = fmap (\x -> if x `elem` "." then '_' else x) modname
+      (s1, s2) = TH.loc_start loc
+  TH.litE (TH.StringL (modname' ++ "_" ++ show s1 ++ "_" ++ show s2))
 
 -- $yulCatVal
 --

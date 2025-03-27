@@ -33,8 +33,7 @@ common basic-options
 library
   import:          basic-options
   hs-source-dirs:  src
-  build-depends:   ghc-experimental >= 0.1,
-                   template-haskell >= 2.22
+  build-depends:   template-haskell >= 2.22
   -- modules
   exposed-modules:
     Data.SimpleNP

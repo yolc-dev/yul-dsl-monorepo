@@ -12,7 +12,7 @@ module Ethereum.ContractABI.ABITypeCoercible
   ( SameABICoreType, ABITypeCoercible
   ) where
 -- (simple-np)
-import Data.TupleN                      (Solo)
+import Data.Tuple                       (Solo)
 --
 import Ethereum.ContractABI.ABITypeable
 import Ethereum.ContractABI.CoreType.NP

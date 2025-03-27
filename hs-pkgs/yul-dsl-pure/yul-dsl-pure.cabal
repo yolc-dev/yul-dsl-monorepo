@@ -42,9 +42,7 @@ library
     YulDSL.Haskell.YulCatObj.Maybe
     YulDSL.Haskell.YulCatObj.NP
     YulDSL.Haskell.YulCatObj.TUPLEn
-    YulDSL.Haskell.Lib.BaseInstances
-    YulDSL.Haskell.Lib.TH
-    YulDSL.Haskell.Lib
+    YulDSL.Haskell.LibPure
 
 Test-Suite test-yul-dsl-pure
   import:             basic-options

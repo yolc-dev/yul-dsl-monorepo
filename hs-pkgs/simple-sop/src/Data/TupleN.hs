@@ -25,11 +25,10 @@ module Data.TupleN
   , Solo (MkSolo)
   ) where
 -- base
-import Control.Monad           (replicateM)
+import Control.Monad       (replicateM)
+import Data.Tuple          (Solo (MkSolo))
 -- template-haskell
-import Language.Haskell.TH     qualified as TH
--- ghc-experimental
-import Data.Tuple.Experimental (Solo (MkSolo))
+import Language.Haskell.TH qualified as TH
 --
 import Data.SimpleNP
 import Data.TupleN.TH

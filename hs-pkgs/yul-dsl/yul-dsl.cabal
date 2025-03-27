@@ -47,17 +47,18 @@ library
     eth-abi
   -- modules
   exposed-modules:
-    -- YulDSL Core
+    -- Core
     YulDSL.Core.YulCatObj
     YulDSL.Core.YulBuiltIn
     YulDSL.Core.YulCat
     YulDSL.Core.YulObject
+    YulDSL.Core.YulLib
     YulDSL.Core
-    -- YulDSL Eval
+    -- Eval
     YulDSL.Eval
-    -- YulDSL CodeGen
+    -- CodeGen
     YulDSL.CodeGens.YulGen
-    -- YulDSL Built-Ins
+    -- Built-Ins
     YulDSL.StdBuiltIns.Prelude
     YulDSL.StdBuiltIns.Exception
     YulDSL.StdBuiltIns.ValueType
@@ -66,7 +67,7 @@ library
     -- CodeGen Utils
     CodeGenUtils.CodeFormatters
     CodeGenUtils.Variable
-    -- Yul CodeGen Internals
+    -- CodeGen Internals
     YulDSL.CodeGens.Yul.Internal.RhsExpr
     YulDSL.CodeGens.Yul.Internal.CodeGen
     YulDSL.CodeGens.Yul.Internal.FunctionGen

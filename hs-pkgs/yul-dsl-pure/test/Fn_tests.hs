@@ -1,5 +1,7 @@
 module Fn_tests where
 -- base
+import Prelude
+import Prelude qualified as BasePrelude
 import Data.Functor                 ((<&>))
 -- hspec, quickcheck
 import Test.Hspec
@@ -10,7 +12,7 @@ import Ethereum.ContractABI
 import YulDSL.Core
 import YulDSL.Eval
 --
-import YulDSL.Haskell.Lib
+import YulDSL.Haskell.LibPure
 --
 import TestCommon                   ()
 
@@ -87,12 +89,12 @@ call_fn4 = $fn
 test_simple_fn :: Gen Bool
 test_simple_fn = chooseInteger (0, toInteger (maxBound @U32)) <&>
   (\x -> and
-    [ evalFn dis_any (x :* Nil) == ()
-    , evalFn call_fn0 Nil == 42
-    , evalFn call_fn1 (x :* Nil) == x + x
-    , evalFn call_fn2 (x :* Nil) == x + x
-    , evalFn call_fn3 (x :* Nil) == x + x + x
-    , evalFn call_fn4 (x :* Nil) == x + x + x + x
+    [ evalFn dis_any (x :* Nil)  BasePrelude.== ()
+    , evalFn call_fn0 Nil        BasePrelude.== 42
+    , evalFn call_fn1 (x :* Nil) BasePrelude.== x + x
+    , evalFn call_fn2 (x :* Nil) BasePrelude.== x + x
+    , evalFn call_fn3 (x :* Nil) BasePrelude.== x + x + x
+    , evalFn call_fn4 (x :* Nil) BasePrelude.== x + x + x + x
     ]
   ) . fromInteger
 
@@ -107,9 +109,9 @@ poly_foo = $fn \x y -> x * 2 + y
 
 test_poly_foo :: Bool
 test_poly_foo = and
-  [ evalFn (poly_foo @U8) (4 :* 2 :* Nil) == 10
-  , evalFn (poly_foo @I32) (4 :* 2 :* Nil) == 10
-  , evalFn (poly_foo @U256) (4 :* 2 :* Nil) == 10
+  [ evalFn (poly_foo @U8) (4 :* 2 :* Nil)   BasePrelude.== 10
+  , evalFn (poly_foo @I32) (4 :* 2 :* Nil)  BasePrelude.== 10
+  , evalFn (poly_foo @U256) (4 :* 2 :* Nil) BasePrelude.== 10
   ]
 
 --------------------------------------------------------------------------------
@@ -124,10 +126,10 @@ maybe_num_fn2 = $fn
 
 test_maybe_fn :: Bool
 test_maybe_fn = and
-  [ evalFn maybe_num_fn2 (Just 42 :* Just 69 :* Nil) == 111
-  , evalFn maybe_num_fn2 (Just 255 :* Just 0 :* Nil) == 255
-  , evalFn maybe_num_fn2 (Just 255 :* Just 1 :* Nil) == 0
-  , evalFn maybe_num_fn2 (Just 128 :* Just 128 :* Nil) == 0
+  [ evalFn maybe_num_fn2 (Just 42 :* Just 69 :* Nil)   BasePrelude.== 111
+  , evalFn maybe_num_fn2 (Just 255 :* Just 0 :* Nil)   BasePrelude.== 255
+  , evalFn maybe_num_fn2 (Just 255 :* Just 1 :* Nil)   BasePrelude.== 0
+  , evalFn maybe_num_fn2 (Just 128 :* Just 128 :* Nil) BasePrelude.== 0
   ]
 
 --------------------------------------------------------------------------------
