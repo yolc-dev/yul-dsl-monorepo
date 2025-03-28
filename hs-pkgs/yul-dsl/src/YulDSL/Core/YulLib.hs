@@ -2,8 +2,7 @@
 module YulDSL.Core.YulLib
   ( -- * Smart Constructors
     (<.<), (>.>)
-  , yulConst
-  , yulNoop
+  , yulEmb, yulNoop
   , yulIfThenElse
     -- * SimplNP
   , yulNil, yulCons
@@ -35,8 +34,8 @@ m >.> n = n `YulComp` m
 infixr 1 >.>, <.<
 
 -- | Embed a constant in a yul morphism.
-yulConst :: forall eff a b. YulO2 a b => b -> YulCat eff a b
-yulConst b = YulDis >.> YulEmb b
+yulEmb :: forall eff a b. YulO2 a b => b -> YulCat eff a b
+yulEmb b = YulDis >.> YulEmb b
 
 -- | Create any no-op morphisms.
 yulNoop :: forall. AnyYulCat
@@ -65,7 +64,7 @@ yulKeccak256 x = x >.> YulJmpB (MkYulBuiltIn @"__keccak_c_" @a @B32)
 
 -- | Embed a NP Nil yul morphism.
 yulNil :: forall eff a. YulO1 a => YulCat eff a (NP '[])
-yulNil = yulConst Nil
+yulNil = yulEmb Nil
 
 -- | Construct a NP yul morphism.
 yulCons :: forall x xs eff r m.

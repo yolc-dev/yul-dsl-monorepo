@@ -5,10 +5,10 @@ module Basic_Tests where
 import Prelude.YulDSL
 
 embUnit'p :: PureFn (I256 -> ())
-embUnit'p = $fn $ \a -> a >.> yulConst ()
+embUnit'p = $fn $ \a -> a >.> yulEmb ()
 
 embTrue'p :: PureFn BOOL
-embTrue'p = $fn $ yulConst true
+embTrue'p = $fn $ yulEmb true
 
 embTrue'l :: StaticFn BOOL
 embTrue'l = $lfn $ yulmonad'p (embed true)

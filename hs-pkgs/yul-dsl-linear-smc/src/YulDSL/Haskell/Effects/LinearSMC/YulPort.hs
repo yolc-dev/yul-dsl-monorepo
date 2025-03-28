@@ -147,7 +147,7 @@ mkUnit'l (MkP'x a) = mkUnit a & \ (a', u) -> (MkP'x a', MkP'x u)
 -- | Embed a free value to a yul port diagram that discards any input yul ports.
 emb'l :: forall a b eff r. YulO3 r a b
   => a -> (P'x eff r b ⊸ P'x eff r a)
-emb'l a (MkP'x b) = MkP'x $ encode (yulConst a) b
+emb'l a (MkP'x b) = MkP'x $ encode (yulEmb a) b
 
 -- | Create a constant yul port diagram that discards any input yul ports.
 const'l :: forall a b eff r. YulO3 r a b

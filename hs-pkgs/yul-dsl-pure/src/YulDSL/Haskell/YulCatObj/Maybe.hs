@@ -46,7 +46,7 @@ instance (YulO1 a, ValidINTx s n) => Num (YulCat eff a (Maybe (INTx s n))) where
   a * b = YulJmpB (MkYulBuiltIn @"__maybe_mul_t_") <.< YulProd a b <.< YulDup
   signum = YulComp (YulJmpB (MkYulBuiltIn @"__maybe_sig_t_"))
   abs = YulComp (YulJmpB (MkYulBuiltIn @"__maybe_abs_t_"))
-  fromInteger = yulConst . Just . fromInteger
+  fromInteger = yulEmb . Just . fromInteger
 
 --
 -- PatternMatchable Instances for Maybe (INTx s n)
@@ -72,9 +72,9 @@ instance ( YulCat eff r ~ m
          , ValidINTx s n ) =>
          InjectivePattern (YulCat eff r) YulCatObj (Maybe (INTx s n)) (Maybe (m (INTx s n))) where
   be = \case
-    Just a  -> YulFork (yulConst true) (a >.> YulReduceType)
+    Just a  -> YulFork (yulEmb true) (a >.> YulReduceType)
                >.> YulReduceType
                >.> YulExtendType
-    Nothing -> YulFork (yulConst false) (yulConst 0)
+    Nothing -> YulFork (yulEmb false) (yulEmb 0)
                >.> YulReduceType
                >.> YulExtendType
