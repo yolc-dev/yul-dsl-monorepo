@@ -1,4 +1,5 @@
-import 3rd-parties/cabal.project
+import: 3rd-parties/cabal.project
+
 packages:
   hs-pkgs/simple-sop
   hs-pkgs/eth-abi
