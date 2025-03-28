@@ -51,9 +51,8 @@ TODO
     - [x] `YulSGet`, `YulSPut` for raw storage operations.
       - [ ] 🟢 Support storage offset.
     - [x] `YulCall`, external function calls.
-    - [ ] 🟢 `YulStaticCall`, static external function calls.
-    - [ ] 🟢 `YulDelegateCall`, delegate external function calls.
-    - [ ] 🟢 external function specification: `declareExternalFn`.
+      - [ ] Call spec: Selector, Static, Delegated, Gas.
+      - [ ] 🟢 external function specification: `declareExternalFn`.
   - Yul Object
     - [x] Function export modifiers resembling solidity: `pureFn, staticFn, omniFn`.
     - [x] mkYulObject
@@ -74,12 +73,12 @@ TODO
     - [x] add, mull, sub, abs
     - [ ] 🟢 sig, abs
     - [ ] 🟢 divMod, quotRem
-    - [ ] 🟢 complete testsuite
+    - [ ] 🟢 (complete testsuite)
   - Safe value casting
     - [ ] 🟢 Casting integers
     - [ ] 🟢 Casting ADDR to U160
     - [ ] 🟢 Casting BYTESn n to uINTn
-    - [ ] 🟢 complete testsuite
+    - [ ] 🟢 (complete testsuite)
   - ABICodec
     - [x] `__abidec_dispatcher_c_, __abidec_from_calldata_t_`
     - [x] `__abidec_from_memory_c_, __abidec_from_memory_t_`
@@ -88,13 +87,12 @@ TODO
       - [ ] 🟢 `__keccak_c_` evaluation function using ABICodec from eth-abi.
     - [ ] 🟢 support dispatcher decoding tuples
     - [ ] 🟢 complete testsuite
-  - Effectful operations
-    - [ ] `__caller` & `msgSender`.
-  - Exceptions
-    - [x] `__const_revert0_c_`; solidity-equivalent of `revert()`
+  - Runtime
+    - [x] `__caller`, equivalent of `msg.sender`.
+    - [x] `__const_revert0_c_`, equivalent of `revert()`.
     - [ ] 🟢 `revertWithMessage`
     - [ ] 🟢 `revertWithError`
-    - [ ] 🟢 complete testsuite
+    - [ ] 🟢 (complete testsuite)
 
 - CodeGen
   - Function Gen:
@@ -104,11 +102,10 @@ TODO
     - [x] Yul object dispatcher generator for exported functions.
     - [ ] 🟠 constructor support.
 
-- Evaluator
+- Eval
   - [x] `evalFn` to evaluate `Fn` (single YulCat value styled as a function) value.
   - [ ] 🟢 handling revert
   - [ ] 🟢 testsuite
-  - [ ] 🟠 e2e test against solidity/foundry setup
 
 ### yul-dsl-pure
 
@@ -190,6 +187,8 @@ TODO
 - YulCat
   - Type safety
     - [ ] ❓ further encode total functions in type
+- Eval
+  - [ ] 🟠 e2e test against solidity/foundry setup
 
 ### yol-suite
 
