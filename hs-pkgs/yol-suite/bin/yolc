@@ -13,6 +13,7 @@
 #-----------------------------------------------------------------------------------------------------------------------
 
 opt_verbose=; function is_verbose() { [[ -n "$opt_verbose" ]]; }
+opt_force_rebuild=;
 is_nix_dist=
 dist_path=
 out_dir=
@@ -28,6 +29,7 @@ Usage: yolc [options] yol_module_spec...
 
 -m [codegen_mode] Valid codegen modes: yul (default), show, lisp, yul_and_show
 -v                Output more information about what is going on
+-f                Force the rebuild of RunYol module
 -h                Display this help and exit
 
 yol_module_spec: package_path{:module_name}{[symbol...,]}, where
@@ -47,21 +49,14 @@ debug() {
   echo "$@" >&2
 }
 
-runyol() {
+do_runyol() {
   local CABAL=(cabal --builddir="$build_dir")
-  if is_verbose; then
-    {
-      debug "+ build runyol" "${CABAL[@]}" "$@"
-      "${CABAL[@]}" "$@" -v1 build runyol >&2
-      debug "- build runyol"
-    }
-  else
-    # silent the stdout of the build process
-    "${CABAL[@]}" "$@" -v0 build runyol >/dev/null
-  fi && {
-    runbin=$("${CABAL[@]}" "$@" -v0 list-bin runyol)
+  local CABAL_V=0
+  is_verbose && CABAL_V=1
+  runbin=$("${CABAL[@]}" "$@" -v0 list-bin runyol)
+  "${CABAL[@]}" "$@" -v${CABAL_V} build runyol 1>&2 && {
     is_verbose && {
-      debug "+ runyol" "$runbin"
+      debug "+ exec: $runbin"
     }
     $runbin
   }
@@ -72,7 +67,7 @@ main() {
   local OPTIND OPTARG
 
   # parse options
-  while getopts m:hv o; do
+  while getopts m:hvf o; do
     case $o in
       m)
         codegen_name=$OPTARG
@@ -93,7 +88,10 @@ main() {
         ;;
       v)
         opt_verbose=1
-      ;;
+        ;;
+      f)
+        opt_force_rebuild=1
+        ;;
       h)
         help; exit 0
         ;;
@@ -222,10 +220,15 @@ EOF
   actions=$(for i in $cmpl_syms; do
               echo -n "${codegen_name}${codegen_mode} $i"
             done)
+
   {
-    sed -e "s|%YOL_MOD_NAME%|${mod_name}|g" \
+    {
+      sed -e "s|%YOL_MOD_NAME%|${mod_name}|g" \
         -e "s|%COMPILE_ACTIONS%|${actions}|g"
-  } < "$dist_path"/hs-pkgs/yol-suite/templates/RunYol.hs > "$yol_dir"/RunYol.hs
+    } < "$dist_path"/hs-pkgs/yol-suite/templates/RunYol.hs
+
+    [ -n "$opt_force_rebuild" ] && echo "-- Rebuilding forced at: $(date --iso-8601=seconds)"
+  } > "$yol_dir"/RunYol.hs
 
   is_verbose && {
     debug
@@ -243,7 +246,7 @@ EOF
   }
 
   # run yol
-  runyol --project-dir="$yol_dir" \
+  do_runyol --project-dir="$yol_dir" \
          > "${yol_output_file:-/dev/stdout}" || {
     [ -f "${yol_output_file}" ] && rm "${yol_output_file}"
     die "=== Failed to build yol module: $mod_spec"
