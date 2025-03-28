@@ -21,10 +21,10 @@ import TestCommon                   ()
 --------------------------------------------------------------------------------
 
 constant_fn :: PureFn U256
-constant_fn = $fn $ YulEmb 42
+constant_fn = $fn $ yulConst 42
 
 dis_any_y :: forall a. YulO1 a => PureY (a -> ())
-dis_any_y _ = YulEmb ()
+dis_any_y _ = yulConst ()
 
 dis_any_fn :: forall a. YulO1 a => PureFn (a -> ())
 dis_any_fn = fn' "dis_any" dis_any_y

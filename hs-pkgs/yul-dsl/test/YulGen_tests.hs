@@ -20,10 +20,10 @@ cc_should_be cat expectedCode = compileCat (defaultCodeGenConfig { cg_config_deb
 
 test_single_sput = YulSPut @NonPure @U32 `cc_should_be` "sstore(v_a, v_b)\n"
 
-test_simple_emb = YulEmb @Pure @() (42 :: U32) `cc_should_be` "v_a := 42\n"
+test_simple_emb = yulConst @Pure @() (42 :: U32) `cc_should_be` "v_a := 42\n"
 
 test_simple_comp =
-  let c = YulEmb @NonPure @() b32_deadbeef `YulFork` YulEmb @NonPure @() 42 >.> YulSPut @NonPure @U32
+  let c = yulConst @NonPure @() b32_deadbeef `YulFork` yulConst @NonPure @() 42 >.> YulSPut @NonPure @U32
   in c `cc_should_be` "sstore(0xdeadbeef, 42)\n"
 
 test_empty_prod = YulProd (YulId @Pure @()) (YulId @Pure @()) `cc_should_be` ""
@@ -32,10 +32,10 @@ test_empty_prod = YulProd (YulId @Pure @()) (YulId @Pure @()) `cc_should_be` ""
 test_prod_exr =
   let c = (YulFork
            ((YulProd
-             (YulEmb @NonPure @() b32_deadbeef `YulFork` YulEmb @NonPure @() 42 >.> YulSPut @NonPure @U32)
-             (YulEmb @NonPure @() b32_12345678))
+             (yulConst @NonPure @() b32_deadbeef `YulFork` yulConst @NonPure @() 42 >.> YulSPut @NonPure @U32)
+             (yulConst @NonPure @() b32_12345678))
             >.> YulExr)
-           (YulEmb @NonPure @((),()) 69))
+           (yulConst @NonPure @((),()) 69))
           >.> YulSPut @NonPure @U32
   in c `cc_should_be` "sstore(0x12345678, 69)\n"
 

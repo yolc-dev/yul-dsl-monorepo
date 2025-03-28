@@ -11,7 +11,7 @@ object = mkYulObject "Counter" yulNoop
 
 globalCounterLoc :: PureFn (REF U256)
 globalCounterLoc = $fn do
-  YulEmb (keyRef "Yolc.Demo.Counter.Storage.Counter.Global")
+  yulConst (keyRef "Yolc.Demo.Counter.Storage.Counter.Global")
 
 incGlobalCounter :: OmniFn (U256 -> ())
 incGlobalCounter = $lfn $ yulmonad'p

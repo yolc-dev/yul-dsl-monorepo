@@ -29,6 +29,7 @@ import Language.Haskell.TH  qualified as TH
 import Ethereum.ContractABI
 -- yul-dsl
 import YulDSL.Core.YulCat
+import YulDSL.Core.YulLib
 
 
 ------------------------------------------------------------------------------------------------------------------------

@@ -40,7 +40,7 @@ do_compile_cat (MkAnyYulCat (cat :: YulCat eff a b)) = go cat where
   go (YulDis)                  = go_dis @a
   go (YulDup)                  = go_dup @a
   -- - control flows
-  go (YulEmb @_ @m @n x)       = go_emb @m @n x
+  go (YulEmb @_ @m x)          = go_emb @m x
   go (YulITE ct cf)            = go_ite ct cf
   go (YulJmpU t)               = go_jmpu t
   go (YulJmpB b)               = go_jmpb b
@@ -132,13 +132,13 @@ go_dup = build_code_block @a @(a, a) $ \ind (code, a_ins) -> do
   decor_code <- cg_get_code_decor
   pure (decor_code ind title code, a_ins ++ a_ins)
 
-go_emb :: forall a b. (HasCallStack, YulO2 a b)
+go_emb :: forall b. (HasCallStack, YulO1 b)
        => b -> CGState RhsExprGen
 go_emb b =
   case length (abiTypeInfo @b) of
-    0 -> build_code_block @a @() $ \_ (code, _) -> pure (code, [])
+    0 -> build_code_block @() @() $ \_ (code, _) -> pure (code, [])
     -- FIXME: proper implementation of embeddable
-    1 -> build_inline_expr @a $ \_ -> pure (T.pack (show b))
+    1 -> build_inline_expr @() $ \_ -> pure (T.pack (show b))
     _ -> error ("Unembedable: " ++ show b)
 --
 go_ite :: forall eff a b. (HasCallStack, YulO2 a b)

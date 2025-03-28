@@ -29,7 +29,7 @@ module YulDSL.Core.YulCat
   , SYulCatEffectClass (SYulCatEffectClass), classifySYulCatEffect
   , YulO1, YulO2, YulO3, YulO4, YulO5, YulO6
     -- * YulCat, the Categorical DSL of Yul
-  , YulCat (..), NamedYulCat, AnyYulCat (..), (<.<), (>.>)
+  , YulCat (..), NamedYulCat, AnyYulCat (..)
     -- * YulCat Function Forms: Y and Fn
   , Y
   , NamedYulCatNP, Fn (MkFn, unFn), ClassifiedFn (withClassifiedFn), unsafeCoerceFn
@@ -159,7 +159,7 @@ data YulCat eff a b where
   -- * Control Flow Primitives
   --
   -- ^ Embed a constant value @b@ and disregard any input object @a@.
-  YulEmb :: forall eff a b. YulO2 a b => b %1-> YulCat eff a b
+  YulEmb :: forall eff b. YulO1 b => b %1-> YulCat eff () b
   -- ^ If-then-else expression.
   YulITE :: forall eff a b. YulO2 a b => YulCat eff a b %1-> YulCat eff a b %1-> YulCat eff (BOOL, a) b
   -- ^ Jump to an user-defined morphism.
@@ -184,18 +184,6 @@ data YulCat eff a b where
   -- ^ Unsafe coerce between different effects.
   YulUnsafeCoerceEffect :: forall k1 k2 (eff1 :: k1) (eff2 :: k2) a b. YulO2 a b
                         => YulCat eff1 a b %1-> YulCat eff2 a b
-
--- | Convenience operator for left to right composition of 'YulCat'.
-(>.>) :: forall eff a b c. YulO3 a b c => YulCat eff a b %1-> YulCat eff b c %1-> YulCat eff a c
-m >.> n = n `YulComp` m
-
--- | Convenience operator for right-to-left composition of 'YulCat'.
-(<.<) :: forall eff a b c. YulO3 a b c => YulCat eff b c %1-> YulCat eff a b %1-> YulCat eff a c
-(<.<) = YulComp
-
--- ^ Same precedence as (>>>) (<<<);
--- see https://hackage.haskell.org/package/base-4.20.0.1/docs/Control-Category.html
-infixr 1 >.>, <.<
 
 ------------------------------------------------------------------------------------------------------------------------
 -- YulCat Function Forms: Y and Fn
@@ -254,16 +242,16 @@ declareExternalFn fname = MkExternalFn (mkTypedSelector @(NP xs) fname)
 
 instance (YulO3 x (NP xs) r, YulCat eff r ~ s) =>
          ConstructibleNP (YulCat eff r) x xs Many where
-  consNP sx sxs = YulFork sx sxs >.> YulCoerceType
+  consNP sx sxs = YulCoerceType `YulComp` YulFork sx sxs
   unconsNP xxs = (x, xs)
-    where xxs' = xxs  >.> YulCoerceType
-          x    = xxs' >.> YulExl
-          xs   = xxs' >.> YulExr
+    where xxs' = YulCoerceType `YulComp` xxs
+          x    = YulExl `YulComp` xxs'
+          xs   = YulExr `YulComp` xxs'
 
 instance YulO1 r => TraversableNP (YulCat eff r) '[] where
   sequenceNP _ = Nil
 instance YulO1 r => DistributiveNP (YulCat eff r) '[] where
-  distributeNP _ = YulEmb Nil
+  distributeNP _ = YulEmb Nil `YulComp` YulDis
 
 instance (YulO3 x (NP xs) r, TraversableNP (YulCat eff r) xs) =>
          TraversableNP (YulCat eff r) (x:xs)
@@ -302,7 +290,7 @@ instance forall b r eff.
          , LiftFunction b (YulCat eff r) (YulCat eff r) Many ~ YulCat eff r b
          ) =>
          CurriableNP b '[] b (YulCat eff r) (YulCat eff r) (YulCat eff r) Many where
-  curryNP fNP = fNP (YulDis >.> YulReduceType)
+  curryNP fNP = fNP (YulReduceType `YulComp` YulDis)
 
 -- ^ Inductive case: @curryingNP (NP (x:xs) -> b) => x -> curryingNP (NP xs -> b)@
 instance forall g x xs b r eff.
@@ -342,7 +330,7 @@ yulCatCompactShow = go
     go (YulDis @_ @a)              = "ε" <> abi_type_name @a
     go (YulDup @_ @a)              = "δ" <> abi_type_name @a
     --
-    go (YulEmb @_ @a @b x)         = "{" <> show x <> "}" <> abi_type_name2 @a @b
+    go (YulEmb @_ @b x)            = "{" <> show x <> "}" <> abi_type_name @b
     go (YulITE a b)                = "?" <> "(" <> go a <> "):(" <> go b <> ")"
     go (YulJmpU @_ @a @b (cid, _)) = "Ju " <> cid <> abi_type_name2 @a @b
     go (YulJmpB @_ @a @b p)        = "Jb " <> yulB_fname p <> abi_type_name2 @a @b
@@ -423,9 +411,9 @@ deriving instance Show (Fn eff f)
 
 -- ^ 'Num' instance for INTx.
 instance (YulO1 r, ValidINTx s n) => Num (YulCat eff r (INTx s n)) where
-  a + b = YulJmpB (MkYulBuiltIn @"__checked_add_t_") <.< YulProd a b <.< YulDup
-  a - b = YulJmpB (MkYulBuiltIn @"__checked_sub_t_") <.< YulProd a b <.< YulDup
-  a * b = YulJmpB (MkYulBuiltIn @"__checked_mul_t_") <.< YulProd a b <.< YulDup
+  a + b = YulJmpB (MkYulBuiltIn @"__checked_add_t_") `YulComp` YulProd a b `YulComp` YulDup
+  a - b = YulJmpB (MkYulBuiltIn @"__checked_sub_t_") `YulComp` YulProd a b `YulComp` YulDup
+  a * b = YulJmpB (MkYulBuiltIn @"__checked_mul_t_") `YulComp` YulProd a b `YulComp` YulDup
   abs = YulComp (YulJmpB (MkYulBuiltIn @"__checked_abs_t_"))
   signum = YulComp (YulJmpB (MkYulBuiltIn @"__checked_sig_t_"))
-  fromInteger = YulEmb . fromInteger
+  fromInteger a = YulEmb (fromInteger a) `YulComp` YulDis

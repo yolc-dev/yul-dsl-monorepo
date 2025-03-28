@@ -1,10 +1,13 @@
 {-# LANGUAGE LinearTypes #-}
 module YulDSL.Core.YulLib
-  ( -- * SimplNP
-    yulNil, yulCons
-    -- * Control and Exceptions
+  ( -- * Smart Constructors
+    (<.<), (>.>)
+  , yulConst
   , yulNoop
   , yulIfThenElse
+    -- * SimplNP
+  , yulNil, yulCons
+    -- * Control and Exceptions
   , yulRevert
   , yulKeccak256
   ) where
@@ -16,17 +19,37 @@ import YulDSL.Core.YulCat
 import YulDSL.StdBuiltIns.Exception ()
 
 ------------------------------------------------------------------------------------------------------------------------
--- Control and Exceptions
+-- Smart Constructors
 ------------------------------------------------------------------------------------------------------------------------
 
--- | No-op pure morphism.
-yulNoop :: AnyYulCat
+-- | Convenience operator for left to right composition of 'YulCat'.
+(>.>) :: forall eff a b c. YulO3 a b c => YulCat eff a b %1-> YulCat eff b c %1-> YulCat eff a c
+m >.> n = n `YulComp` m
+
+-- | Convenience operator for right-to-left composition of 'YulCat'.
+(<.<) :: forall eff a b c. YulO3 a b c => YulCat eff b c %1-> YulCat eff a b %1-> YulCat eff a c
+(<.<) = YulComp
+
+-- ^ Same precedence as (>>>) (<<<);
+-- see https://hackage.haskell.org/package/base-4.20.0.1/docs/Control-Category.html
+infixr 1 >.>, <.<
+
+-- | Embed a constant in a yul morphism.
+yulConst :: forall eff a b. YulO2 a b => b -> YulCat eff a b
+yulConst b = YulDis >.> YulEmb b
+
+-- | Create any no-op morphisms.
+yulNoop :: forall. AnyYulCat
 yulNoop = MkAnyYulCat (YulDis @_ @())
 
 -- | Helper function for 'YulITE'.
 yulIfThenElse :: forall eff a r. YulO2 a r =>
   YulCat eff r BOOL %1 -> YulCat eff r a %1 -> YulCat eff r a %1 -> YulCat eff r a
 yulIfThenElse c a b = YulFork c YulId >.> YulITE a b
+
+------------------------------------------------------------------------------------------------------------------------
+-- Control and Exceptions
+------------------------------------------------------------------------------------------------------------------------
 
 -- | Revert without any message.
 yulRevert :: forall eff a b. (YulO2 a b) => YulCat eff a b
@@ -42,7 +65,7 @@ yulKeccak256 x = x >.> YulJmpB (MkYulBuiltIn @"__keccak_c_" @a @B32)
 
 -- | Embed a NP Nil yul morphism.
 yulNil :: forall eff a. YulO1 a => YulCat eff a (NP '[])
-yulNil = YulEmb Nil
+yulNil = yulConst Nil
 
 -- | Construct a NP yul morphism.
 yulCons :: forall x xs eff r m.
