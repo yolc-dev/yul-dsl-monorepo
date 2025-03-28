@@ -1,7 +1,6 @@
 module Fn_tests where
 -- base
 import Prelude
-import Prelude qualified as BasePrelude
 import Data.Functor                 ((<&>))
 -- hspec, quickcheck
 import Test.Hspec
@@ -12,94 +11,118 @@ import Ethereum.ContractABI
 import YulDSL.Core
 import YulDSL.Eval
 --
-import YulDSL.Haskell.LibPure
+import YulDSL.Haskell.LibPure hiding ((==))
 --
 import TestCommon                   ()
 
 
 --------------------------------------------------------------------------------
--- Trivial functions
+-- Trivial Functions
 --------------------------------------------------------------------------------
 
-dis_any' :: forall a. YulO1 a => PureY (a -> ())
-dis_any' _ = YulEmb()
+constant_fn :: PureFn U256
+constant_fn = $fn $ YulEmb 42
 
-dis_any :: forall a. YulO1 a => PureFn (a -> ())
-dis_any = fn' "dis_any" dis_any'
+dis_any_y :: forall a. YulO1 a => PureY (a -> ())
+dis_any_y _ = YulEmb ()
+
+dis_any_fn :: forall a. YulO1 a => PureFn (a -> ())
+dis_any_fn = fn' "dis_any" dis_any_y
+
+test_trvial_fns :: Bool
+test_trvial_fns = and
+  [ evalFn constant_fn Nil == 42
+  , evalFn dis_any_fn (() :* Nil) == ()
+  , evalFn (dis_any_fn @U32) (42 :* Nil) == ()
+  ]
 
 --------------------------------------------------------------------------------
--- Simple functions
+-- Simple Fn
 --------------------------------------------------------------------------------
 
-tuple_addNP :: PureY (NP [U256, U256] -> U256)
-tuple_addNP (is -> (a :* b :* Nil)) = a + b
+def_fn0 :: PureFn (U256)
+def_fn0 = $fn 42
 
-test_tuple_addNP1 :: PureFn (U256 -> U256)
-test_tuple_addNP1 = $fn \a -> tuple_addNP (be (a, a) >.> YulReduceType)
+def_fn1 :: PureFn (U256 -> U256)
+def_fn1 = $fn id
 
-test_tuple_addNP2 :: PureFn (U256 -> U256)
-test_tuple_addNP2 = $fn \a -> tuple_addNP (a `yulCons` a `yulCons` yulNil)
+def_fn2 :: PureFn (U256 -> U256 -> U256)
+def_fn2 = $fn \a b -> a + b
 
-test_tuple_addNP3 :: PureFn (U256 -> U256)
-test_tuple_addNP3 = $fn \a -> tuple_addNP (couldBe (a :* a :* Nil))
+def_fn3 :: PureFn (U256 -> U256 -> U256 -> U256)
+def_fn3 = $fn \a b c -> a + b + c
 
-tuple_add :: PureY ((U256, U256) -> U256)
-tuple_add (is -> (a, b)) = a + b
-
-uncurry_fn0 :: PureFn (U256)
-uncurry_fn0 = $fn 42
-
-uncurry_fn1 :: PureFn (U256 -> U256)
-uncurry_fn1 = $fn \a -> tuple_add (be (a, a))
-
-uncurry_fn2 :: PureFn (U256 -> U256 -> U256)
-uncurry_fn2 = $fn \a b -> tuple_add (be (a, b))
-
-uncurry_fn3 :: PureFn (U256 -> U256 -> U256 -> U256)
-uncurry_fn3 = $fn \a b c -> a + b + c
-
-uncurry_fn4 :: PureFn (U256 -> U256 -> U256 -> U256 -> U256)
-uncurry_fn4 = $fn \a b c d -> f a b + f c d
+def_fn4 :: PureFn (U256 -> U256 -> U256 -> U256 -> U256)
+def_fn4 = $fn \a b c d -> f a b + f c d
   where f a b = a + b
 
 call_fn0 :: PureFn (U256)
 call_fn0 = $fn
-  do uncurry_fn0 <$*> ()
+  do def_fn0 <$*> ()
 
 call_fn0' :: PureFn (U256)
 call_fn0' = $fn
-  do call0 uncurry_fn0
+  do call0 def_fn0
 
 call_fn1 :: PureFn (U256 -> U256)
 call_fn1 = $fn
-  \a -> call uncurry_fn1 a
+  \a -> call def_fn1 a
 
 call_fn2 :: PureFn (U256 -> U256)
 call_fn2 = $fn
-  \a -> call uncurry_fn2 a a
+  \a -> call def_fn2 a a
 
 call_fn3 :: PureFn (U256 -> U256)
 call_fn3 = $fn
-  \a -> call uncurry_fn3 a a a
+  \a -> call def_fn3 a a a
 
 call_fn4 :: PureFn (U256 -> U256)
 call_fn4 = $fn
-  \a -> call uncurry_fn4 a a a a
+  \a -> call def_fn4 a a a a
 
-test_simple_fn :: Gen Bool
-test_simple_fn = chooseInteger (0, toInteger (maxBound @U32)) <&>
+test_simple_fns :: Gen Bool
+test_simple_fns = chooseInteger (0, toInteger (maxBound @U32)) <&>
   (\x -> and
-    [ evalFn dis_any (x :* Nil)  BasePrelude.== ()
-    , evalFn call_fn0 Nil        BasePrelude.== 42
-    , evalFn call_fn1 (x :* Nil) BasePrelude.== x + x
-    , evalFn call_fn2 (x :* Nil) BasePrelude.== x + x
-    , evalFn call_fn3 (x :* Nil) BasePrelude.== x + x + x
-    , evalFn call_fn4 (x :* Nil) BasePrelude.== x + x + x + x
+    [ evalFn call_fn0 Nil        == 42
+    , evalFn call_fn1 (x :* Nil) == x
+    , evalFn call_fn2 (x :* Nil) == x + x
+    , evalFn call_fn3 (x :* Nil) == x + x + x
+    , evalFn call_fn4 (x :* Nil) == x + x + x + x
     ]
   ) . fromInteger
 
 --------------------------------------------------------------------------------
--- Polymorphic
+-- NP Functions
+--------------------------------------------------------------------------------
+
+add2_y :: PureY ((U256, U256) -> U256)
+add2_y (is -> (a, b)) = a + b
+
+add2NP_y :: PureY (NP [U256, U256] -> U256)
+add2NP_y (is -> (a :* b :* Nil)) = add2_y (be (a, b))
+
+add2NP_fn :: PureFn (U256 -> U256 -> U256)
+add2NP_fn = $fn \a b -> add2NP_y (be (a, b) >.> YulReduceType)
+
+add2NP_fn' :: PureFn (U256 -> U256 -> U256)
+add2NP_fn' = $fn \a b -> add2NP_y (a `yulCons` b `yulCons` yulNil)
+
+add2NP_fn'' :: PureFn (U256 -> U256 -> U256)
+add2NP_fn'' = $fn \a b -> add2NP_y (couldBe (a :* b :* Nil))
+
+test_np_fns :: Gen Bool
+test_np_fns =
+  (\x y ->
+     and [ evalFn add2NP_fn (x :* y :* Nil) == x + y
+         , evalFn add2NP_fn' (x :* y :* Nil) == x + y
+         , evalFn add2NP_fn'' (x :* y :* Nil) == x + y
+         ]
+  )
+  <$> (chooseInteger (0, toInteger (maxBound @U32)) <&> fromInteger)
+  <*> (chooseInteger (0, toInteger (maxBound @U32)) <&> fromInteger)
+
+--------------------------------------------------------------------------------
+-- Polymorphic Function
 --------------------------------------------------------------------------------
 
 poly_foo :: forall a s n.
@@ -109,13 +132,13 @@ poly_foo = $fn \x y -> x * 2 + y
 
 test_poly_foo :: Bool
 test_poly_foo = and
-  [ evalFn (poly_foo @U8) (4 :* 2 :* Nil)   BasePrelude.== 10
-  , evalFn (poly_foo @I32) (4 :* 2 :* Nil)  BasePrelude.== 10
-  , evalFn (poly_foo @U256) (4 :* 2 :* Nil) BasePrelude.== 10
+  [ evalFn (poly_foo @U8) (4 :* 2 :* Nil)   == 10
+  , evalFn (poly_foo @I32) (4 :* 2 :* Nil)  == 10
+  , evalFn (poly_foo @U256) (4 :* 2 :* Nil) == 10
   ]
 
 --------------------------------------------------------------------------------
--- Pattern matching for Maybe
+-- Pattern Matching: Maybe
 --------------------------------------------------------------------------------
 
 maybe_num_fn2 :: PureFn (Maybe U8 -> Maybe U8 -> U8)
@@ -124,18 +147,26 @@ maybe_num_fn2 = $fn
     Just x -> x
     Nothing -> 0
 
+maybe_num_fn1 :: PureFn (U8 -> U8)
+maybe_num_fn1 = $fn
+  \a -> call maybe_num_fn2 (be (Just a)) (be (Just (a + 42)))
+
 test_maybe_fn :: Bool
 test_maybe_fn = and
-  [ evalFn maybe_num_fn2 (Just 42 :* Just 69 :* Nil)   BasePrelude.== 111
-  , evalFn maybe_num_fn2 (Just 255 :* Just 0 :* Nil)   BasePrelude.== 255
-  , evalFn maybe_num_fn2 (Just 255 :* Just 1 :* Nil)   BasePrelude.== 0
-  , evalFn maybe_num_fn2 (Just 128 :* Just 128 :* Nil) BasePrelude.== 0
+  [ evalFn maybe_num_fn2 (Just 42 :* Just 69 :* Nil)   == 111
+  , evalFn maybe_num_fn2 (Just 255 :* Just 0 :* Nil)   == 255
+  , evalFn maybe_num_fn2 (Just 255 :* Just 1 :* Nil)   == 0
+  , evalFn maybe_num_fn2 (Just 128 :* Just 128 :* Nil) == 0
+  , evalFn maybe_num_fn1 (30 :* Nil) == 102
+  , evalFn maybe_num_fn1 (150 :* Nil) == 0
   ]
 
 --------------------------------------------------------------------------------
 
 -- | "YulDSL.Core.Fn" tests.
 tests = describe "YulDSL.Core.Fn" $ do
-  it "simple fn" $ property test_simple_fn
-  it "test polymorphic fn" $ property test_poly_foo
-  it "pattern matching with Maybe" $ property test_maybe_fn
+  it "trivial functions" test_trvial_fns
+  it "simple functions" $ property test_simple_fns
+  it "NP functions" $ property test_np_fns
+  it "polymorphic function" test_poly_foo
+  it "pattern matching with Maybe" test_maybe_fn

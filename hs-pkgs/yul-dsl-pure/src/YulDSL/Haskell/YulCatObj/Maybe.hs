@@ -21,7 +21,7 @@ import YulDSL.StdBuiltIns.ValueType ()
 import Control.PatternMatchable
 
 --
--- Maybe objects as yul objects.
+-- Maybe (INTx s n) as YulObj
 --
 
 instance ValidINTx s n => ABITypeable (Maybe (INTx s n)) where
@@ -37,7 +37,7 @@ instance ValidINTx s n => ABITypeCodec (Maybe (INTx s n))
 instance ValidINTx s n => YulCatObj (Maybe (INTx s n))
 
 --
--- Num instance
+-- Num Instance for Maybe (INTx s n)
 --
 
 instance (YulO1 r, ValidINTx s n) => Num (YulCat eff r (Maybe (INTx s n))) where
@@ -49,7 +49,7 @@ instance (YulO1 r, ValidINTx s n) => Num (YulCat eff r (Maybe (INTx s n))) where
   fromInteger = YulEmb . Just . fromInteger
 
 --
--- PatternMatchable instance
+-- PatternMatchable Instances for Maybe (INTx s n)
 --
 
 -- TODO:
