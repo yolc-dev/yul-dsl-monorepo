@@ -23,12 +23,8 @@ safety to the practice of EVM programming.
 
 -}
 module YulDSL.Core.YulCat
-  ( -- * Effect Classification
-    IsEffectNotPure, MayEffectWorld, AssertPureEffect, AssertStaticEffect, AssertOmniEffect
-  , YulCatEffectClass (..), KnownYulCatEffect (classifyYulCatEffect)
-  , SYulCatEffectClass (SYulCatEffectClass), classifySYulCatEffect
-    -- * YulCat, the Categorical DSL of Yul
-  , YulCat (..), NamedYulCat, AnyYulCat (..)
+  ( -- * YulCat, the Categorical DSL of Yul
+    YulCat (..), NamedYulCat, AnyYulCat (..)
     -- * YulCat Function Forms: Y and Fn
   , Y
   , NamedYulCatNP, Fn (MkFn, unFn), ClassifiedFn (withClassifiedFn), unsafeCoerceFn
@@ -38,7 +34,6 @@ module YulDSL.Core.YulCat
   ) where
 -- base
 import Data.Kind                    (Constraint, Type)
-import GHC.TypeError                (Assert, ErrorMessage (Text), Unsatisfiable)
 import Text.Printf                  (printf)
 -- bytestring
 import Data.ByteString              qualified as BS
@@ -55,59 +50,13 @@ import Ethereum.ContractABI
 import CodeGenUtils.CodeFormatters
 import YulDSL.Core.YulBuiltIn
 import YulDSL.Core.YulCatObj
-import YulDSL.StdBuiltIns.ABICodec  ()
+import YulDSL.Core.YulEffect
 import YulDSL.StdBuiltIns.ValueType ()
 
 
 ------------------------------------------------------------------------------------------------------------------------
 -- The Cat
 ------------------------------------------------------------------------------------------------------------------------
-
--- | An open type family for declaring a effect non-pure.
-type family IsEffectNotPure (eff :: k) :: Bool
-
--- | An open type family for declaring a effect may change the state of the world.
-type family MayEffectWorld (eff :: k) :: Bool
-
--- | Classification of yul category effect.
-data YulCatEffectClass = PureEffect
-                       | StaticEffect
-                       | OmniEffect
-                       deriving (Eq, Show)
-
--- | Singleton class for YulCat effect classification.
-class KnownYulCatEffect eff where
-  -- | Create classification data for known yul effect.
-  classifyYulCatEffect :: YulCatEffectClass
-
--- | Singleton data for YulCat effect classification.
-data SYulCatEffectClass eff = KnownYulCatEffect eff => SYulCatEffectClass
-
--- | Create classification singleton of known yul effect.
-classifySYulCatEffect :: SYulCatEffectClass eff -> YulCatEffectClass
-classifySYulCatEffect (SYulCatEffectClass @eff) = classifyYulCatEffect @eff
-
--- | Test if an effect can be used for morphisms that are pure. (F, F)
-type AssertPureEffect :: k -> Constraint
-type AssertPureEffect eff = Assert (Not (IsEffectNotPure eff) && Not (MayEffectWorld eff))
-                            (Unsatisfiable (Text "pure effect expected"))
-
--- | Test if an effect can be used for morphisms that are pure. (T, -)
-type AssertNonPureEffect :: k -> Constraint
-type AssertNonPureEffect eff = Assert (IsEffectNotPure eff)
-                               (Unsatisfiable (Text "non-pure effect expected"))
-
--- | Test if an effect can be used for morphisms that are non-pure but cannot change world. (T, F)
-type AssertStaticEffect :: k -> Constraint
-type AssertStaticEffect eff = Assert (IsEffectNotPure eff && Not (MayEffectWorld eff))
-                              (Unsatisfiable (Text "static effect expected"))
-
--- | Test if an effect can be used for morphisms that are non-pure and may change world. (T, T)
-type AssertOmniEffect :: k -> Constraint
-type AssertOmniEffect eff = Assert (IsEffectNotPure eff && MayEffectWorld eff)
-                            (Unsatisfiable (Text "omni effect expected"))
-
--- Note: IsNonsenseEffect eff = Not (IsEffectNotPure eff) && CanEffectWorld eff -- (F, T)
 
 -- | Use kind signature for the 'YulCat' to introduce the terminology in a lexical-orderly way.
 type YulCat :: forall effKind. effKind -> Type -> Type -> Type
@@ -156,15 +105,16 @@ data YulCat eff a b where
   -- ^ Jump to an user-defined morphism.
   YulJmpU :: forall eff a b. YulO2 a b => NamedYulCat eff a b %1-> YulCat eff a b
   -- ^ Jump to a built-in yul function.
-  YulJmpB :: forall eff a b p. (YulO2 a b, YulBuiltInPrefix p a b) => YulBuiltIn p a b -> YulCat eff a b
+  YulJmpB :: forall eff a b p.
+    ( YulO2 a b, YulBuiltInPrefix p a b
+    , If (IsYulBuiltInNonPure p) (AssertNonPureEffect eff) (() :: Constraint)
+    ) =>
+    YulBuiltIn p a b -> YulCat eff a b
   -- ^ Call an external contract at the address along with a possible msgValue.
   YulCall :: forall eff a b. (YulO2 a b, AssertNonPureEffect eff) =>
     SELECTOR -> YulCat eff ((ADDR, U256), a) b
   -- TODO: YulSCall
   -- TODO: YulDCall
-
-  -- TODO: make this a built-in, whilre preserving AssertNonPureEffect.
-  YulCaller :: forall eff. (AssertNonPureEffect eff) => YulCat eff () ADDR
 
   -- * Storage Primitives
   --
@@ -327,7 +277,6 @@ yulCatCompactShow = go
     go (YulJmpU @_ @a @b (cid, _)) = "Ju " <> cid <> abi_type_name2 @a @b
     go (YulJmpB @_ @a @b p)        = "Jb " <> yulB_fname p <> abi_type_name2 @a @b
     go (YulCall @_ @a @b sel)      = "C" <> showSelectorOnly sel <> abi_type_name2 @a @b
-    go (YulCaller @_)              = "Jb caller" <> abi_type_name2 @() @ADDR
     --
     go (YulSGet @_ @a)             = "Sg" <> abi_type_name @a
     go (YulSPut @_ @a)             = "Sp" <> abi_type_name @a
@@ -363,7 +312,6 @@ yulCatToUntypedLisp = go init_ind
     go ind (YulJmpU (cid, _))        = ind $ T.pack ("(jmpu " ++ cid ++ ")")
     go ind (YulJmpB p)               = ind $ T.pack ("(jmpb " ++ yulB_fname p ++ ")")
     go ind (YulCall sel)             = ind $ T.pack ("(call " ++ showSelectorOnly sel ++ ")")
-    go ind (YulCaller)               = ind $ T.pack "caller"
     go ind YulSGet                   = ind $ T.pack "sget"
     go ind YulSPut                   = ind $ T.pack "sput"
     go ind (YulUnsafeCoerceEffect c) = go ind c

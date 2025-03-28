@@ -31,8 +31,8 @@ new_auto_var g@(MkAutoVarGen i0) = (cur_var g, MkAutoVarGen (i0 + 1))
 -- | Generate a list of variables for the 'ABITypeable' a.
 --
 -- Examples:
--- >>> gen_vars 3
--- ["v_a","v_b","v_c"]
+-- >>> gen_vars
+-- [MkVar {unVar = "v_a"},MkVar {unVar = "v_b"},MkVar {unVar = "v_c"}]
 gen_vars :: Int -> [Var]
 gen_vars n = snd $ foldr
              (\ _ (gen, vars) -> new_auto_var gen & \ (var, gen') -> (gen', vars <> [var]))

@@ -2,7 +2,8 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 module YulDSL.Haskell.LibPure
   -- * YulDSL/Haskell's pure effect support
-  ( module YulDSL.Haskell.Effects.Pure
+  ( module YulDSL.Core
+  , module YulDSL.Haskell.Effects.Pure
   -- * Data and Control Flow Extensions
   , module Control.IfThenElse
   , module Control.PatternMatchable
@@ -16,9 +17,7 @@ import Control.IfThenElse
 import Control.PatternMatchable
 import Data.MPOrd
 -- yul-dsl
-import YulDSL.StdBuiltIns.ABICodec     ()
-import YulDSL.StdBuiltIns.Exception    ()
-import YulDSL.StdBuiltIns.ValueType    ()
+import YulDSL.Core
 --
 import YulDSL.Haskell.YulCatObj.Maybe  ()
 import YulDSL.Haskell.YulCatObj.NP     ()

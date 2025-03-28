@@ -2,7 +2,8 @@ module TestCommon where
 -- eth-abi
 import Ethereum.ContractABI.Arbitrary ()
 --
-import YulDSL.Core.YulCat
+import YulDSL.Core.YulCat             (Fn)
+import YulDSL.Core.YulEffect
 
 
 ------------------------------------------------------------------------------------------------------------------------

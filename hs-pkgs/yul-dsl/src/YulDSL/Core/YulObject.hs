@@ -29,6 +29,7 @@ import Ethereum.ContractABI.ExtendedType.SELECTOR
 --
 import YulDSL.Core.YulCat
 import YulDSL.Core.YulCatObj
+import YulDSL.Core.YulEffect
 
 
 ------------------------------------------------------------------------------------------------------------------------

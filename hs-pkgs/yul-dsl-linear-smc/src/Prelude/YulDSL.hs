@@ -13,8 +13,6 @@ This module packages all the goodies prelude-worthy for programming "YulDSL" in 
 module Prelude.YulDSL
   ( -- * Module linear-base
     module Prelude.Linear
-    -- * YulDSL Core
-  , module YulDSL.Core
     -- * YulDSL/Haskell/LinearSMC
   , module YulDSL.Haskell.LibLinearSMC
   , module YulDSL.Haskell.Data.SHMap

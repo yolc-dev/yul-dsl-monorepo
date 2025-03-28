@@ -11,7 +11,7 @@ This module provides type class and data types for defining yul built-in functio
 -}
 {-# LANGUAGE OverloadedStrings #-}
 module YulDSL.Core.YulBuiltIn
-  ( YulBuiltInPrefix (yulB_prefix , yulB_fname, yulB_body, yulB_eval)
+  ( YulBuiltInPrefix (IsYulBuiltInNonPure, yulB_prefix , yulB_fname, yulB_body, yulB_eval)
   , YulBuiltIn (MkYulBuiltIn), AnyYulBuiltIn (MkAnyYulBuiltIn)
   , yulB_code
   ) where
@@ -26,6 +26,12 @@ import CodeGenUtils.Variable       (Var, spread_vars)
 
 -- | Yul built-in definition.
 class KnownSymbol prefix => YulBuiltInPrefix (prefix :: Symbol) a b where
+  -- | Declare whether if the built-in non-pure.
+  type family IsYulBuiltInNonPure prefix :: Bool
+  -- | By default, built-ins are pure, hence can be used in all morphisms.
+  type instance IsYulBuiltInNonPure prefix = False
+
+  -- | Yul prefix to string.
   yulB_prefix :: forall. YulBuiltIn prefix a b -> String
   yulB_prefix _ = fromSSymbol $ symbolSing @prefix
   -- | Yul function name for the built-in.

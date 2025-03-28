@@ -48,6 +48,7 @@ library
   -- modules
   exposed-modules:
     -- Core
+    YulDSL.Core.YulEffect
     YulDSL.Core.YulCatObj
     YulDSL.Core.YulBuiltIn
     YulDSL.Core.YulCat
@@ -60,9 +61,9 @@ library
     YulDSL.CodeGens.YulGen
     -- Built-Ins
     YulDSL.StdBuiltIns.Prelude
-    YulDSL.StdBuiltIns.Exception
     YulDSL.StdBuiltIns.ValueType
     YulDSL.StdBuiltIns.ABICodec
+    YulDSL.StdBuiltIns.Runtime
   other-modules:
     -- CodeGen Utils
     CodeGenUtils.CodeFormatters

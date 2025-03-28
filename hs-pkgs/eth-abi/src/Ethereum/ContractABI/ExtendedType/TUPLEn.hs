@@ -17,11 +17,9 @@ Ethereum contract ABI compatible tuples encoded as n-tuples.
 -}
 module Ethereum.ContractABI.ExtendedType.TUPLEn
   ( module Data.TupleN
-  , Solo (MkSolo)
   ) where
 -- base
 import Control.Monad                     (replicateM)
-import Data.Tuple                        (Solo (MkSolo))
 -- (simple-np)
 import Data.TupleN
 -- template-haskell

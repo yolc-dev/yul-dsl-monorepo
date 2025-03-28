@@ -28,7 +28,6 @@ import Language.Haskell.TH qualified as TH
 -- yul-dsl
 import YulDSL.Core
 
-
 ------------------------------------------------------------------------------------------------------------------------
 -- $PureEffectKind
 -- * Pure Effect Kind

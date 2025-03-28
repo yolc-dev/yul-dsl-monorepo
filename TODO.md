@@ -62,7 +62,6 @@ TODO
 
 - Standard Built-in Yul Functions:
   - [x] Built-in extension infrastructure
-    - [ ] ⚠️ Make effect constraint an associated family of a built-in.
   - Value validators
     - [x] bool
     - [x] intN, uintN
