@@ -23,26 +23,28 @@ TEST_OPTIONS ?= \
 CABAL_VERBOSITY ?= 1
 
 # Cabal flavors
-CABAL ?= cabal -v$(CABAL_VERBOSITY) -j
+CABAL ?= cabal -v$(CABAL_VERBOSITY)
 
 CABAL_PACKAGE_DB = $(shell $(CABAL) -v0 --builddir=$(DEFAULT_BUILDDIR) path --output-format=json | \
 										 jq -r '."store-dir" + "/" + .compiler.id + "-inplace/package.db"')
 
-CABAL_BUILD    = $(CABAL) --builddir=$(DEFAULT_BUILDDIR) -O0 build
-CABAL_TEST     = $(CABAL) --builddir=$(DEFAULT_BUILDDIR) -O0 test $(TEST_OPTIONS)
-CABAL_DOCS     = $(CABAL) --builddir=$(DEFAULT_BUILDDIR) -O0 haddock
-CABAL_COVERAGE = $(CABAL) --builddir=$(TEST_COVERAGE_BUILDDIR) -O0 coverage
+CABAL_BUILD    = $(CABAL) --builddir=$(DEFAULT_BUILDDIR) -O0 -j build
+CABAL_TEST     = $(CABAL) --builddir=$(DEFAULT_BUILDDIR) -O0 -j test $(TEST_OPTIONS)
+CABAL_DOCS     = $(CABAL) --builddir=$(DEFAULT_BUILDDIR) -O0 -j haddock
+CABAL_COVERAGE = $(CABAL) --builddir=$(TEST_COVERAGE_BUILDDIR) -O0 -j coverage
 
 # Yolc Options
 
 export YOLC_DEBUG_LEVEL ?= 0
 
 # Misc
-DEV_TARGETS = test-all-modules test-yol-suite test-demo-foundry lint
+DEV_TARGETS = build-all-yuldsl-modules test-yol-suite test-demo-foundry lint
 
 ########################################################################################################################
 # TARGETS
 ########################################################################################################################
+
+ALL_YULDSL_MODULES = simple-sop eth-abi yul-dsl yul-dsl-pure yul-dsl-linear-smc yol-suite
 
 all: lint build test
 
@@ -50,19 +52,19 @@ lint:
 	hlint --ignore-glob=hs-pkgs/yol-suite/templates/*.hs hs-pkgs/
 	hlint examples/
 
-build: build-all-modules build-docs
+build: build-all-yuldsl-modules build-docs
 
-build-all-modules:
-	$(CABAL_BUILD) $(BUILD_OPTIONS) all
+build-all-yuldsl-modules:
+	$(CABAL_BUILD) $(BUILD_OPTIONS) $(ALL_YULDSL_MODULES)
 
 build-module-%:
-	$(CABAL_BUILD) $*
+	$(CABAL_BUILD) $(BUILD_OPTIONS) $*
 
 build-docs:
-	$(CABAL_DOCS) simple-sop eth-abi yul-dsl yul-dsl-pure yul-dsl-linear-smc
+	$(CABAL_DOCS) $(ALL_YULDSL_MODULES)
 
 build-display-docs:
-	for i in simple-sop eth-abi yul-dsl yul-dsl-pure yul-dsl-linear-smc; do \
+	for i in $(ALL_YULDSL_MODULES); do \
 		xdg-open $(DEFAULT_BUILDDIR)/build/*/*/$${i}-*/noopt/doc/html/$${i}/index.html; \
   done
 
@@ -75,26 +77,26 @@ clean:
 
 test: test-all-modules test-yol-suite test-demo
 
-test-all-modules:
-	$(CABAL_TEST) simple-sop eth-abi yul-dsl yul-dsl-pure yul-dsl-linear-smc
+test-all-yuldsl-modules:
+	$(CABAL_TEST) $(ALL_YULDSL_MODULES)
 
 test-module-%:
 	$(CABAL_TEST) $*
 
-test-yol-suite: build-all-modules
-	yolc -m yul hs-pkgs/yol-suite/testsuite
+test-yol-suite: test-all-yuldsl-modules
+	yolc -fm yul hs-pkgs/yol-suite/testsuite
 	cd hs-pkgs/yol-suite/testsuite && forge test -vvv
 
 test-demo: test-demo-show test-demo-yul test-demo-foundry
 
-test-demo-show: build-all-modules
-	time yolc -m show "examples/demo:ERC20"
+test-demo-show: test-all-yuldsl-modules
+	time yolc -fm show "examples/demo:ERC20"
 
-test-demo-yul: build-all-modules
-	time yolc -m yul "examples/demo:ERC20"
+test-demo-yul: test-all-yuldsl-modules
+	time yolc -fm yul "examples/demo:ERC20"
 
-test-demo-foundry: build-all-modules
-	time yolc -m yul "examples/demo"
+test-demo-foundry: test-all-yuldsl-modules
+	time yolc -fm yul "examples/demo"
 	cd examples/demo && forge test -vvv
 
 dev:
