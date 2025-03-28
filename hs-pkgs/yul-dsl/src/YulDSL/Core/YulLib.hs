@@ -15,6 +15,7 @@ import Ethereum.ContractABI
 --
 import YulDSL.Core.YulBuiltIn
 import YulDSL.Core.YulCat
+import YulDSL.Core.YulCatObj
 import YulDSL.StdBuiltIns.Exception ()
 
 ------------------------------------------------------------------------------------------------------------------------

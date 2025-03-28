@@ -13,6 +13,7 @@ This module defines the objects of the YulCat category.
 -}
 module YulDSL.Core.YulCatObj
   ( YulCatObj (yul_prod_objs)
+  , YulO1, YulO2, YulO3, YulO4, YulO5, YulO6
   ) where
 -- base
 import Control.Monad        (replicateM)
@@ -29,6 +30,17 @@ class (ABITypeable a, ABITypeCodec a, Show a) => YulCatObj a where
   -- | Possible breakdown of the product object of the category.
   yul_prod_objs :: forall b c. a ~ (b, c) => Dict (YulCatObj b, YulCatObj c)
   yul_prod_objs = error "yul_prod_objs should only be implemented by the product of YulCatObj"
+
+--
+-- Shorthand for declaring multi-objects constraint:
+--
+
+type YulO1 a = YulCatObj a
+type YulO2 a b = (YulCatObj a, YulO1 b)
+type YulO3 a b c = (YulCatObj a, YulO2 b c)
+type YulO4 a b c d = (YulCatObj a, YulO3 b c d)
+type YulO5 a b c d e = (YulCatObj a, YulO4 b c d e)
+type YulO6 a b c d e g = (YulCatObj a, YulO5 b c d e g)
 
 --
 -- Enumerate known YulCat objects:

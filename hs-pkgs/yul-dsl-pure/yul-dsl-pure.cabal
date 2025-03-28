@@ -29,7 +29,6 @@ library
   import:             basic-options
   hs-source-dirs:     src
   build-depends:      template-haskell >= 2.19.0,
-                      eth-abi ^>= 0.1.0.0,
                       yul-dsl
   -- modules
   exposed-modules:

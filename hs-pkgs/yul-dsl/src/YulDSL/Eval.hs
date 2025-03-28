@@ -25,6 +25,7 @@ import Ethereum.ContractABI
 --
 import YulDSL.Core.YulBuiltIn   (yulB_eval)
 import YulDSL.Core.YulCat
+import YulDSL.Core.YulCatObj
 
 newtype EvalData = MkEvalData { store_map :: M.Map B32 WORD
                               }

@@ -24,12 +24,9 @@ module YulDSL.Haskell.Effects.Pure
     -- $yulCatVal
   ) where
 -- template-haskell
-import Language.Haskell.TH  qualified as TH
--- eth-abi
-import Ethereum.ContractABI
+import Language.Haskell.TH qualified as TH
 -- yul-dsl
-import YulDSL.Core.YulCat
-import YulDSL.Core.YulLib
+import YulDSL.Core
 
 
 ------------------------------------------------------------------------------------------------------------------------

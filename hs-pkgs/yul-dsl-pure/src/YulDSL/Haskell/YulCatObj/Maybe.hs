@@ -21,7 +21,7 @@ import YulDSL.StdBuiltIns.ValueType ()
 import Control.PatternMatchable
 
 --
--- Maybe (INTx s n) as YulObj
+-- Maybe (INTx s n) as YulCatObj
 --
 
 instance ValidINTx s n => ABITypeable (Maybe (INTx s n)) where

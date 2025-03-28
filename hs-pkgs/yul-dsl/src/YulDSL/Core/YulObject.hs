@@ -25,10 +25,10 @@ import Data.Type.Function
 -- eth-abi
 import Ethereum.ContractABI.ABITypeable           (abiTypeCanonName)
 import Ethereum.ContractABI.CoreType.NP
--- import Ethereum.ContractABI.CoreType.NP
 import Ethereum.ContractABI.ExtendedType.SELECTOR
 --
 import YulDSL.Core.YulCat
+import YulDSL.Core.YulCatObj
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -69,24 +69,6 @@ omniFn :: forall fn f xs b efc.
   ) => String -> fn f -> AnyExportedYulCat
 omniFn fname = withClassifiedFn (MkAnyExportedYulCat (mkTypedSelector @(NP xs) fname) OmniEffect . unFn)
 
--- staticFn :: forall f xs b eff.
---   ( AssertStaticEffect eff
---   , KnownYulCatEffect eff
---   , YulO2 (NP xs) b
---   , EquivalentNPOfFunction f xs b
---   ) => String -> Fn eff f -> AnyExportedYulCat
--- staticFn fname (MkFn f) =
---   MkAnyExportedYulCat (mkTypedSelector @(NP xs) fname) StaticEffect f
-
--- omniFn :: forall f xs b eff.
---   ( AssertOmniEffect eff
---   , KnownYulCatEffect eff
---   , YulO2 (NP xs) b
---   , EquivalentNPOfFunction f xs b
---   ) => String -> Fn eff f -> AnyExportedYulCat
--- omniFn fname (MkFn f) =
---   MkAnyExportedYulCat (mkTypedSelector @(NP xs) fname) OmniEffect f
-
 instance Show AnyExportedYulCat where
   show (MkAnyExportedYulCat s PureEffect   cat) = "pure "   <> show_fn_spec s cat
   show (MkAnyExportedYulCat s StaticEffect cat) = "static " <> show_fn_spec s cat
@@ -107,7 +89,7 @@ show_fn_spec (SELECTOR (sel, fsig)) cat@(cid, _) =
 -- | A Yul Object per spec.
 --
 -- Note:
---   * Do not confuse this with YulObj which is an "object" in the category of YulCat.
+--   * Do not confuse this with 'YulCatObj' which is for "objects" in the category of 'YulCat'.
 --   * Specification: https://docs.soliditylang.org/en/latest/yul.html#specification-of-yul-object
 data YulObject = MkYulObject { yulObjectName    :: String              -- ^ object name
                              , yulObjectCtor    :: AnyYulCat           -- ^ constructor

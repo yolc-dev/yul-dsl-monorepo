@@ -27,7 +27,6 @@ module YulDSL.Core.YulCat
     IsEffectNotPure, MayEffectWorld, AssertPureEffect, AssertStaticEffect, AssertOmniEffect
   , YulCatEffectClass (..), KnownYulCatEffect (classifyYulCatEffect)
   , SYulCatEffectClass (SYulCatEffectClass), classifySYulCatEffect
-  , YulO1, YulO2, YulO3, YulO4, YulO5, YulO6
     -- * YulCat, the Categorical DSL of Yul
   , YulCat (..), NamedYulCat, AnyYulCat (..)
     -- * YulCat Function Forms: Y and Fn
@@ -110,14 +109,6 @@ type AssertOmniEffect eff = Assert (IsEffectNotPure eff && MayEffectWorld eff)
 
 -- Note: IsNonsenseEffect eff = Not (IsEffectNotPure eff) && CanEffectWorld eff -- (F, T)
 
--- Shorthand for declaring multi-objects constraint:
-type YulO1 a = YulCatObj a
-type YulO2 a b = (YulCatObj a, YulO1 b)
-type YulO3 a b c = (YulCatObj a, YulO2 b c)
-type YulO4 a b c d = (YulCatObj a, YulO3 b c d)
-type YulO5 a b c d e = (YulCatObj a, YulO4 b c d e)
-type YulO6 a b c d e g = (YulCatObj a, YulO5 b c d e g)
-
 -- | Use kind signature for the 'YulCat' to introduce the terminology in a lexical-orderly way.
 type YulCat :: forall effKind. effKind -> Type -> Type -> Type
 
@@ -167,7 +158,8 @@ data YulCat eff a b where
   -- ^ Jump to a built-in yul function.
   YulJmpB :: forall eff a b p. (YulO2 a b, YulBuiltInPrefix p a b) => YulBuiltIn p a b -> YulCat eff a b
   -- ^ Call an external contract at the address along with a possible msgValue.
-  YulCall :: forall eff a b. (YulO2 a b, AssertNonPureEffect eff) => SELECTOR -> YulCat eff ((ADDR, U256), a) b
+  YulCall :: forall eff a b. (YulO2 a b, AssertNonPureEffect eff) =>
+    SELECTOR -> YulCat eff ((ADDR, U256), a) b
   -- TODO: YulSCall
   -- TODO: YulDCall
 
@@ -182,8 +174,8 @@ data YulCat eff a b where
   YulSPut :: forall eff a. (YulO1 a, AssertNonPureEffect eff, ABIWordValue a) => YulCat eff (B32, a) ()
 
   -- ^ Unsafe coerce between different effects.
-  YulUnsafeCoerceEffect :: forall k1 k2 (eff1 :: k1) (eff2 :: k2) a b. YulO2 a b
-                        => YulCat eff1 a b %1-> YulCat eff2 a b
+  YulUnsafeCoerceEffect :: forall k1 k2 (eff1 :: k1) (eff2 :: k2) a b. YulO2 a b =>
+    YulCat eff1 a b %1-> YulCat eff2 a b
 
 ------------------------------------------------------------------------------------------------------------------------
 -- YulCat Function Forms: Y and Fn
