@@ -38,7 +38,7 @@ CABAL_COVERAGE = $(CABAL) --builddir=$(TEST_COVERAGE_BUILDDIR) -O0 -j coverage
 export YOLC_DEBUG_LEVEL ?= 0
 
 # Misc
-DEV_TARGETS = build-all-yuldsl-modules test-all test-demo-foundry lint
+DEV_TARGETS = build-all test-all test-demo-foundry lint
 
 ########################################################################################################################
 # TARGETS
@@ -52,10 +52,10 @@ lint:
 	hlint --ignore-glob=hs-pkgs/yol-suite/templates/*.hs hs-pkgs/
 	hlint examples/
 
-build: build-all-yuldsl-modules build-docs
+build: build-all build-docs
 
-build-all-yuldsl-modules:
-	$(CABAL_BUILD) $(BUILD_OPTIONS) $(ALL_YULDSL_MODULES)
+build-all:
+	$(CABAL_BUILD) $(BUILD_OPTIONS) all
 
 build-module-%:
 	$(CABAL_BUILD) $(BUILD_OPTIONS) $*

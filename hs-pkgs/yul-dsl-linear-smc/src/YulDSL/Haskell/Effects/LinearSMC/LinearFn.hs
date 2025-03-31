@@ -86,7 +86,7 @@ instance (KnownNat vd, AssertOmniEffect (PureInputVersionedOutput vd)) =>
 
 -- | Create a curruying linear function with pure input ports.
 lfn :: TH.Q TH.Exp
-lfn = [e| lfn' $locId |]
+lfn = [e| lfn' $fnLocId |]
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Callable Linear Functions

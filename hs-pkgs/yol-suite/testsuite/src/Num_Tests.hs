@@ -8,85 +8,85 @@ import Prelude.YulDSL
 
 type CmpResult = (BOOL, BOOL, BOOL, BOOL, BOOL)
 
-cmp_uint256 = fn' @(U256 -> U256 -> CmpResult) $locId \x y -> be (x < y, x <= y, x == y, x >= y, x > y)
-cmp_uint192 = fn' @(U192 -> U192 -> CmpResult) $locId \x y -> be (x < y, x <= y, x == y, x >= y, x > y)
-cmp_uint128 = fn' @(U128 -> U128 -> CmpResult) $locId \x y -> be (x < y, x <= y, x == y, x >= y, x > y)
-cmp_uint32  = fn' @(U32  -> U32  -> CmpResult) $locId \x y -> be (x < y, x <= y, x == y, x >= y, x > y)
+cmp_uint256 = fn' @(U256 -> U256 -> CmpResult) $fnLocId \x y -> be (x < y, x <= y, x == y, x >= y, x > y)
+cmp_uint192 = fn' @(U192 -> U192 -> CmpResult) $fnLocId \x y -> be (x < y, x <= y, x == y, x >= y, x > y)
+cmp_uint128 = fn' @(U128 -> U128 -> CmpResult) $fnLocId \x y -> be (x < y, x <= y, x == y, x >= y, x > y)
+cmp_uint32  = fn' @(U32  -> U32  -> CmpResult) $fnLocId \x y -> be (x < y, x <= y, x == y, x >= y, x > y)
 
-cmp_int256 = fn' @(I256 -> I256 -> CmpResult) $locId \x y -> be (x < y, x <= y, x == y, x >= y, x > y)
-cmp_int192 = fn' @(I192 -> I192 -> CmpResult) $locId \x y -> be (x < y, x <= y, x == y, x >= y, x > y)
-cmp_int128 = fn' @(I128 -> I128 -> CmpResult) $locId \x y -> be (x < y, x <= y, x == y, x >= y, x > y)
-cmp_int32  = fn' @(I32  -> I32  -> CmpResult) $locId \x y -> be (x < y, x <= y, x == y, x >= y, x > y)
+cmp_int256 = fn' @(I256 -> I256 -> CmpResult) $fnLocId \x y -> be (x < y, x <= y, x == y, x >= y, x > y)
+cmp_int192 = fn' @(I192 -> I192 -> CmpResult) $fnLocId \x y -> be (x < y, x <= y, x == y, x >= y, x > y)
+cmp_int128 = fn' @(I128 -> I128 -> CmpResult) $fnLocId \x y -> be (x < y, x <= y, x == y, x >= y, x > y)
+cmp_int32  = fn' @(I32  -> I32  -> CmpResult) $fnLocId \x y -> be (x < y, x <= y, x == y, x >= y, x > y)
 
 --
 -- add
 --
 
-add_uint256 = fn' @(U256 -> U256 -> U256) $locId \x y -> x + y
-add_uint192 = fn' @(U192 -> U192 -> U192) $locId \x y -> x + y
-add_uint128 = fn' @(U128 -> U128 -> U128) $locId \x y -> x + y
-add_uint32  = fn' @(U32  -> U32  -> U32)  $locId \x y -> x + y
+add_uint256 = fn' @(U256 -> U256 -> U256) $fnLocId \x y -> x + y
+add_uint192 = fn' @(U192 -> U192 -> U192) $fnLocId \x y -> x + y
+add_uint128 = fn' @(U128 -> U128 -> U128) $fnLocId \x y -> x + y
+add_uint32  = fn' @(U32  -> U32  -> U32)  $fnLocId \x y -> x + y
 
-add_int256  = fn' @(I256 -> I256 -> I256) $locId \x y -> x + y
-add_int192  = fn' @(I192 -> I192 -> I192) $locId \x y -> x + y
-add_int128  = fn' @(I128 -> I128 -> I128) $locId \x y -> x + y
-add_int32   = fn' @(I32  -> I32  -> I32)  $locId \x y -> x + y
+add_int256  = fn' @(I256 -> I256 -> I256) $fnLocId \x y -> x + y
+add_int192  = fn' @(I192 -> I192 -> I192) $fnLocId \x y -> x + y
+add_int128  = fn' @(I128 -> I128 -> I128) $fnLocId \x y -> x + y
+add_int32   = fn' @(I32  -> I32  -> I32)  $fnLocId \x y -> x + y
 
 --
 -- sub
 --
 
-sub_uint256 = fn' @(U256 -> U256 -> U256) $locId \x y -> x - y
-sub_uint192 = fn' @(U192 -> U192 -> U192) $locId \x y -> x - y
-sub_uint128 = fn' @(U128 -> U128 -> U128) $locId \x y -> x - y
-sub_uint32  = fn' @(U32  -> U32  -> U32)  $locId \x y -> x - y
+sub_uint256 = fn' @(U256 -> U256 -> U256) $fnLocId \x y -> x - y
+sub_uint192 = fn' @(U192 -> U192 -> U192) $fnLocId \x y -> x - y
+sub_uint128 = fn' @(U128 -> U128 -> U128) $fnLocId \x y -> x - y
+sub_uint32  = fn' @(U32  -> U32  -> U32)  $fnLocId \x y -> x - y
 
-sub_int256  = fn' @(I256 -> I256 -> I256) $locId \x y -> x - y
-sub_int192  = fn' @(I192 -> I192 -> I192) $locId \x y -> x - y
-sub_int128  = fn' @(I128 -> I128 -> I128) $locId \x y -> x - y
-sub_int32   = fn' @(I32  -> I32  -> I32)  $locId \x y -> x - y
+sub_int256  = fn' @(I256 -> I256 -> I256) $fnLocId \x y -> x - y
+sub_int192  = fn' @(I192 -> I192 -> I192) $fnLocId \x y -> x - y
+sub_int128  = fn' @(I128 -> I128 -> I128) $fnLocId \x y -> x - y
+sub_int32   = fn' @(I32  -> I32  -> I32)  $fnLocId \x y -> x - y
 
 --
 -- mul
 --
 
-mul_uint256 = fn' @(U256 -> U256 -> U256) $locId \x y -> x * y
-mul_uint192 = fn' @(U192 -> U192 -> U192) $locId \x y -> x * y
-mul_uint128 = fn' @(U128 -> U128 -> U128) $locId \x y -> x * y
-mul_uint32  = fn' @(U32  -> U32  -> U32)  $locId \x y -> x * y
+mul_uint256 = fn' @(U256 -> U256 -> U256) $fnLocId \x y -> x * y
+mul_uint192 = fn' @(U192 -> U192 -> U192) $fnLocId \x y -> x * y
+mul_uint128 = fn' @(U128 -> U128 -> U128) $fnLocId \x y -> x * y
+mul_uint32  = fn' @(U32  -> U32  -> U32)  $fnLocId \x y -> x * y
 
-mul_int256 = fn' @(I256 -> I256 -> I256) $locId \x y -> x * y
-mul_int192 = fn' @(I192 -> I192 -> I192) $locId \x y -> x * y
-mul_int128 = fn' @(I128 -> I128 -> I128) $locId \x y -> x * y
-mul_int32  = fn' @(I32  -> I32  -> I32)  $locId \x y -> x * y
+mul_int256 = fn' @(I256 -> I256 -> I256) $fnLocId \x y -> x * y
+mul_int192 = fn' @(I192 -> I192 -> I192) $fnLocId \x y -> x * y
+mul_int128 = fn' @(I128 -> I128 -> I128) $fnLocId \x y -> x * y
+mul_int32  = fn' @(I32  -> I32  -> I32)  $fnLocId \x y -> x * y
 
 --
 -- div
 --
 
--- div_uint256 = fn' @(U256 -> U256 -> U256) $locId \x y -> x / y
--- div_uint192 = fn' @(U192 -> U192 -> U192) $locId \x y -> x / y
--- div_uint128 = fn' @(U128 -> U128 -> U128) $locId \x y -> x / y
--- div_uint32  = fn' @(U32  -> U32  -> U32)  $locId \x y -> x / y
+-- div_uint256 = fn' @(U256 -> U256 -> U256) $fnLocId \x y -> x / y
+-- div_uint192 = fn' @(U192 -> U192 -> U192) $fnLocId \x y -> x / y
+-- div_uint128 = fn' @(U128 -> U128 -> U128) $fnLocId \x y -> x / y
+-- div_uint32  = fn' @(U32  -> U32  -> U32)  $fnLocId \x y -> x / y
 
--- div_int256 = fn' @(I256 -> I256 -> I256) $locId \x y -> x / y
--- div_int192 = fn' @(I192 -> I192 -> I192) $locId \x y -> x / y
--- div_int128 = fn' @(I128 -> I128 -> I128) $locId \x y -> x / y
--- div_int32  = fn' @(I32  -> I32  -> I32)  $locId \x y -> x / y
+-- div_int256 = fn' @(I256 -> I256 -> I256) $fnLocId \x y -> x / y
+-- div_int192 = fn' @(I192 -> I192 -> I192) $fnLocId \x y -> x / y
+-- div_int128 = fn' @(I128 -> I128 -> I128) $fnLocId \x y -> x / y
+-- div_int32  = fn' @(I32  -> I32  -> I32)  $fnLocId \x y -> x / y
 
 --
 -- maybe values
 --
 
-add_maybe_int96 = fn' @(Maybe I96 -> Maybe I96 -> Maybe I96) $locId
+add_maybe_int96 = fn' @(Maybe I96 -> Maybe I96 -> Maybe I96) $fnLocId
   \x y -> x + y
 
-add_int96_with_default = fn' @(I96 -> I96 -> I96 -> I96) $locId
+add_int96_with_default = fn' @(I96 -> I96 -> I96 -> I96) $fnLocId
   \x y def -> match (be (Just x) + be (Just y)) \case
     Nothing -> def
     Just z  -> z
 
-add_maybe_int96_with_default = fn' @(Maybe I96 -> Maybe I96 -> I96 -> I96) $locId
+add_maybe_int96_with_default = fn' @(Maybe I96 -> Maybe I96 -> I96 -> I96) $fnLocId
   \x y def -> match (x + y) \case
     Nothing -> def
     Just z  -> z

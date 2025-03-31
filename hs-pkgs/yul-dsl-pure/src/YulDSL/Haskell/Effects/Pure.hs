@@ -20,7 +20,7 @@ module YulDSL.Haskell.Effects.Pure
     -- $PureFn
   , PureFn (MkPureFn), fn', fn, call0
     -- * Template Haskell Support
-  , locId
+  , fnLocId
     -- * Technical Notes
     -- $yulCatVal
 
@@ -150,7 +150,7 @@ fn' cid f = let cat = uncurryNP @f @xs @b @m @m @m @m f YulId in MkPureFn (cid, 
 
 -- | Create a 'PureFn' with automatic id based on function definition source location.
 fn :: TH.Q TH.Exp
-fn = [e| fn' $locId |]
+fn = [e| fn' $fnLocId |]
 
 instance forall f x xs b g a.
          ( YulO4 x (NP xs) b a
@@ -177,8 +177,8 @@ instance forall f xs b r.
   callN (MkPureFn (cid, cat)) tpl = distributeNP (fromTupleNtoNP tpl) >.> YulJmpU (cid, cat)
 
 -- | Automatically generate a source location based id using template haskell.
-locId :: TH.Q TH.Exp
-locId = do
+fnLocId :: TH.Q TH.Exp
+fnLocId = do
   loc <- TH.location
   let modname = TH.loc_module loc
       -- normalize module name: replace "."
