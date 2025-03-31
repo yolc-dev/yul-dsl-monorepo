@@ -20,8 +20,6 @@ module YulDSL.Core.YulObject
   ) where
 -- base
 import Data.List                                  (intercalate)
--- simple-sop
-import Data.Type.Function
 -- eth-abi
 import Ethereum.ContractABI.ABITypeable           (abiTypeCanonName)
 import Ethereum.ContractABI.CoreType.NP
@@ -46,29 +44,26 @@ withAnyExportedYulCat :: AnyExportedYulCat
   -> a
 withAnyExportedYulCat (MkAnyExportedYulCat _ _ f) g = g f
 
-pureFn :: forall fn f xs b efc.
-  ( ClassifiedFn fn efc
+pureFn :: forall fn efc xs b.
+  ( ClassifiedYulCat fn efc (NP xs) b
   , efc ~ PureEffect
-  , EquivalentNPOfFunction f xs b
   , YulO2 (NP xs) b
-  ) => String -> fn f -> AnyExportedYulCat
-pureFn fname = withClassifiedFn (MkAnyExportedYulCat (mkTypedSelector @(NP xs) fname) PureEffect . unFn)
+  ) => String -> fn -> AnyExportedYulCat
+pureFn fname fn = withClassifiedYulCat fn (MkAnyExportedYulCat (mkTypedSelector @(NP xs) fname) PureEffect)
 
-staticFn :: forall fn f xs b efc.
-  ( ClassifiedFn fn efc
+staticFn :: forall fn efc xs b.
+  ( ClassifiedYulCat fn efc (NP xs) b
   , efc ~ StaticEffect
-  , EquivalentNPOfFunction f xs b
   , YulO2 (NP xs) b
-  ) => String -> fn f -> AnyExportedYulCat
-staticFn fname = withClassifiedFn (MkAnyExportedYulCat (mkTypedSelector @(NP xs) fname) StaticEffect . unFn)
+  ) => String -> fn -> AnyExportedYulCat
+staticFn fname fn = withClassifiedYulCat fn (MkAnyExportedYulCat (mkTypedSelector @(NP xs) fname) StaticEffect)
 
-omniFn :: forall fn f xs b efc.
-  ( ClassifiedFn fn efc
+omniFn :: forall fn efc xs b.
+  ( ClassifiedYulCat fn efc (NP xs) b
   , efc ~ OmniEffect
-  , EquivalentNPOfFunction f xs b
   , YulO2 (NP xs) b
-  ) => String -> fn f -> AnyExportedYulCat
-omniFn fname = withClassifiedFn (MkAnyExportedYulCat (mkTypedSelector @(NP xs) fname) OmniEffect . unFn)
+  ) => String -> fn -> AnyExportedYulCat
+omniFn fname fn = withClassifiedYulCat fn (MkAnyExportedYulCat (mkTypedSelector @(NP xs) fname) OmniEffect)
 
 instance Show AnyExportedYulCat where
   show (MkAnyExportedYulCat s PureEffect   cat) = "pure "   <> show_fn_spec s cat

@@ -13,7 +13,8 @@ This module provides the operations for working with the 'Pure' kind of effect f
 
 -}
 module YulDSL.Haskell.Effects.Pure
-  ( -- $PureEffectKind
+  (
+    -- $PureEffectKind
     PureEffectKind (Pure, Total)
   , PureY, YulCat'P
     -- $PureFn
@@ -22,11 +23,17 @@ module YulDSL.Haskell.Effects.Pure
   , locId
     -- * Technical Notes
     -- $yulCatVal
+
+  -- FIXME: remove
+  , ExternalFn (MkExternalFn), declareExternalFn
   ) where
 -- template-haskell
 import Language.Haskell.TH qualified as TH
+-- TO BE MOVED
+import Data.Type.Function
 -- yul-dsl
 import YulDSL.Core
+
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $PureEffectKind
@@ -37,16 +44,59 @@ import YulDSL.Core
 data PureEffectKind = Pure  -- ^ Pure morphism, may not be total
                     | Total -- ^ TODO, to further distinguish totality from other pure morphism.
 
-instance KnownYulCatEffect Pure where classifyYulCatEffect = PureEffect
-instance KnownYulCatEffect Total where classifyYulCatEffect = PureEffect
+instance ClassifiedYulCatEffect Pure where classifyYulCatEffect = PureEffect
+instance ClassifiedYulCatEffect Total where classifyYulCatEffect = PureEffect
 
 type instance IsEffectNotPure (eff :: PureEffectKind) = False
 type instance MayEffectWorld  (eff :: PureEffectKind) = False
 
-type PureY f = Y Pure f
-
 -- | Pure yul category morphisms.
 type YulCat'P = YulCat Pure
+
+-- | Pure 'YulCat' n-ary function form, with each morphism on the arrow sharing the same domain @a@.
+type PureY f = forall a. YulO1 a => LiftFunction f (YulCat'P a) (YulCat'P a) Many
+
+--
+-- UncurriableNP instances
+--
+
+-- ^ Base case: @uncurryingNP (x) => NP '[] -> x@
+instance forall b r.
+         ( YulO2 b r
+         , EquivalentNPOfFunction b '[] b
+         , LiftFunction b (YulCat'P r) (YulCat'P r) Many ~ YulCat'P r b
+         ) =>
+         UncurriableNP b '[] b (YulCat'P r) (YulCat'P r) (YulCat'P r) (YulCat'P r) Many where
+  uncurryNP b _ = b
+
+-- ^ Inductive case: @uncurryingNP (x -> ...xs -> b) => (x, uncurryingNP (... xs -> b)) => NP (x:xs) -> b@
+instance forall g x xs b r.
+         ( YulO4 x (NP xs) b r
+         , UncurriableNP g xs b (YulCat'P r) (YulCat'P r) (YulCat'P r) (YulCat'P r) Many
+         ) =>
+         UncurriableNP (x -> g) (x:xs) b (YulCat'P r) (YulCat'P r) (YulCat'P r) (YulCat'P r) Many where
+  uncurryNP f xxs = let (x, xs) = unconsNP xxs in uncurryNP @g @xs @b @(YulCat'P r) @(YulCat'P r) (f x) xs
+
+--
+-- CurriableNP instances
+--
+
+-- ^ Base case: @curryingNP (NP '[] -> b) => b@
+instance forall b r.
+         ( YulO2 b r
+         , EquivalentNPOfFunction b '[] b
+         , LiftFunction b (YulCat'P r) (YulCat'P r) Many ~ YulCat'P r b
+         ) =>
+         CurriableNP b '[] b (YulCat'P r) (YulCat'P r) (YulCat'P r) Many where
+  curryNP fNP = fNP (YulReduceType `YulComp` YulDis)
+
+-- ^ Inductive case: @curryingNP (NP (x:xs) -> b) => x -> curryingNP (NP xs -> b)@
+instance forall g x xs b r.
+         ( YulO5 x (NP xs) b (NP (x:xs)) r
+         , CurriableNP g xs b (YulCat'P r) (YulCat'P r) (YulCat'P r) Many
+         ) =>
+         CurriableNP (x -> g) (x:xs) b (YulCat'P r) (YulCat'P r) (YulCat'P r) Many where
+  curryNP fNP x = curryNP @g @xs @b @(YulCat'P r) @(YulCat'P r) (fNP . consNP x)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $PureFn
@@ -54,10 +104,17 @@ type YulCat'P = YulCat Pure
 ------------------------------------------------------------------------------------------------------------------------
 
 -- | Function without side effects, hence pure.
-newtype PureFn f = MkPureFn (Fn Pure f)
+data PureFn f where
+  MkPureFn :: forall f xs b.
+    ( EquivalentNPOfFunction f xs b
+    , YulO2 (NP xs) b
+    ) =>
+    NamedYulCat Pure (NP xs) b -> PureFn f
 
-instance ClassifiedFn PureFn PureEffect where
-  withClassifiedFn g (MkPureFn f) = g f
+deriving instance Show (PureFn f)
+
+instance EquivalentNPOfFunction f xs b => ClassifiedYulCat (PureFn f) PureEffect (NP xs) b where
+  withClassifiedYulCat (MkPureFn f) g = g f
 
 -- -- | Function without side effects and bottom, hence total.
 -- newtype TotalFn f = MkPureFn (Fn Total f)
@@ -89,7 +146,7 @@ fn' :: forall f xs b m.
   String ->
   LiftFunction f m m Many -> -- ^ uncurrying function type
   PureFn (CurryNP (NP xs) b) -- ^ result type, or its short form @m b@
-fn' cid f = let cat = uncurryNP @f @xs @b @m @m @m @m f YulId in MkPureFn (MkFn (cid, cat))
+fn' cid f = let cat = uncurryNP @f @xs @b @m @m @m @m f YulId in MkPureFn (cid, cat)
 
 -- | Create a 'PureFn' with automatic id based on function definition source location.
 fn :: TH.Q TH.Exp
@@ -101,7 +158,7 @@ instance forall f x xs b g a.
          , CurriableNP g xs b (YulCat'P a) (YulCat'P a) (YulCat'P a) Many
          ) =>
          CallableFunctionNP PureFn f x xs b (YulCat'P a) (YulCat'P a) Many where
-  call (MkPureFn (MkFn (cid, cat))) x = curryNP @g @xs @b @(YulCat'P a) @(YulCat'P a) @(YulCat'P a)
+  call (MkPureFn (cid, cat)) x = curryNP @g @xs @b @(YulCat'P a) @(YulCat'P a) @(YulCat'P a)
     (\xs -> consNP x xs >.> YulJmpU (cid, cat))
 
 call0 :: forall b a.
@@ -117,7 +174,7 @@ instance forall f xs b r.
          , DistributiveNP (YulCat'P r) xs
          ) =>
          CallableFunctionN PureFn f xs b (YulCat'P r) (YulCat'P r) Many where
-  callN (MkPureFn (MkFn (cid, cat))) tpl = distributeNP (fromTupleNtoNP tpl) >.> YulJmpU (cid, cat)
+  callN (MkPureFn (cid, cat)) tpl = distributeNP (fromTupleNtoNP tpl) >.> YulJmpU (cid, cat)
 
 -- | Automatically generate a source location based id using template haskell.
 locId :: TH.Q TH.Exp
@@ -139,3 +196,16 @@ locId = do
 -- One may also wrap it around an effect kind, e.g. @Pure (r ⤳ a)@ means a pure yul categorical value of @r ⤳ a@.
 --
 -- From category theory perspective, it is a hom-set @YulCat(-, a)@ that is contravariant of @a@.
+
+
+-- | External contract functions that can be called via its selector.
+data ExternalFn f where
+  MkExternalFn :: forall f xs b. EquivalentNPOfFunction f xs b => SELECTOR -> ExternalFn f
+
+-- | Create a 'ExternalFn' value by providing its function name function form @f@.
+declareExternalFn :: forall f xs b.
+                     ( EquivalentNPOfFunction f xs b
+                     , YulO2 (NP xs) b
+                     )
+                  => String -> ExternalFn f
+declareExternalFn fname = MkExternalFn (mkTypedSelector @(NP xs) fname)

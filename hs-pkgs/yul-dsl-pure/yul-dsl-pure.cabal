@@ -29,10 +29,12 @@ library
   import:             basic-options
   hs-source-dirs:     src
   build-depends:      template-haskell >= 2.19.0,
+                      simple-sop,
                       yul-dsl
   -- modules
   exposed-modules:
     -- Data and Control extensions
+    Data.Type.Function
     Data.MPOrd
     Control.PatternMatchable
     Control.IfThenElse
@@ -60,5 +62,6 @@ Test-Suite test-yul-dsl-pure
   -- modules
   other-modules:
     TestCommon
-    Fn_tests
+    Data_Type_Function_t
+    Fn_t
   main-is: Main.hs

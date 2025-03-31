@@ -1,4 +1,4 @@
-module Fn_tests where
+module Fn_t where
 -- base
 import Prelude
 import Data.Functor                 ((<&>))

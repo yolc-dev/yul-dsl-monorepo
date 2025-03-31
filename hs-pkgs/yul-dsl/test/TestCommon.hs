@@ -2,7 +2,6 @@ module TestCommon where
 -- eth-abi
 import Ethereum.ContractABI.Arbitrary ()
 --
-import YulDSL.Core.YulCat             (Fn)
 import YulDSL.Core.YulEffect
 
 
@@ -12,13 +11,10 @@ import YulDSL.Core.YulEffect
 
 data TestEffectKind = Pure | NonPure
 
-instance KnownYulCatEffect Pure where classifyYulCatEffect = PureEffect
+instance ClassifiedYulCatEffect Pure where classifyYulCatEffect = PureEffect
 
 type instance IsEffectNotPure Pure = False
 type instance MayEffectWorld  Pure = False
 
 type instance IsEffectNotPure NonPure = True
 type instance MayEffectWorld  NonPure = True
-
--- | Function without side effects, hence pure.
-type PureFn = Fn Pure

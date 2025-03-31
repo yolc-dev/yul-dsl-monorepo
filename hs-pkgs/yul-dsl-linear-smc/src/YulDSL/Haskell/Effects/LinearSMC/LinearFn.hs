@@ -38,20 +38,22 @@ import YulDSL.Haskell.Effects.LinearSMC.YulPort
 ------------------------------------------------------------------------------------------------------------------------
 
 data StaticFn f where
-  MkStaticFn :: forall (eff :: LinearEffectKind) f.
-                ( KnownYulCatEffect eff, AssertStaticEffect eff
-                ) => Fn eff f ⊸ StaticFn f
+  MkStaticFn :: forall (eff :: LinearEffectKind) f xs b.
+                ( ClassifiedYulCatEffect eff, AssertStaticEffect eff
+                , EquivalentNPOfFunction f xs b
+                ) => NamedYulCat eff (NP xs) b ⊸ StaticFn f
 
-instance ClassifiedFn StaticFn StaticEffect where
-  withClassifiedFn g (MkStaticFn f) = g f
+instance EquivalentNPOfFunction f xs b => ClassifiedYulCat (StaticFn f) StaticEffect (NP xs) b where
+  withClassifiedYulCat (MkStaticFn f) g = g f
 
 data OmniFn f where
-  MkOmniFn :: forall (eff :: LinearEffectKind) f.
-              ( KnownYulCatEffect eff, AssertOmniEffect eff
-              ) => Fn eff f ⊸ OmniFn f
+  MkOmniFn :: forall (eff :: LinearEffectKind) f xs b.
+              ( ClassifiedYulCatEffect eff, AssertOmniEffect eff
+              , EquivalentNPOfFunction f xs b
+              ) => NamedYulCat eff (NP xs) b ⊸ OmniFn f
 
-instance ClassifiedFn OmniFn OmniEffect where
-  withClassifiedFn g (MkOmniFn f) = g f
+instance EquivalentNPOfFunction f xs b => ClassifiedYulCat (OmniFn f) OmniEffect (NP xs) b where
+  withClassifiedYulCat (MkOmniFn f) g = g f
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Constructible Linear Functions
@@ -69,18 +71,18 @@ class ConstructibleLinearFn fn (ie :: PortEffect) (oe :: PortEffect) where
     fn f
 
 instance ConstructibleLinearFn StaticFn (VersionedPort 0) (VersionedPort 0) where
-  lfn' cid f = MkStaticFn (MkFn (cid, decode'l f))
+  lfn' cid f = MkStaticFn (cid, decode'l f)
 
 instance ConstructibleLinearFn StaticFn PurePort (VersionedPort 0) where
-  lfn' cid f = MkStaticFn (MkFn (cid, decode'l f))
+  lfn' cid f = MkStaticFn (cid, decode'l f)
 
 instance (KnownNat vd, AssertOmniEffect (VersionedInputOutput vd)) =>
          ConstructibleLinearFn OmniFn (VersionedPort 0) (VersionedPort vd) where
-  lfn' cid f = MkOmniFn (MkFn (cid, decode'l f))
+  lfn' cid f = MkOmniFn (cid, decode'l f)
 
 instance (KnownNat vd, AssertOmniEffect (PureInputVersionedOutput vd)) =>
          ConstructibleLinearFn OmniFn PurePort (VersionedPort vd) where
-  lfn' cid f = MkOmniFn (MkFn (cid, decode'l f))
+  lfn' cid f = MkOmniFn (cid, decode'l f)
 
 -- | Create a curruying linear function with pure input ports.
 lfn :: TH.Q TH.Exp
@@ -96,7 +98,7 @@ instance forall f x xs b g r.
          , CurriableNP g xs b (P'P r) (P'P r) (YulCat'LPP r ()) One
          ) =>
          CallableFunctionNP PureFn f x xs b (P'P r) (P'P r) One where
-  call (MkPureFn (MkFn f')) x =
+  call (MkPureFn f') x =
     let !(x', u) = mkUnit'l x
     in curryNP @g @xs @b @(P'P r) @(P'P r) @(YulCat'LPP r ()) @One
        \(MkYulCat'LPP fxs) -> encodeWith'l id (YulJmpU f') (consNP x' (fxs u))
@@ -108,7 +110,7 @@ instance forall f x xs b va g r.
          ) =>
          CallableFunctionNP PureFn f x xs b (P'V va r) (P'V va r) One where
   call (MkPureFn f) x =
-    let f' = unFn (unsafeCoerceFn f :: Fn (VersionedInputOutput 0) f)
+    let f' = unsafeCoerceNamedYulCat f :: NamedYulCat (VersionedInputOutput 0) (NP (x:xs)) b
         !(x', u) = mkUnit'l x
     in curryNP @g @xs @b @(P'V va r) @(P'V va r) @(YulCat'LVV va va r ()) @One
        \(MkYulCat'LVV fxs) -> encodeWith'l id (YulJmpU f') (consNP x' (fxs u))
@@ -119,25 +121,24 @@ instance forall f x xs b va g r.
          , CurriableNP g xs b (P'V va r) (P'V va r) (YulCat'LVV va va r ()) One
          ) =>
          CallableFunctionNP StaticFn f x xs b (P'V va r) (P'V va r) One where
-  call (MkStaticFn f) = call (MkPureFn (unsafeCoerceFn f))
+  call (MkStaticFn f) = call (MkPureFn (unsafeCoerceNamedYulCat f))
 
 --
 -- ycall
 --
 
 class YulMonadCallableFunctionNP fn vd | fn -> vd where
-  ycall :: forall f xs x b va vb g r fncls.
+  ycall :: forall xs x b va vb g r fncls.
     ( YulO4 x (NP xs) b r
     , va + vd ~ vb
-    , ClassifiedFn fn fncls
-    , EquivalentNPOfFunction f (x:xs) b
+    , ClassifiedYulCat fn fncls (NP (x:xs)) b
     , CurriableNP g xs (P'V vb r b) (P'V va r) (YulMonad va vb r) (YulCat'LVV va va r ()) One
     ) =>
-    fn f ->
+    fn ->
     P'V va r x ⊸
     LiftFunction (CurryNP (NP xs) (P'V vb r b)) (P'V va r) (YulMonad va vb r) One
   ycall f x =
-    let f' = unFn (withClassifiedFn unsafeCoerceFn f :: Fn (VersionedInputOutput vd) f)
+    let f' = withClassifiedYulCat f unsafeCoerceNamedYulCat :: NamedYulCat (VersionedInputOutput vd) (NP (x:xs)) b
         !(x', u) = mkUnit'l x
     in curryNP @g @xs @(P'V vb r b) @(P'V va r) @(YulMonad va vb r) @(YulCat'LVV va va r ()) @One
        \(MkYulCat'LVV fxs) -> encodeWith'l
@@ -145,9 +146,9 @@ class YulMonadCallableFunctionNP fn vd | fn -> vd where
                               (YulJmpU f')
                               $ consNP x' (fxs u)
 
-instance YulMonadCallableFunctionNP PureFn 0
-instance YulMonadCallableFunctionNP StaticFn 0
-instance YulMonadCallableFunctionNP OmniFn 1
+instance YulMonadCallableFunctionNP (PureFn f) 0
+instance YulMonadCallableFunctionNP (StaticFn f) 0
+instance YulMonadCallableFunctionNP (OmniFn f) 1
 
 --
 -- ycall0
@@ -157,16 +158,16 @@ class YulMonadCallableFunctionNil fn vd | fn -> vd where
   ycall0' :: forall va r b fncls.
     ( YulO2 b r
     , EquivalentNPOfFunction b '[] b
-    , ClassifiedFn fn fncls
+    , ClassifiedYulCat fn fncls (NP '[]) b
     ) =>
-    fn b -> (P'V va r () ⊸ YulMonad va (va + vd) r (P'V (va + vd) r b))
+    fn -> (P'V va r () ⊸ YulMonad va (va + vd) r (P'V (va + vd) r b))
   ycall0' f u =
-    let f' = unFn (withClassifiedFn unsafeCoerceFn f :: Fn (VersionedInputOutput vd) b)
+    let f' = withClassifiedYulCat f unsafeCoerceNamedYulCat :: NamedYulCat (VersionedInputOutput vd) (NP '[]) b
     in encodeWith'l (LVM.unsafeCoerceLVM . ypure) (YulJmpU f') (coerceType'l u)
 
-instance YulMonadCallableFunctionNil PureFn 0
-instance YulMonadCallableFunctionNil StaticFn 0
-instance YulMonadCallableFunctionNil OmniFn 1
+instance YulMonadCallableFunctionNil (PureFn f) 0
+instance YulMonadCallableFunctionNil (StaticFn f) 0
+instance YulMonadCallableFunctionNil (OmniFn f) 1
 
 ycall0 :: TH.Q TH.Exp
 ycall0 = [| \f -> yembed () LVM.>>= \u -> ycall0' f u |]
@@ -178,17 +179,17 @@ ycall0 = [| \f -> yembed () LVM.>>= \u -> ycall0' f u |]
 class YulMonadCallableFunctionN fn f xs b r va vd | fn -> vd where
   ycallN :: forall fncls.
     ( YulO3 (NP xs) b r
-    , ConvertibleNPtoTupleN (NP (MapList (P'V va r) xs))
-    , ClassifiedFn fn fncls
     , EquivalentNPOfFunction f xs b
+    , ConvertibleNPtoTupleN (NP (MapList (P'V va r) xs))
+    , ClassifiedYulCat fn fncls (NP xs) b
     ) =>
-    fn f ->
+    fn ->
     NPtoTupleN (NP (MapList (P'V va r) xs)) ⊸
     YulMonad va (va + vd) r (P'V (va + vd) r b)
 
-instance YulMonadCallableFunctionN PureFn b '[] b r va 0 where
+instance YulMonadCallableFunctionN (PureFn b) b '[] b r va 0 where
   ycallN (MkPureFn f) () =
-    let f' = unFn (unsafeCoerceFn f :: Fn (VersionedInputOutput 0) b)
+    let f' = unsafeCoerceNamedYulCat f :: NamedYulCat (VersionedInputOutput 0) (NP '[]) b
     in yembed () LVM.>>=
        \u -> encodeWith'l ypure (YulJmpU f') (coerceType'l u)
 
@@ -196,31 +197,30 @@ instance forall f x xs b r va.
          ( YulO2 x (NP xs)
          , DistributiveNP (P'V va r) (x:xs)
          ) =>
-         YulMonadCallableFunctionN PureFn f (x:xs) b r va 0 where
+         YulMonadCallableFunctionN (PureFn f) f (x:xs) b r va 0 where
   ycallN (MkPureFn f) tpl =
-    let f' = unFn (unsafeCoerceFn f :: Fn (VersionedInputOutput 0) f)
+    let f' = unsafeCoerceNamedYulCat f :: NamedYulCat (VersionedInputOutput 0) (NP (x:xs)) b
         xxs = distributeNP (fromTupleNtoNP tpl) :: P'V va r (NP (x:xs))
     in ypure (encodeWith'l id (YulJmpU f') xxs)
 
-instance YulMonadCallableFunctionN PureFn f xs b r va 0 =>
-         YulMonadCallableFunctionN StaticFn f xs b r va 0 where
-  ycallN (MkStaticFn f) = ycallN (MkPureFn (unsafeCoerceFn f))
+instance YulMonadCallableFunctionN (PureFn f) f xs b r va 0 =>
+         YulMonadCallableFunctionN (StaticFn f) f xs b r va 0 where
+  ycallN (MkStaticFn f) = ycallN (MkPureFn (unsafeCoerceNamedYulCat f))
 
-instance YulMonadCallableFunctionN OmniFn b '[] b r va 1 where
+instance YulMonadCallableFunctionN (OmniFn b) b '[] b r va 1 where
   ycallN (MkOmniFn f) () =
-    let f' = unFn (unsafeCoerceFn f :: Fn (VersionedInputOutput 1) b)
+    let f' = unsafeCoerceNamedYulCat f :: NamedYulCat (VersionedInputOutput 1) (NP '[]) b
     in yembed () LVM.>>=
        \u -> encodeWith'l (LVM.unsafeCoerceLVM . ypure) (YulJmpU f') (coerceType'l u)
 
 instance forall f x xs b r va.
          ( YulO4 x (NP xs) b r
-         , EquivalentNPOfFunction f (x:xs) b
          , DistributiveNP (P'V va r) (x:xs)
          , ConvertibleNPtoTupleN (NP (MapList (P'V va r) (x:xs)))
          ) =>
-         YulMonadCallableFunctionN OmniFn f (x:xs) b r va 1 where
+         YulMonadCallableFunctionN (OmniFn f) f (x:xs) b r va 1 where
   ycallN (MkOmniFn f) tpl =
-    let f' = unFn (unsafeCoerceFn f :: Fn (VersionedInputOutput 1) f)
+    let f' = unsafeCoerceNamedYulCat f :: NamedYulCat (VersionedInputOutput 1) (NP (x:xs)) b
         xxs = distributeNP (fromTupleNtoNP tpl) :: P'V va r (NP (x:xs))
     in (LVM.unsafeCoerceLVM . ypure) (encodeWith'l id (YulJmpU f') xxs)
 

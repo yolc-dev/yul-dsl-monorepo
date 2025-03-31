@@ -24,11 +24,8 @@ safety to the practice of EVM programming.
 -}
 module YulDSL.Core.YulCat
   ( -- * YulCat, the Categorical DSL of Yul
-    YulCat (..), NamedYulCat, AnyYulCat (..)
-    -- * YulCat Function Forms: Y and Fn
-  , Y
-  , NamedYulCatNP, Fn (MkFn, unFn), ClassifiedFn (withClassifiedFn), unsafeCoerceFn
-  , ExternalFn (MkExternalFn), declareExternalFn
+    YulCat (..), AnyYulCat (..)
+  , NamedYulCat, ClassifiedYulCat (withClassifiedYulCat), unsafeCoerceNamedYulCat
   -- * YulCat Stringify Functions
   , yulCatCompactShow, yulCatToUntypedLisp, yulCatFingerprint
   ) where
@@ -61,11 +58,11 @@ import YulDSL.StdBuiltIns.ValueType ()
 -- | Use kind signature for the 'YulCat' to introduce the terminology in a lexical-orderly way.
 type YulCat :: forall effKind. effKind -> Type -> Type -> Type
 
--- | Named YulCat morphism.
-type NamedYulCat eff a b = (String, YulCat eff a b)
-
 -- | Existential wrapper of the 'YulCat'.
 data AnyYulCat = forall eff a b. (YulO2 a b) => MkAnyYulCat (YulCat eff a b)
+
+-- | Named YulCat morphism.
+type NamedYulCat eff a b = (String, YulCat eff a b)
 
 -- | A GADT-style DSL of Yul that constructs morphisms between objects (YulCatObj) of the "Yul Category".
 --
@@ -127,52 +124,21 @@ data YulCat eff a b where
   YulUnsafeCoerceEffect :: forall k1 k2 (eff1 :: k1) (eff2 :: k2) a b. YulO2 a b =>
     YulCat eff1 a b %1-> YulCat eff2 a b
 
-------------------------------------------------------------------------------------------------------------------------
--- YulCat Function Forms: Y and Fn
-------------------------------------------------------------------------------------------------------------------------
+-- | Yul morphisms with classified effect.
+class ClassifiedYulCat fn (efc :: YulCatEffectClass) a b | fn -> efc a b where
+  -- | Process the named YulCat morphism with its classified effect enclosed within a continuation.
+  --
+  -- The law of sound classification:
+  -- @ fromSYulCatEffectClass (yulCatEffectClassSing @efc) == classifyYulCatEffect @eff @
+  withClassifiedYulCat :: forall r.
+    fn ->
+    (forall k (eff :: k). ClassifiedYulCatEffect eff => NamedYulCat eff a b -> r) %1->
+    r
 
--- | 'YulCat' n-ary function form, with each morphism on the arrow sharing the same domain @a@.
-type Y eff f = forall a. YulO1 a => LiftFunction f (YulCat eff a) (YulCat eff a) Many
-
--- | Named YulCat morphism with its domain in @NP xs@.
-type NamedYulCatNP eff xs b = NamedYulCat eff (NP xs) b
-
--- | 'Fn' is a 'NamedYulCatNP' wrapper with a function signature @f@.
-data Fn eff f where
-  MkFn :: forall k (eff :: k) f xs b.
-    ( EquivalentNPOfFunction f xs b
-    , YulO2 (NP xs) b
-    ) =>
-    { unFn :: NamedYulCatNP eff (UncurryNP'Fst f) (UncurryNP'Snd f) } ->
-    Fn eff f
-
--- | YulCat Fn with classified effect.
-class ClassifiedFn fn (efc :: YulCatEffectClass) | fn -> efc where
-  -- | Process the classified YulCat Fn with a continuation.
-  withClassifiedFn :: forall f r. (forall k (eff :: k). KnownYulCatEffect eff => Fn eff f -> r) %1-> fn f -> r
-
--- | Unsafely convert between yul functions of different effects.
-unsafeCoerceFn :: forall eff1 eff2 f xs b.
-  ( EquivalentNPOfFunction f xs b
-  , YulO2 b (NP xs)
-  ) =>
-  Fn eff1 f -> Fn eff2 f
-unsafeCoerceFn f = let (n, cat) = unFn f in MkFn (n, YulUnsafeCoerceEffect cat)
-
--- TODO: removed
-
--- | External contract functions that can be called via its selector.
-data ExternalFn f where
-  MkExternalFn :: forall f xs b. EquivalentNPOfFunction f xs b => SELECTOR -> ExternalFn f
-
--- | Create a 'ExternalFn' value by providing its function name function form @f@.
-declareExternalFn :: forall f xs b.
-                     ( EquivalentNPOfFunction f xs b
-                     , YulO2 (NP xs) b
-                     )
-                  => String -> ExternalFn f
-declareExternalFn fname = MkExternalFn (mkTypedSelector @(NP xs) fname)
-
+-- | Unsafely convert between yul morphisms of different effects.
+unsafeCoerceNamedYulCat :: forall eff1 eff2 a b. YulO2 a b  =>
+  NamedYulCat eff1 a b -> NamedYulCat eff2 a b
+unsafeCoerceNamedYulCat (n, cat) = (n, YulUnsafeCoerceEffect cat)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- SimpleNP Instances
@@ -199,48 +165,6 @@ instance (YulO3 x (NP xs) r, TraversableNP (YulCat eff r) xs) =>
          TraversableNP (YulCat eff r) (x:xs)
 instance (YulO3 x (NP xs) r, DistributiveNP (YulCat eff r) xs) =>
          DistributiveNP (YulCat eff r) (x:xs)
-
---
--- UncurriableNP instances
---
-
--- ^ Base case: @uncurryingNP (x) => NP '[] -> x@
-instance forall b r eff.
-         ( YulO2 b r
-         , EquivalentNPOfFunction b '[] b
-         , LiftFunction b (YulCat eff r) (YulCat eff r) Many ~ YulCat eff r b
-         ) =>
-         UncurriableNP b '[] b (YulCat eff r) (YulCat eff r) (YulCat eff r) (YulCat eff r) Many where
-  uncurryNP b _ = b
-
--- ^ Inductive case: @uncurryingNP (x -> ...xs -> b) => (x, uncurryingNP (... xs -> b)) => NP (x:xs) -> b@
-instance forall g x xs b r eff.
-         ( YulO4 x (NP xs) b r
-         , UncurriableNP g xs b (YulCat eff r) (YulCat eff r) (YulCat eff r) (YulCat eff r) Many
-         ) =>
-         UncurriableNP (x -> g) (x:xs) b (YulCat eff r) (YulCat eff r) (YulCat eff r) (YulCat eff r) Many where
-  uncurryNP f xxs = let (x, xs) = unconsNP xxs in uncurryNP @g @xs @b @(YulCat eff r) @(YulCat eff r) (f x) xs
-
---
--- CurriableNP instances
---
-
--- ^ Base case: @curryingNP (NP '[] -> b) => b@
-instance forall b r eff.
-         ( YulO2 b r
-         , EquivalentNPOfFunction b '[] b
-         , LiftFunction b (YulCat eff r) (YulCat eff r) Many ~ YulCat eff r b
-         ) =>
-         CurriableNP b '[] b (YulCat eff r) (YulCat eff r) (YulCat eff r) Many where
-  curryNP fNP = fNP (YulReduceType `YulComp` YulDis)
-
--- ^ Inductive case: @curryingNP (NP (x:xs) -> b) => x -> curryingNP (NP xs -> b)@
-instance forall g x xs b r eff.
-         ( YulO5 x (NP xs) b (NP (x:xs)) r
-         , CurriableNP g xs b (YulCat eff r) (YulCat eff r) (YulCat eff r) Many
-         ) =>
-         CurriableNP (x -> g) (x:xs) b (YulCat eff r) (YulCat eff r) (YulCat eff r) Many where
-  curryNP fNP x = curryNP @g @xs @b @(YulCat eff r) @(YulCat eff r) (fNP . consNP x)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Base Library Instances
@@ -343,7 +267,6 @@ yulCatFingerprint = concatMap (printf "%02x") . BS.unpack . BA.convert . hash . 
 
 instance Show (YulCat eff a b) where show = yulCatCompactShow
 deriving instance Show AnyYulCat
-deriving instance Show (Fn eff f)
 
 --
 -- Num Instance

@@ -1,6 +1,8 @@
 import Test.Hspec
 
-import Fn_tests qualified
+import Data_Type_Function_t qualified
+import Fn_t qualified
 
 main = hspec $ do
-  Fn_tests.tests
+  Data_Type_Function_t.tests
+  Fn_t.tests

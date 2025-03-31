@@ -18,10 +18,8 @@ import GHC.TypeLits                             (KnownNat, type (+))
 import Prelude                                  qualified as BasePrelude
 -- linear-base
 import Prelude.Linear
--- yul-dsl
-import YulDSL.Core
 -- yul-dsl-pure
-import YulDSL.Haskell.LibPure                   (PureEffectKind (Pure))
+import YulDSL.Haskell.LibPure
 --
 import YulDSL.Haskell.Effects.LinearSMC.YulPort
 
@@ -53,10 +51,10 @@ type instance IsEffectNotPure (eff :: LinearEffectKind) = True
 type instance MayEffectWorld (VersionedInputOutput vd) = IsLinearEffectNonStatic vd
 type instance MayEffectWorld (PureInputVersionedOutput vd) = IsLinearEffectNonStatic vd
 
-instance KnownNat vd => KnownYulCatEffect (VersionedInputOutput vd) where
+instance KnownNat vd => ClassifiedYulCatEffect (VersionedInputOutput vd) where
   classifyYulCatEffect = if fromSNat (natSing @vd) BasePrelude.== 0 then StaticEffect else OmniEffect
 
-instance KnownNat vd => KnownYulCatEffect (PureInputVersionedOutput vd) where
+instance KnownNat vd => ClassifiedYulCatEffect (PureInputVersionedOutput vd) where
   classifyYulCatEffect = if fromSNat (natSing @vd) BasePrelude.== 0 then StaticEffect else OmniEffect
 
 ------------------------------------------------------------------------------------------------------------------------

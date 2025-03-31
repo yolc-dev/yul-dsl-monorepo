@@ -39,7 +39,6 @@ library
     Data.SimpleNP
     Data.TupleN.TH
     Data.TupleN
-    Data.Type.Function
 
 Test-Suite test-simple-sop
   import:           basic-options
@@ -51,6 +50,5 @@ Test-Suite test-simple-sop
   -- modules
   other-modules:
     KnownBool
-    FunctionType_test
     TupleN_test
   main-is: Main.hs

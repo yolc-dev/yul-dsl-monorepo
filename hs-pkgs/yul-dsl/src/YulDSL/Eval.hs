@@ -12,7 +12,6 @@ This module provides an evaluator for YulDSL.
 -}
 
 module YulDSL.Eval where
-
 -- base
 import Data.Maybe               (fromJust)
 import GHC.Stack                (HasCallStack)
@@ -26,6 +25,7 @@ import Ethereum.ContractABI
 import YulDSL.Core.YulBuiltIn   (yulB_eval)
 import YulDSL.Core.YulCat
 import YulDSL.Core.YulCatObj
+
 
 newtype EvalData = MkEvalData { store_map :: M.Map B32 WORD
                               }
@@ -74,10 +74,9 @@ evalYulCat' (YulUnsafeCoerceEffect c) a = evalYulCat' c a
 evalYulCat :: YulO2 a b => YulCat eff a b -> a -> b
 evalYulCat s a = evalState (evalYulCat' s a) initEvalState
 
-evalFn :: forall fn f xs b efc.
+evalFn :: forall fn efc xs b.
           ( YulO2 (NP xs) b
-          , EquivalentNPOfFunction f xs b
-          , ClassifiedFn fn efc
+          , ClassifiedYulCat fn efc (NP xs) b
           )
-       => fn f -> NP xs -> b
-evalFn = withClassifiedFn (evalYulCat . snd . unFn)
+       => fn -> NP xs -> b
+evalFn fn = withClassifiedYulCat fn (evalYulCat . snd)

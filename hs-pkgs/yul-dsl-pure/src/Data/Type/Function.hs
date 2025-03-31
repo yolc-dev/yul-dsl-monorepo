@@ -27,12 +27,9 @@ module Data.Type.Function
   , UncurriableNP (uncurryNP)
   , CurriableNP (curryNP)
   , CallableFunctionNP (call), CallableFunctionN (callN, (<$*>))
-  -- re-export multiplicity types
-  , Multiplicity (Many, One)
   ) where
 -- base
 import Data.Kind     (Type)
-import GHC.Base      (Multiplicity (..))
 --
 import Data.SimpleNP
 import Data.TupleN

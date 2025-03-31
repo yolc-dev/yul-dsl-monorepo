@@ -1,5 +1,5 @@
 {-# LANGUAGE LinearTypes #-}
-module FunctionType_test where
+module Data_Type_Function_t where
 
 -- base
 import Data.Functor.Identity (Identity)
@@ -9,7 +9,7 @@ import Test.Hspec
 --
 import Data.SimpleNP
 import Data.Type.Function
-import KnownBool
+import TestCommon
 
 
 test_tf_lift_function_examples = and

@@ -38,7 +38,7 @@ CABAL_COVERAGE = $(CABAL) --builddir=$(TEST_COVERAGE_BUILDDIR) -O0 -j coverage
 export YOLC_DEBUG_LEVEL ?= 0
 
 # Misc
-DEV_TARGETS = build-all-yuldsl-modules test-yol-suite test-demo-foundry lint
+DEV_TARGETS = build-all-yuldsl-modules test-all test-demo-foundry lint
 
 ########################################################################################################################
 # TARGETS
@@ -75,27 +75,27 @@ build-patches: $(LINEAR_SMC_PATH_FILE)
 clean:
 	rm -rf build cache out dist-*
 
-test: test-all-modules test-yol-suite test-demo
+test: test-all test-yol-suite test-demo
 
-test-all-yuldsl-modules:
-	$(CABAL_TEST) $(ALL_YULDSL_MODULES)
+test-all:
+	$(CABAL_TEST) all
 
 test-module-%:
 	$(CABAL_TEST) $*
 
-test-yol-suite: test-all-yuldsl-modules
+test-yol-suite:
 	yolc -fm yul hs-pkgs/yol-suite/testsuite
 	cd hs-pkgs/yol-suite/testsuite && forge test -vvv
 
 test-demo: test-demo-show test-demo-yul test-demo-foundry
 
-test-demo-show: test-all-yuldsl-modules
+test-demo-show:
 	time yolc -fm show "examples/demo:ERC20"
 
-test-demo-yul: test-all-yuldsl-modules
+test-demo-yul:
 	time yolc -fm yul "examples/demo:ERC20"
 
-test-demo-foundry: test-all-yuldsl-modules
+test-demo-foundry:
 	time yolc -fm yul "examples/demo"
 	cd examples/demo && forge test -vvv
 

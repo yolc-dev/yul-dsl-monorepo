@@ -8,14 +8,17 @@ module YulDSL.Haskell.LibPure
   , module Control.IfThenElse
   , module Control.PatternMatchable
   , module Data.MPOrd
+  , module Data.Type.Function
   -- * Re-exports
   , Solo (MkSolo)
   ) where
+-- base
 import Data.Tuple                      (Solo (MkSolo))
 -- (data-control-extra)
 import Control.IfThenElse
 import Control.PatternMatchable
 import Data.MPOrd
+import Data.Type.Function
 -- yul-dsl
 import YulDSL.Core
 --

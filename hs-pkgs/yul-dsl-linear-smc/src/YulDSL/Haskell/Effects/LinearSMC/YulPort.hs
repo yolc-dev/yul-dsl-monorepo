@@ -19,12 +19,10 @@ import Prelude.Linear
 import Unsafe.Linear                       qualified as UnsafeLinear
 -- linear-smc
 import Control.Category.Linear             (P, copy, decode, discard, encode, ignore, merge, mkUnit, split)
--- yul-dsl
-import YulDSL.Core
-import YulDSL.StdBuiltIns.ValueType        ()
+-- yul-dsl-pure
+import YulDSL.Haskell.LibPure
 --
 import Control.Category.Constrained.YulDSL ()
-import Data.MPOrd
 
 
 ------------------------------------------------------------------------------------------------------------------------

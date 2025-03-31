@@ -1,7 +1,8 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 module YulDSL.Core.YulEffect
   ( IsEffectNotPure, MayEffectWorld
-  , YulCatEffectClass (..), KnownYulCatEffect (classifyYulCatEffect)
+  , YulCatEffectClass (..), SYulCatEffectClass, KnownYulCatEffectClass(yulCatEffectClassSing, fromSYulCatEffectClass)
+  , ClassifiedYulCatEffect (classifyYulCatEffect)
   , AssertPureEffect, AssertNonPureEffect, AssertStaticEffect, AssertOmniEffect, IsNonsenseEffect
   ) where
 -- base
@@ -24,8 +25,20 @@ data YulCatEffectClass
   | OmniEffect
   deriving (Eq, Show)
 
+-- | Singleton data for yul category effect classifications.
+data SYulCatEffectClass (efc :: YulCatEffectClass) = SYulCatEffectClass
+
+-- | Singleton type class for yul category effect classification
+class KnownYulCatEffectClass (efc :: YulCatEffectClass) where
+  yulCatEffectClassSing :: SYulCatEffectClass efc
+  yulCatEffectClassSing = SYulCatEffectClass @efc
+  fromSYulCatEffectClass :: SYulCatEffectClass efc -> YulCatEffectClass
+instance KnownYulCatEffectClass PureEffect where fromSYulCatEffectClass _ = PureEffect
+instance KnownYulCatEffectClass StaticEffect where fromSYulCatEffectClass _ = StaticEffect
+instance KnownYulCatEffectClass OmniEffect where fromSYulCatEffectClass _ = OmniEffect
+
 -- | Singleton class for YulCat effect classification.
-class KnownYulCatEffect eff where
+class ClassifiedYulCatEffect (eff :: k) where
   -- | Create classification data for known yul effect.
   classifyYulCatEffect :: YulCatEffectClass
 

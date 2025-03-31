@@ -43,7 +43,6 @@ library
     text >= 2.0.1,
     containers >= 0.6.7,
     mtl >= 2.3.1,
-    simple-sop,
     eth-abi
   -- modules
   exposed-modules:

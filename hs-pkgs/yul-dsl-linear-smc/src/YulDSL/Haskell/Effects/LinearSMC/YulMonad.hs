@@ -14,10 +14,8 @@ module YulDSL.Haskell.Effects.LinearSMC.YulMonad
 -- linear-base
 import Control.Functor.Linear qualified
 import Prelude.Linear
--- yul-dsl
-import YulDSL.Core
 -- yul-dsl-pure
-import YulDSL.Haskell.Effects.Pure
+import YulDSL.Haskell.LibPure
 -- linearly-versioned-monad
 import Control.LinearlyVersionedMonad                (LVM, runLVM)
 import Control.LinearlyVersionedMonad                qualified as LVM
