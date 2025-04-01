@@ -150,7 +150,7 @@ fn' cid f = let cat = uncurryNP @f @xs @b @m @m @m @m f YulId in MkPureFn (cid, 
 
 -- | Create a 'PureFn' with automatic id based on function definition source location.
 fn :: TH.Q TH.Exp
-fn = [e| fn' $fnLocId |]
+fn = [e| fn' ("$pfn_" ++ $fnLocId) |]
 
 instance forall f x xs b g a.
          ( YulO4 x (NP xs) b a
