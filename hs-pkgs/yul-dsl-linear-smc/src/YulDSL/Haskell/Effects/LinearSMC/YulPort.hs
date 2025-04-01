@@ -338,5 +338,5 @@ do
                       :: $(BasePrelude.pure m) $(tupleNFromVarsT as)
                 mxs_' = reduceType'l mxs_
             in (extendType'l . coerceType'l . merge'l) ($(TH.varE x), mxs_')
-      |]) [4..4]
+      |]) [4..15]
   BasePrelude.pure (concat insts)
