@@ -1,4 +1,5 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell        #-}
+{-# LANGUAGE TypeFamilyDependencies #-}
 {-|
 
 Copyright   : (c) 2024-2025 Miao, ZhiCheng
@@ -41,13 +42,16 @@ do
   tfName <- TH.newName "TupleNtoNP"
   clsName <- TH.newName "FromTupleNtoNP"
   fnName <- TH.newName "fromTupleNtoNP"
-  -- type family TupleNtoNP t where
+
+  -- type family TupleNtoNP t = r | r -> t where
   --   TupleNtoNP () = NP '[]
   --   TupleNtoNP (Solo x) = NP '[x]
   --   TupleNtoNP (x1, x2) = NP '[x1, x2]
   tfDec <- do
     tfArg <- TH.newName "t"
-    TH.closedTypeFamilyD tfName [TH.plainTV tfArg] TH.noSig Nothing
+    tfResult <- TH.newName "r"
+    TH.closedTypeFamilyD tfName [TH.plainTV tfArg]
+      (TH.tyVarSig (TH.plainTV tfResult)) (Just (TH.injectivityAnn tfResult [tfArg]))
       ( map (\n -> do
                 xs <- replicateM n (TH.newName "x")
                 TH.tySynEqn Nothing
@@ -57,6 +61,7 @@ do
                   (TH.conT ''NP `TH.appT` promotedListFromVarsT xs)
             ) [0..64]
       )
+
   -- class FromTupleNPtoNP a where
   clsInstsDec <- do
     clsArg <- TH.newName "a"
@@ -82,6 +87,7 @@ do
                         ]
                  ) [0..64]
     pure $ cls : insts
+
   pure $ tfDec : clsInstsDec
 
 --
@@ -91,28 +97,25 @@ do
   tfName <- TH.newName "NPtoTupleN"
   clsName <- TH.newName "FromNPtoTupleN"
   fnName <- TH.newName "fromNPtoTupleN"
-  -- type family NPtoTupleN t where
+
+  -- type family NPtoTupleN t = r | r -> t where
   --   NPtoTupleN (NP '[]) = ()
-  --   NPtoTupleN (NP '[x]) = x -- We don't like Solo.
+  --   NPtoTupleN (NP '[x]) = (Solo x)
   --   NPtoTupleN (NP '[x1, x2]) = (x1, x2)
   tfDec <- do
     --x <- fmap TH.varT (TH.newName "x") -- for Solo
     tfArg <- TH.newName "t"
-    TH.closedTypeFamilyD tfName [TH.plainTV tfArg] TH.noSig Nothing $
-      -- Special equation for Solo
-      -- [ TH.tySynEqn Nothing
-      --   (TH.conT tfName `TH.appT`
-      --     (TH.conT ''NP `TH.appT` (TH.appT TH.promotedConsT x `TH.appT` TH.promotedNilT))
-      --   )
-      --   x
-      -- ] ++
-      -- Equations for unit, and 2+ tuples
-      map (\n -> do
-              xs <- replicateM n (TH.newName "x")
-              TH.tySynEqn Nothing
-                (TH.conT tfName `TH.appT` (TH.conT ''NP `TH.appT` promotedListFromVarsT xs))
-                (tupleNFromVarsT xs)
-          ) ([0..64])
+    tfResult <- TH.newName "r"
+    TH.closedTypeFamilyD tfName [TH.plainTV tfArg]
+      (TH.tyVarSig (TH.plainTV tfResult)) (Just (TH.injectivityAnn tfResult [tfArg]))
+      ( map (\n -> do
+                xs <- replicateM n (TH.newName "x")
+                TH.tySynEqn Nothing
+                  (TH.conT tfName `TH.appT` (TH.conT ''NP `TH.appT` promotedListFromVarsT xs))
+                  (tupleNFromVarsT xs)
+            ) ([0..64])
+      )
+
   -- class FromNPtoTupleN a where
   --   fromNPtoTupleN :: forall. a -> NPtoTupleN a
   clsInstsDec <- do
@@ -123,13 +126,6 @@ do
            [TH.sigD fnName (TH.mulArrowT `TH.appT` TH.varT pArg `TH.appT`
                             TH.varT clsArg `TH.appT`
                             (TH.conT tfName `TH.appT` TH.varT clsArg))]
-    -- special instance for Solo:
-    -- fromNPtoTupleN (x :* Nil) = x -- Not: (MkSolo s)
-    -- soloInst <- do
-    --   x <- TH.newName "x"
-    --   TH.instanceD (pure [])
-    --     (TH.conT clsName `TH.appT` (TH.conT ''NP `TH.appT` promotedListFromVarsT [x]))
-    --     [TH.funD fnName [TH.clause [np_p [x]] (TH.normalB $ TH.varE x) []]]
     insts <- mapM (\n -> do
                       xs <- replicateM n (TH.newName "x")
                       -- fromNPtoTupleN (x1 :* .. :* Nil) = (x1, ..)
@@ -138,6 +134,7 @@ do
                         [TH.funD fnName [ TH.clause [np_p xs] (TH.normalB $ TH.tupE $ map TH.varE xs) []]]
                   ) ([0..64])
     pure $ cls : insts
+
   pure $ tfDec : clsInstsDec
 
 -- | A constraint alias for TupleN types that are convertible to NP and vice versa.
