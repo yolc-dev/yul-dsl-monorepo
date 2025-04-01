@@ -8,30 +8,32 @@ LINEAR_SMC_PATH_FILE = 3rd-parties/linear-smc-$(LINEAR_SMC_VERSION).patch
 
 # Output directories
 DEFAULT_BUILDDIR ?= $(PWD)/build/default
-TEST_COVERAGE_BUILDDIR ?= $(PWD)/build/dist-coverage
+CABAL_TEST_COVERAGE_BUILDDIR ?= $(PWD)/build/dist-coverage
 
 # Build options
 BUILD_OPTIONS ?=
 
 # Test options
-TEST_SHOW_DETAILS_MODE ?= direct # alternatively: always | failure | never
-TEST_PROP_NUM_RUNS ?= 1000
-TEST_OPTIONS ?= \
-    --test-show-details=$(TEST_SHOW_DETAILS_MODE) \
-    --test-options="--maximum-generated-tests=$(TEST_PROP_NUM_RUNS)"
+CABAL_TEST_SHOW_DETAILS_MODE ?= direct # alternatively: always | failure | never
+CABAL_TEST_PROP_NUM_RUNS ?= 1000
+CABAL_TEST_OPTIONS ?= \
+    --test-show-details=$(CABAL_TEST_SHOW_DETAILS_MODE) \
+    --test-options="--maximum-generated-tests=$(CABAL_TEST_PROP_NUM_RUNS)"
 
-CABAL_VERBOSITY ?= 1
+FORGE_TEST_OPTIONS ?= -vv
 
 # Cabal flavors
+CABAL_VERBOSITY ?= 1
+
 CABAL ?= cabal -v$(CABAL_VERBOSITY)
 
 CABAL_PACKAGE_DB = $(shell $(CABAL) -v0 --builddir=$(DEFAULT_BUILDDIR) path --output-format=json | \
 										 jq -r '."store-dir" + "/" + .compiler.id + "-inplace/package.db"')
 
 CABAL_BUILD    = $(CABAL) --builddir=$(DEFAULT_BUILDDIR) -O0 -j build
-CABAL_TEST     = $(CABAL) --builddir=$(DEFAULT_BUILDDIR) -O0 -j test $(TEST_OPTIONS)
+CABAL_TEST     = $(CABAL) --builddir=$(DEFAULT_BUILDDIR) -O0 -j test $(CABAL_TEST_OPTIONS)
 CABAL_DOCS     = $(CABAL) --builddir=$(DEFAULT_BUILDDIR) -O0 -j haddock
-CABAL_COVERAGE = $(CABAL) --builddir=$(TEST_COVERAGE_BUILDDIR) -O0 -j coverage
+CABAL_COVERAGE = $(CABAL) --builddir=$(CABAL_TEST_COVERAGE_BUILDDIR) -O0 -j coverage
 
 # Yolc Options
 
@@ -97,7 +99,7 @@ test-demo-yul:
 
 test-demo-foundry:
 	time yolc -fm yul "examples/demo"
-	cd examples/demo && forge test -vvv
+	cd examples/demo && forge test $(FORGE_TEST_OPTIONS)
 
 dev:
 	nodemon -w hs-pkgs -w yol-demo -w examples -e "hs sol cabal" -i "#.*" -x "make $(DEV_TARGETS) || exit 1"
