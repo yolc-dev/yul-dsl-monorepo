@@ -1,9 +1,9 @@
 {-# LANGUAGE DefaultSignatures      #-}
 {-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE ViewPatterns           #-}
+{-# LANGUAGE LinearTypes            #-}
 {-|
 
-Copyright   : (c) 2024-2025 Miao, ZhiCheng
+Copyright   : (cs) 2024-2025 Miao, ZhiCheng
 License     : LGPL-3
 
 Maintainer  : hellwolf@yolc.dev
@@ -20,32 +20,32 @@ This module contains a set of generalized pattern type classes to match, view, a
 
 2. Use 'is' in `SingleCasePattern` as a view pattern function for single-cased matchable values.
 
-3. Use 'be' function in 'InjectivePattern' create the pattern @m p@ from a case of @c@.
+3. Use 'be' function in 'InjectivePattern' create the pattern @m pat@ from a case of @cs@.
 
-4. The context @m@ is used in the matchable value @m p@ and the case analysis result @m b@. Additionally the constraint
-@k@, with a functional dependency @m -> k@, applies to both @p@ and @b@.
+4. The context @m@ is used in the matchable value @m pat@ and the case analysis result @m b@. Additionally the constraint
+@k@, with a functional dependency @m -> k@, applies to both @pat@ and @b@.
 
-5. The cases @c@ has a functional dependency of @m p -> c@. It may or may not be similar to @p@. For example, cases for
+5. The cases @cs@ has a functional dependency of @m pat -> cs@. It may or may not be similar to @pat@. For example, cases for
 @m (Maybe a)@ can be @Just (m a)@ or @Nothing; while cases for @m BOOL@ could be the native boolean values.
 
-6. Use 'couldBe' function in 'PatternMatchable' only when @m p@ is clear from the context and 'InjectivePattern' is not
-available for 'c -> m p'.
+6. Use 'couldBe' function in 'PatternMatchable' only when @m pat@ is clear from the context and 'InjectivePattern' is not
+available for 'cs -> m pat'.
 
 == Apply Yoneda Embedding
 
 Many matchable values have more than one cases. Only the 'SingleCasePattern' instances have the @is@ function:
 
-  @is :: forall. m p -> c@
+  @is :: forall. m pat -> cs@
 
 However, by applying the yoneda embedding @forall x. (a -> x) -> (b -> x) ≅ b -> a@, we have a new function:
 
-  @m p -> c ≅ (c -> m b) -> (m p -> m b)@
+  @m pat -> cs ≅ (cs -> m b) -> (m pat -> m b)@
 
 By flipping the arguments of above function, we have the 'match' function:
 
   @
-  m p -> c ≅ (c -> m b) -> (m p -> m b) -- remove irrelevant pair of brackets; flip arguments.
-           ≅ m p -> (c -> m b) -> m b
+  m pat -> cs ≅ (cs -> m b) -> (m pat -> m b) -- remove irrelevant pair of brackets; flip arguments.
+           ≅ m pat -> (cs -> m b) -> m b
            ≅ match
   @
 
@@ -63,11 +63,11 @@ Thanks to parametricity, this is also a free theorem:
 
 >>> :type \pats -> match pats couldBe
 \pats -> match pats couldBe
-  :: forall {k1} {k2 :: k1 -> Constraint} {p :: k1} {b :: k1}
-            {m :: k1 -> *} {c}.
-     (k2 p, k2 b, PatternMatchable m k2 b c,
-      PatternMatchable m k2 p c) =>
-     m p -> m b
+  :: forall {k1} {k2 :: k1 -> Constraint} {pat :: k1} {b :: k1}
+            {m :: k1 -> *} {cs}.
+     (k2 pat, k2 b, PatternMatchable m k2 b cs,
+      PatternMatchable m k2 pat cs) =>
+     m pat -> m b
 -}
 module Control.PatternMatchable
   ( PatternMatchable (match, couldBe)
@@ -76,25 +76,25 @@ module Control.PatternMatchable
   ) where
 
 -- | Case analysis for pattern matchable values.
-class PatternMatchable m k p c | m -> k, m p -> c where
-  -- | Match the matchable value @m p@ with case analysis function @c -> m b@ that returns the same @m b@.
-  match :: forall b. (k p, k b) => m p -> (c -> m b) -> m b
-  -- ^ A special implementation of 'match' when @m p@ is a single case pattern.
-  default match :: forall b. (k p, k b, SingleCasePattern m k p c) => m p -> (c -> m b) -> m b
-  match (is -> c) f = f c
+class PatternMatchable m pat cs k p | m -> k p, m pat -> cs where
+  -- | Match the matchable value @m pat@ with case analysis function @cs -> m b@ that returns the same @m b@.
+  match :: forall b. (k pat, k b) => m pat %p -> (cs %p -> m b) %p -> m b
+  -- ^ A special implementation of 'match' when @m pat@ is a single case pattern.
+  default match :: forall b. (k pat, k b, SingleCasePattern m pat cs k p) => m pat %p -> (cs %p -> m b) %p -> m b
+  match mpat f = f (is mpat) -- TODO: view pattern doesn't allow
 
-  -- | Make a case @c@ that could be the matchable value.
-  couldBe :: forall. k p => c -> m p
+  -- | Make a case @cs@ that could be the matchable value.
+  couldBe :: forall. k pat => cs %p -> m pat
   -- ^ A special implementation of 'couldBe' when it is an injective pattern.
-  default couldBe :: forall. (k p, InjectivePattern m k p c) => c -> m p
+  default couldBe :: forall. (k pat, InjectivePattern m pat cs k p) => cs %p -> m pat
   couldBe = be
 
--- | A special case for PatternMatchable where a single case @c@ exists without being in the context of @m@.
-class PatternMatchable m k p c => SingleCasePattern m k p c | m -> k, m p -> c where
-  -- | Return @c@ outside of the context of @m@ as the single case of @m p@. This can be used as a view pattern.
-  is :: forall. k p => m p -> c
+-- | A special case for PatternMatchable where a single case @cs@ exists without being in the context of @m@.
+class PatternMatchable m pat cs k p => SingleCasePattern m pat cs k p | m -> k p, m pat -> cs where
+  -- | Return @cs@ outside of the context of @m@ as the single case of @m pat@. This can be used as a view pattern.
+  is :: forall. k pat => m pat %p -> cs
 
--- | An injective pattern that has a functional dependency of @c -> m p@.
-class PatternMatchable m k p c => InjectivePattern m k p c | m -> k, c -> m p where
-  -- | Make the case @c@ for @m p@.
-  be :: forall. k p => c -> m p
+-- | An injective pattern that has a functional dependency of @cs -> m pat@.
+class PatternMatchable m pat cs k p => InjectivePattern m pat cs k p | m -> k p, cs -> m pat where
+  -- | Make the case @cs@ for @m pat@.
+  be :: forall. k pat => cs %p -> m pat

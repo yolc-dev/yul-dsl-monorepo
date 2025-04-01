@@ -60,7 +60,7 @@ instance (YulO1 a, ValidINTx s n) => Num (YulCat eff a (Maybe (INTx s n))) where
 instance ( YulCat eff r ~ m
          , YulO1 r
          , ValidINTx s n ) =>
-         PatternMatchable (YulCat eff r) YulCatObj (Maybe (INTx s n)) (Maybe (m (INTx s n))) where
+         PatternMatchable (YulCat eff r) (Maybe (INTx s n)) (Maybe (m (INTx s n))) YulCatObj Many where
   match pats f =
     let bn = pats >.> YulReduceType >.> YulExtendType :: YulCat eff r (BOOL, INTx s n)
         b  = bn >.> YulExl
@@ -70,7 +70,7 @@ instance ( YulCat eff r ~ m
 instance ( YulCat eff r ~ m
          , YulO1 r
          , ValidINTx s n ) =>
-         InjectivePattern (YulCat eff r) YulCatObj (Maybe (INTx s n)) (Maybe (m (INTx s n))) where
+         InjectivePattern (YulCat eff r) (Maybe (INTx s n)) (Maybe (m (INTx s n))) YulCatObj Many where
   be = \case
     Just a  -> YulFork (yulEmb true) (a >.> YulReduceType)
                >.> YulReduceType

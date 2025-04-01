@@ -23,7 +23,7 @@ import Control.PatternMatchable
 -- SingleCasePattern instances
 --
 
-instance YulO1 r => SingleCasePattern (YulCat eff r) YulCatObj (NP '[]) (NP '[]) where
+instance YulO1 r => SingleCasePattern (YulCat eff r) (NP '[]) (NP '[]) YulCatObj Many where
   is _ =  Nil
 
 instance ( YulO3 x (NP xs) r
@@ -32,16 +32,16 @@ instance ( YulO3 x (NP xs) r
          , MapList m (x:xs) ~ mxxs
          , TraversableNP m (x:xs)
          , DistributiveNP m (x:xs)
-         , SingleCasePattern m YulCatObj (NP xs) (NP mxs)
+         , SingleCasePattern m (NP xs) (NP mxs) YulCatObj Many
          ) =>
-         SingleCasePattern (YulCat eff r) YulCatObj (NP (x:xs)) (NP mxxs) where
+         SingleCasePattern (YulCat eff r) (NP (x:xs)) (NP mxxs) YulCatObj Many where
   is = sequenceNP
 
 --
 -- PatternMatchable instances
 --
 
-instance YulO1 r => PatternMatchable (YulCat eff r) YulCatObj (NP '[]) (NP '[]) where
+instance YulO1 r => PatternMatchable (YulCat eff r) (NP '[]) (NP '[]) YulCatObj Many where
   couldBe = distributeNP
 
 instance ( YulO3 x (NP xs) r
@@ -50,7 +50,7 @@ instance ( YulO3 x (NP xs) r
          , MapList m (x:xs) ~ mxxs
          , DistributiveNP m (x:xs)
          , TraversableNP m (x:xs)
-         , SingleCasePattern m YulCatObj (NP xs) (NP mxs)
+         , SingleCasePattern m (NP xs) (NP mxs) YulCatObj Many
          ) =>
-         PatternMatchable (YulCat eff r) YulCatObj (NP (x:xs)) (NP mxxs) where
+         PatternMatchable (YulCat eff r) (NP (x:xs)) (NP mxxs) YulCatObj Many where
   couldBe = distributeNP
