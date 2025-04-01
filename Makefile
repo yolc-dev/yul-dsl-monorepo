@@ -40,7 +40,7 @@ CABAL_COVERAGE = $(CABAL) --builddir=$(CABAL_TEST_COVERAGE_BUILDDIR) -O0 -j cove
 export YOLC_DEBUG_LEVEL ?= 0
 
 # Misc
-DEV_TARGETS = build-all test-all test-demo-foundry lint
+DEV_TARGETS = build-all test-all test-yol-suite test-demo-foundry lint
 
 ########################################################################################################################
 # TARGETS
