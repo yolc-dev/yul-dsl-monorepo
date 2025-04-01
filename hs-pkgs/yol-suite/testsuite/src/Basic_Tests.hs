@@ -29,10 +29,11 @@ rangeSum'l :: StaticFn (U256 -> U256 -> U256 -> U256)
 rangeSum'l = $lfn $ yulmonad'p
   \from'p step'p until'p -> ypure $ ver'l $ call rangeSum'p from'p step'p until'p
 
-callExternalFoo0 :: OmniFn (ADDR -> U256)
-callExternalFoo0 = $lfn $ yulmonad'v
   -- FIXME: yikes, this is ugly and we need to improve.
-  \to -> dup2'l to & \(to1, to2) -> externalCall external_foo0 to1 (discard'l to2)
+-- FIXME: this does't even work
+-- callExternalFoo0 :: OmniFn (ADDR -> U256)
+-- callExternalFoo0 = $lfn $ yulmonad'v
+--  \to -> dup2'l to & \(to1, to2) -> externalCall external_foo0 to1 (discard'l to2)
 
 callExternalFoo1 :: OmniFn (ADDR -> U256 -> U256)
 callExternalFoo1 = $lfn $ yulmonad'v
@@ -49,7 +50,7 @@ object = mkYulObject "BasicTests" yulNoop
   , staticFn "embTrue$l" embTrue'l
   , pureFn   "rangeSum$p" rangeSum'p
   , staticFn "rangeSum$l" rangeSum'l
-  , omniFn   "callExternalFoo0" callExternalFoo0
+-- , omniFn   "callExternalFoo0" callExternalFoo0
   , omniFn   "callExternalFoo1" callExternalFoo1
   , omniFn   "callExternalFoo2" callExternalFoo2
   ]

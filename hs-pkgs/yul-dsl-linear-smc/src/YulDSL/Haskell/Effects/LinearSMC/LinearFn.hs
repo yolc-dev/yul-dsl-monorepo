@@ -251,7 +251,8 @@ externalCall (MkExternalFn sel) addr x =
                                $ go (consNP x' (fxs u))
   where go :: forall. P'x (VersionedPort v1) r (NP (x : xs)) ⊸ P'V v1 r b
         go args = let !(args', u) = mkUnit'l args
+                      !(gasLimit, value) = dup2'l (emb'l 0 u)
                   in encodeWith'l @(VersionedInputOutput 0) @(VersionedPort v1) @(VersionedPort v1)
                      id
                      (YulCall sel)
-                     (merge'l (merge'l (unsafeCoerceYulPort addr, emb'l 0 u), args'))
+                     (merge'l (be (unsafeCoerceYulPort addr, gasLimit, value), args'))

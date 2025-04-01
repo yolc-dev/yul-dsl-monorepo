@@ -25,6 +25,7 @@ safety to the practice of EVM programming.
 module YulDSL.Core.YulCat
   ( -- * YulCat, the Categorical DSL of Yul
     YulCat (..), AnyYulCat (..)
+  , YulCallTarget, YulCallGasLimit, YulCallValue
   , NamedYulCat, ClassifiedYulCat (withClassifiedYulCat), unsafeCoerceNamedYulCat
   -- * YulCat Stringify Functions
   , yulCatCompactShow, yulCatToUntypedLisp, yulCatFingerprint
@@ -64,6 +65,10 @@ data AnyYulCat = forall eff a b. (YulO2 a b) => MkAnyYulCat (YulCat eff a b)
 -- | Named YulCat morphism.
 type NamedYulCat eff a b = (String, YulCat eff a b)
 
+type YulCallTarget   = ADDR
+type YulCallGasLimit = U256
+type YulCallValue    = U256
+
 -- | A GADT-style DSL of Yul that constructs morphisms between objects (YulCatObj) of the "Yul Category".
 --
 --  Note: Unlike its moniker name "Cat" may suggest, the constructors of this data type are morphisms of the Yul
@@ -96,11 +101,17 @@ data YulCat eff a b where
   -- * Control Flow Primitives
   --
   -- ^ Embed a constant value @b@ and disregard any input object @a@.
-  YulEmb :: forall eff b. YulO1 b => b %1-> YulCat eff () b
+  YulEmb :: forall eff b.
+    YulO1 b =>
+    b %1-> YulCat eff () b
   -- ^ If-then-else expression.
-  YulITE :: forall eff a b. YulO2 a b => YulCat eff a b %1-> YulCat eff a b %1-> YulCat eff (BOOL, a) b
+  YulITE :: forall eff a b.
+    YulO2 a b =>
+    YulCat eff a b %1-> YulCat eff a b %1-> YulCat eff (BOOL, a) b
   -- ^ Jump to an user-defined morphism.
-  YulJmpU :: forall eff a b. YulO2 a b => NamedYulCat eff a b %1-> YulCat eff a b
+  YulJmpU :: forall eff a b.
+    YulO2 a b =>
+    NamedYulCat eff a b %1-> YulCat eff a b
   -- ^ Jump to a built-in yul function.
   YulJmpB :: forall eff a b p.
     ( YulO2 a b, YulBuiltInPrefix p a b
@@ -108,20 +119,30 @@ data YulCat eff a b where
     ) =>
     YulBuiltIn p a b -> YulCat eff a b
   -- ^ Call an external contract at the address along with a possible msgValue.
-  YulCall :: forall eff a b. (YulO2 a b, AssertNonPureEffect eff) =>
-    SELECTOR -> YulCat eff ((ADDR, U256), a) b
-  -- TODO: YulSCall
-  -- TODO: YulDCall
+  YulCall :: forall eff a b.
+    ( YulO2 a b
+    , AssertNonPureEffect eff
+    ) =>
+    SELECTOR -> YulCat eff ((YulCallTarget, YulCallValue, YulCallGasLimit), a) b
 
   -- * Storage Primitives
   --
   -- ^ Get storage word.
-  YulSGet :: forall eff a. (YulO1 a, AssertNonPureEffect eff, ABIWordValue a) => YulCat eff B32 a
+  YulSGet :: forall eff a.
+    ( YulO1 a, ABIWordValue a
+    , AssertNonPureEffect eff
+    ) =>
+    YulCat eff B32 a
   -- ^ Put storage word.
-  YulSPut :: forall eff a. (YulO1 a, AssertNonPureEffect eff, ABIWordValue a) => YulCat eff (B32, a) ()
+  YulSPut :: forall eff a.
+    ( YulO1 a, ABIWordValue a
+    , AssertNonPureEffect eff
+    ) =>
+    YulCat eff (B32, a) ()
 
   -- ^ Unsafe coerce between different effects.
-  YulUnsafeCoerceEffect :: forall k1 k2 (eff1 :: k1) (eff2 :: k2) a b. YulO2 a b =>
+  YulUnsafeCoerceEffect :: forall k1 k2 (eff1 :: k1) (eff2 :: k2) a b.
+    YulO2 a b =>
     YulCat eff1 a b %1-> YulCat eff2 a b
 
 -- | Yul morphisms with classified effect.

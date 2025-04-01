@@ -196,10 +196,11 @@ go_jmp t fname = do
 
 go_call :: forall a b. (HasCallStack, YulO2 a b)
         => Char -> SELECTOR -> CGState RhsExprGen
-go_call effCode sel = build_code_block @((ADDR, U256), a) @b $ \ind (code, a_ins) -> do
+go_call effCode sel = build_code_block @((YulCallTarget, YulCallValue, YulCallGasLimit), a) @b $ \ind (code, a_ins) -> do
   let title = "cal" ++ effCode:" " ++ abiTypeCompactName @a ++ " -> " ++ abiTypeCompactName @b
-      addrExpr = a_ins !! 0
-      weiExpr = a_ins !! 1
+      callTargetExpr = a_ins !! 0
+      callValueExpr = a_ins !! 1
+      callGasLimitExpr = a_ins !! 2
       dataSize = length (abiTypeInfo @b) * 32
       abienc_builtin = MkYulBuiltIn @"__abienc_from_stack_c_" @(U256, a) @U256
       abidec_builtin = MkYulBuiltIn @"__abidec_from_memory_c_" @(U256, U256) @b
@@ -212,24 +213,30 @@ go_call effCode sel = build_code_block @((ADDR, U256), a) @b $ \ind (code, a_ins
          declare_vars ind b_vars <>
          T.unlines
          ((T.init . ind) <$>
-           [ "let memPos := allocate_unbounded()"
+           [ "let callTarget := " <> rhs_expr_to_code callTargetExpr
+           , "let callValue := " <> rhs_expr_to_code callValueExpr
+           , "let callGasLimit := " <> rhs_expr_to_code callGasLimitExpr
+           , "if iszero(callGasLimit) { callGasLimit := gas() }"
+           , "let memPos := allocate_unbounded()"
            , "mstore(memPos, shl(224, " <> T.pack (showSelectorOnly sel) <> "))"
            , "let memEnd := " <>
              if (length a_ins > 2)
-             then T.pack (yulB_fname abienc_builtin) <> "(add(memPos, 4), " <> spread_rhs (drop 2 a_ins) <> ")"
+             then T.pack (yulB_fname abienc_builtin) <> "(add(memPos, 4), " <> spread_rhs (drop 3 a_ins) <> ")"
              else "add(memPos, 4)"
            ]) <>
          -- call(g, a, v, in, insize, out, outsize)
          --
          -- call contract at address a with input mem[in…(in+insize)) providing g gas and v wei and output area
          -- mem[out…(out+outsize)) returning 0 on error (eg. out of gas) and 1 on success See more
-         ind ( "let success := call(gas()" <>
-               ", " <> rhs_expr_to_code addrExpr <>
-               ", " <> rhs_expr_to_code weiExpr <>
+         ind ( "let success := call" <>
+               "( callGasLimit" <>
+               ", callTarget"<>
+               ", callValue" <>
                ", memPos" <> -- in
                ", sub(memEnd, memPos)" <> -- inSize
                ", memPos" <> -- out
-               ", " <> T.pack (show dataSize) <> ")" -- outSize
+               ", " <> T.pack (show dataSize) <>
+               ")" -- outSize
              ) <>
          T.unlines
          ((T.init . ind) <$>
