@@ -97,6 +97,7 @@ Test-Suite test-yul-dsl-linear-smc
   type:               exitcode-stdio-1.0
   default-extensions: BlockArguments
                       TemplateHaskell
+                      ViewPatterns
                       RebindableSyntax
   hs-source-dirs:     test
   build-depends:      hspec >=2.11,
@@ -105,6 +106,6 @@ Test-Suite test-yul-dsl-linear-smc
                       yul-dsl-linear-smc
   -- modules
   other-modules:
-    LinearFn_tests
-    YulPortNum_tests
+    LinearFn_t
+    YulPortNum_t
   main-is: Main.hs

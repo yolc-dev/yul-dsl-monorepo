@@ -1,4 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE TemplateHaskell     #-}
 module YulDSL.Haskell.Effects.LinearSMC.YulPort
   ( -- * Yul Port Definitions
     -- $LinearPortDefs
@@ -14,6 +15,11 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
     -- $TypeOps
   , coerceType'l, reduceType'l, extendType'l
   ) where
+-- base
+import Control.Monad                       (replicateM)
+import Prelude                             qualified as BasePrelude
+-- template-haskell
+import Language.Haskell.TH                 qualified as TH
 -- linear-base
 import Prelude.Linear
 import Unsafe.Linear                       qualified as UnsafeLinear
@@ -198,6 +204,8 @@ instance (YulO3 x (NP xs) r , LinearTraversableNP (P'x eff r) xs) => LinearTrave
 instance (YulO3 x (NP xs) r , LinearDistributiveNP (P'x eff r) xs) => LinearDistributiveNP (P'x eff r) (x:xs)
 
 ------------------------------------------------------------------------------------------------------------------------
+-- Instances
+------------------------------------------------------------------------------------------------------------------------
 
 --
 -- 'MPEq' instance for the yul ports.
@@ -230,3 +238,105 @@ instance (YulO1 r, ValidINTx s n) => AdditiveGroup (P'x eff r (INTx s n)) where
 
 instance (YulO1 r, ValidINTx s n) => Multiplicative (P'x eff r (INTx s n)) where
   a * b = encodeP'x (YulJmpB (MkYulBuiltIn @"__checked_mul_t_")) (merge'l (a, b))
+
+--
+-- TupleN
+--
+
+-- Tuple1 is Solo and special.
+
+instance (YulO2 a r) =>
+         SingleCasePattern (P'x eff r) (Solo a) (P'x eff r a)
+         YulCatObj One where
+  is = coerceType'l
+instance (YulO2 a r, YulCat eff r ~ m) =>
+         PatternMatchable (P'x eff r) (Solo a) (P'x eff r a)
+         YulCatObj One where
+instance YulO2 a r =>
+         InjectivePattern (P'x eff r) (Solo a) (P'x eff r a)
+         YulCatObj One where
+  be = coerceType'l
+
+-- Tuple2 is the base case.
+
+instance (YulO3 a1 a2 r) =>
+         SingleCasePattern (P'x eff r) (a1, a2) (P'x eff r a1, P'x eff r a2)
+         YulCatObj One where
+  is = split'l
+instance (YulO3 a1 a2 r) =>
+         PatternMatchable (P'x eff r) (a1, a2) (P'x eff r a1, P'x eff r a2)
+         YulCatObj One
+instance (YulO3 a1 a2 r, P'x eff r ~ m) =>
+         InjectivePattern (P'x eff r) (a1, a2) (P'x eff r a1, P'x eff r a2)
+         YulCatObj One where
+  be = merge'l
+
+-- Tuple3 code is the example for the TH to mimic how to generate more instances inductively:
+
+instance (YulO4 a1 a2 a3 r) =>
+         SingleCasePattern (P'x eff r) (a1, a2, a3) (P'x eff r a1, P'x eff r a2, P'x eff r a3)
+         YulCatObj One where
+  is mtpl =
+    let mxxs = (coerceType'l . reduceType'l) mtpl
+        !(mx1, mxs) = split'l mxxs
+        mxs' = extendType'l mxs :: P'x eff r (a2, a3)
+        !(mx2, mx3) = is mxs'
+    in (mx1, mx2, mx3)
+instance (YulO4 a1 a2 a3 r) =>
+         PatternMatchable (P'x eff r) (a1, a2, a3) (P'x eff r a1, P'x eff r a2, P'x eff r a3)
+         YulCatObj One
+instance (YulO4 a1 a2 a3 r) =>
+         InjectivePattern (P'x eff r) (a1, a2, a3) (P'x eff r a1, P'x eff r a2, P'x eff r a3)
+         YulCatObj One where
+  be (mx1, mx2, mx3) =
+    let mxs = be (mx2, mx3) :: P'x eff r (a2, a3)
+        mxs' = reduceType'l mxs
+    in (extendType'l . coerceType'l . merge'l) (mx1, mxs')
+
+-- Tuple{[4..15]} instances
+
+do
+  insts <- BasePrelude.mapM (\n -> do
+    -- type variables: r, a, as...
+    r <- TH.newName "r"
+    a <- TH.newName "a"
+    as <- replicateM (n - 1) (TH.newName "a")
+    -- term variables: x, xs...
+    x <- TH.newName "x"
+    xs <- replicateM (n - 1) (TH.newName "x")
+    -- m
+    m <- [t| P'x $(TH.varT BasePrelude.=<< TH.newName "eff") $(TH.varT r) |]
+    [d| instance ( $(tupleNFromVarsTWith (TH.conT ''YulO1 `TH.appT`) (r : a : as))
+                 , SingleCasePattern $(BasePrelude.pure m)
+                                     $(tupleNFromVarsT as)
+                                     $(tupleNFromVarsTWith (BasePrelude.pure m `TH.appT`) as)
+                                     YulCatObj One
+                 ) =>
+                 SingleCasePattern $(BasePrelude.pure m)
+                                   $(tupleNFromVarsT (a : as))
+                                   $(tupleNFromVarsTWith (BasePrelude.pure m `TH.appT`) (a : as))
+                                   YulCatObj One where
+          is mtpl_ =
+            let mxxs_ = (coerceType'l . reduceType'l) mtpl_
+                !(mx1_, mxs_) = split'l mxxs_
+                mxs_' = extendType'l mxs_ :: $(BasePrelude.pure m) $(tupleNFromVarsT as)
+                $(TH.bangP (TH.tupP (BasePrelude.fmap TH.varP xs))) = is mxs_'
+            in $(TH.tupE (TH.varE 'mx1_ : BasePrelude.fmap TH.varE xs))
+
+        instance $(tupleNFromVarsTWith (TH.conT ''YulO1 `TH.appT`) (r : a : as)) =>
+                 PatternMatchable $(BasePrelude.pure m)
+                                  $(tupleNFromVarsT (a : as))
+                                  $(tupleNFromVarsTWith (BasePrelude.pure m `TH.appT`) (a : as))
+                                  YulCatObj One
+
+        instance $(tupleNFromVarsTWith (TH.conT ''YulO1 `TH.appT`) (r : a : as)) =>
+                 InjectivePattern $(BasePrelude.pure m) $(tupleNFromVarsT (a : as))
+                                  $(tupleNFromVarsTWith (BasePrelude.pure m `TH.appT`) (a : as))
+                                  YulCatObj One where
+          be $(TH.tupP (BasePrelude.fmap TH.varP (x : xs))) =
+            let mxs_ = $(TH.varE 'be `TH.appE` TH.tupE (BasePrelude.fmap TH.varE xs))
+                      :: $(BasePrelude.pure m) $(tupleNFromVarsT as)
+                mxs_' = reduceType'l mxs_
+            in (extendType'l . coerceType'l . merge'l) ($(TH.varE x), mxs_')
+      |]) [4..4]
+  BasePrelude.pure (concat insts)

@@ -1,4 +1,4 @@
-module YulPortNum_tests where
+module YulPortNum_t where
 -- base
 import Prelude         (fromInteger, pure, (<$>), (==), (>>=))
 -- hspec, quickcheck

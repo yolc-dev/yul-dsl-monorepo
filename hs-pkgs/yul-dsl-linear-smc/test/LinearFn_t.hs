@@ -1,4 +1,4 @@
-module LinearFn_tests where
+module LinearFn_t where
 -- hspec
 import Test.Hspec
 -- (lvm)
@@ -74,13 +74,27 @@ bar3 = $lfn $ yulmonad'p
   \x1 x2 x3 -> ypure (ver'l x1 + ver'l x2 + ver'l x3)
 
 --------------------------------------------------------------------------------
--- pattern matching
+-- working with PureY
 --------------------------------------------------------------------------------
 
 test_withinPureY :: StaticFn (U256 -> U256 -> U256)
 test_withinPureY = $lfn $ uncurry'lvv
   \x1_l x2_l -> withinPureY @(U256 -> U256 -> U256) (x1_l, x2_l)
                 \x1 x2 -> x1 + x1 * x2
+
+--------------------------------------------------------------------------------
+-- tuples
+--------------------------------------------------------------------------------
+
+tuple2_result :: StaticFn (U256 -> U256 -> (U256, U256))
+tuple2_result = $lfn $ uncurry'lvv
+  \x1 x2 -> be (dup2'l (x1 + x2))
+
+tuple2_input :: StaticFn ((U256, U256) -> U256)
+tuple2_input = $lfn $ uncurry'lvv
+  -- Note: Unfortunately, viewpattern doesn't support linear arrow well at the moment
+  -- \(is -> (x1, x2)) -> x1 + x1
+  \xs -> let !(x1, x2) = is xs in x1 + x2
 
 --------------------------------------------------------------------------------
 -- storage effect
