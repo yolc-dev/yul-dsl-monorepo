@@ -5,10 +5,22 @@ import { Test, console } from "forge-std/Test.sol";
 import { IERC20Program, createERC20Program } from "yol-build/Contracts.sol";
 
 
+address constant ALICE = address(41);
+address constant BOB = address(42);
+
+contract MintReentranceHacker {
+  function onTokenMinted(address mintee, uint256 amount) external {
+    IERC20Program token = IERC20Program(msg.sender);
+    uint256 balance = token.balanceOf(address(this));
+    console.log("Hacker sees minted %d to %s", amount, mintee);
+    console.log("Hacker sees his current balance %d", balance);
+    token.transfer(ALICE, balance);
+  }
+}
+
 contract ERC20ProgramTest is Test {
   IERC20Program private token;
-  address constant ALICE = address(41);
-  address constant BOB = address(42);
+  MintReentranceHacker HACKER = new MintReentranceHacker();
 
   constructor () {
     token = createERC20Program();
@@ -26,10 +38,22 @@ contract ERC20ProgramTest is Test {
     token.mint(ALICE, mintAmount);
     assertEq(token.balanceOf(ALICE), mintAmount, "alice balance is wrong 1");
 
-    token.transfer(ALICE, BOB, x1);
+    vm.startPrank(ALICE);
+    token.transfer(BOB, x1);
+    vm.stopPrank();
+
     assertEq(token.balanceOf(ALICE), x2, "alice balance is wrong 2");
     assertEq(token.balanceOf(BOB), x1, "bob balance is wrong 2");
+
+    vm.startPrank(ALICE);
     vm.expectRevert();
-    token.transfer(ALICE, BOB, uint256(x2) + 1);
+    token.transfer(BOB, uint256(x2) + 1);
+    vm.stopPrank();
+  }
+
+  function testMintHack(uint128 x) external {
+    token.mint(address(HACKER), x);
+    assertEq(token.balanceOf(address(HACKER)), 0, "Hacker's balance is wrong");
+    assertEq(token.balanceOf(ALICE), x, "Alice's balance is wrong");
   }
 }

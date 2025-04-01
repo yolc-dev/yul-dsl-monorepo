@@ -105,7 +105,7 @@ instance forall b v1 vn r a.
          (P'V v1 r) (YulMonad v1 vn r)
          (YulCat'LVV v1 v1 r a) (YulCat'LVM v1 vn r a) One where
   uncurryNP b (MkYulCat'LVV h) = MkYulCat'LVM \a ->
-    tossToUnit (h a) LVM.>> b
+    eject (h a) LVM.>> b
 
 instance forall x xs b g v1 vn r a.
          ( YulO4 x (NP xs) r a
@@ -170,7 +170,7 @@ instance forall b v1 vn r a.
          (P'P r) (YulMonad v1 vn r)
          (YulCat'LPP r a) (YulCat'LPM v1 vn r a) One where
   uncurryNP b (MkYulCat'LPP h) = MkYulCat'LPM \a ->
-    tossToUnit (unsafeCoerceYulPort (h a & coerceType'l @_ @())) LVM.>> b
+    eject (unsafeCoerceYulPort (h a & coerceType'l @_ @())) LVM.>> b
 
 instance forall x xs b g v1 vn r a.
          ( EquivalentNPOfFunction g xs (P'V vn r b)

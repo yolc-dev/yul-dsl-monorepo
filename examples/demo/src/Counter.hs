@@ -17,7 +17,7 @@ incGlobalCounter :: OmniFn (U256 -> ())
 incGlobalCounter = $lfn $ yulmonad'p
   \inc_p -> LVM.do
     counterRef <- $ycall0 globalCounterLoc
-    (counterRef, currentValue) <- pass counterRef sget
+    (counterRef, currentValue) <- pass1 counterRef sget
     sput counterRef (currentValue + ver'l inc_p)
 
 getGlobalCounter :: StaticFn U256
@@ -38,7 +38,7 @@ incCounter = $lfn $ yulmonad'p
   \inc_p -> LVM.do
     acc <- ycaller
     counterRef <- counterMap `shmapRef` acc
-    (counterRef, newValue) <- pass counterRef \counterRef -> LVM.do
+    (counterRef, newValue) <- pass1 counterRef \counterRef -> LVM.do
       currentValue <- sget counterRef
       ypure $ withinPureY @(U256 -> U256 -> U256)
               (currentValue, ver'l inc_p)

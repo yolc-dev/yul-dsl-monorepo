@@ -21,20 +21,27 @@ balanceOf = $lfn $ yulmonad'p
   \owner_p -> balanceMap `shmapGet` owner_p
 
 -- | ERC20 transfer function.
-transfer :: OmniFn (ADDR -> ADDR -> U256 -> BOOL)
-transfer = $lfn $ yulmonad'p \from_p to_p amount_p -> LVM.do
+transfer :: OmniFn (ADDR -> U256 -> BOOL)
+transfer = $lfn $ yulmonad'p \to_p amount_p -> LVM.do
+  from_p <- ycaller
+
   -- get sender balance
-  (from_p, senderBalanceRef_p) <- pass from_p (shmapRef balanceMap)
+  (from_p, senderBalanceRef_p) <- pass1 from_p (shmapRef balanceMap)
   -- get receiver balance
-  (to_p, receiverBalanceRef_p) <- pass to_p (shmapRef balanceMap)
+  (to_p, receiverBalanceRef_p) <- pass1 to_p (shmapRef balanceMap)
+
   -- calculate new balances
-  (amount, newSenderBalance) <- pass (ver'l amount_p)
-    \amount -> ypure $ call balanceOf (ver'l from_p) - amount
-  let newReceiverBalance = call balanceOf (ver'l to_p) + amount
-  -- update storages
+  let !(newSenderBalance, newReceiverBalance) = is $ withinPureY @(U256 -> U256 -> U256 -> (U256, U256))
+        ( ver'l amount_p
+        , call balanceOf (ver'l from_p)
+        , call balanceOf (ver'l to_p)
+        ) \amount senderBalance receiverBalance ->
+            be (senderBalance - amount, receiverBalance + amount)
+
   sputs $
     senderBalanceRef_p   := newSenderBalance   :|
     receiverBalanceRef_p := newReceiverBalance :[]
+
   -- always return true as a silly urban-legendary ERC20 convention
   embed true
 
@@ -42,8 +49,7 @@ transfer = $lfn $ yulmonad'p \from_p to_p amount_p -> LVM.do
 mint :: OmniFn (ADDR -> U256 -> ())
 mint = $lfn $ yulmonad'p \to_p amount_p -> LVM.do
   -- fetch balance of the account
-  (to_p, balanceBefore) <- pass to_p \to_p ->
-    ypure $ balanceOf `call` ver'l to_p
+  (to_p, balanceBefore) <- pass1 to_p \to_p -> ycall balanceOf (ver'l to_p)
 
   -- use linear port values safely
   (to_p, amount_p) <- passN_ (to_p, amount_p) \(to_p, amount_p) ->
@@ -51,9 +57,10 @@ mint = $lfn $ yulmonad'p \to_p amount_p -> LVM.do
     shmapPut balanceMap to_p (balanceBefore + ver'l amount_p)
 
   -- call unsafe external contract onTokenMinted
-  externalCall onTokenMinted (ver'l to_p) (ver'l amount_p)
+  let !(to_p1, to_p2) = dup2'l (ver'l to_p)
+  externalCall onTokenMinted to_p1 to_p2 (ver'l amount_p)
 
 --
 -- TODO: this should/could be generated from a solidity interface definition file:
 -- | A hook to the token minted event for the mint receiver.
-onTokenMinted = declareExternalFn @(U256 -> ()) "onTokenMinted"
+onTokenMinted = declareExternalFn @(ADDR -> U256 -> ()) "onTokenMinted"
