@@ -100,7 +100,7 @@ test-demo-foundry:
 	cd examples/demo && forge test -vvv
 
 dev:
-	nodemon -w hs-pkgs -w yol-demo -w examples -e "hs sol cabal" -x "make $(DEV_TARGETS) || exit 1"
+	nodemon -w hs-pkgs -w yol-demo -w examples -e "hs sol cabal" -i "#.*" -x "make $(DEV_TARGETS) || exit 1"
 
 repl-eth-abi:
 	$(CABAL) --builddir=$(DEFAULT_BUILDDIR) repl eth-abi
