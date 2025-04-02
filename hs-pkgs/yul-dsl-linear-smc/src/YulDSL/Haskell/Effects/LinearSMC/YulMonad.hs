@@ -11,6 +11,7 @@ module YulDSL.Haskell.Effects.LinearSMC.YulMonad
   --
   , withinPureY
   ) where
+import GHC.TypeLits                                  (KnownNat)
 -- linear-base
 import Control.Functor.Linear qualified
 import Prelude.Linear
@@ -33,19 +34,22 @@ import YulDSL.Haskell.Effects.LinearSMC.YulPort
 type YulMonad va vb r = LVM (YulMonadCtx r) va vb
 
 -- | Run a YulMonad with an initial unit port and returns a versioned result.
-runYulMonad :: forall vd r a ue . YulO2 r a
-            => P'x ue r () ⊸ YulMonad 0 vd r (P'V vd r a) ⊸ P'V vd r a
+runYulMonad :: forall vd r a ue .
+  ( KnownNat vd
+  , YulO2 r a
+  ) =>
+  P'x ue r () ⊸ YulMonad 0 vd r (P'V vd r a) ⊸ P'V vd r a
 runYulMonad u m = let ud = MkUnitDumpster (unsafeCoerceYulPort u)
                       !(ctx', a) = runLVM (MkYulMonadCtx ud) m
                       !(MkYulMonadCtx (MkUnitDumpster u')) = ctx'
                   in ignore'l (unsafeCoerceYulPort u') a
 
 -- An alias to 'LVM.pure' to avoid naming conflict with Monad pure function.
-ypure :: forall a v r. P'V v r a ⊸ YulMonad v v r (P'V v r a)
+ypure :: forall a v r. KnownNat v => P'V v r a ⊸ YulMonad v v r (P'V v r a)
 ypure = LVM.pure
 
 -- | Generate a unit monadically.
-yembed :: YulO2 r a => a ⊸ YulMonad v v r (P'V v r a)
+yembed :: forall a v r. (KnownNat v, YulO2 r a) => a -> YulMonad v v r (P'V v r a)
 yembed = embed
 
 --------------------------------------------------------------------------------
@@ -96,7 +100,8 @@ instance YulO2 r a => ContextualEmbeddable (YulMonadCtx r) (P'x eff r) a where
 newtype YulCat'LVM v1 vn r a b = MkYulCat'LVM (P'V v1 r a ⊸ YulMonad v1 vn r b)
 
 instance forall b v1 vn r a.
-         ( YulO2 a r
+         ( KnownNat v1, KnownNat vn
+         , YulO2 a r
          , EquivalentNPOfFunction b '[] b
          , LiftFunction b (P'V v1 r) (YulMonad v1 vn r) One ~ YulMonad v1 vn r b
          , LiftFunction b (YulCat'LVV v1 v1 r a) (YulCat'LVM v1 vn r a) One ~ YulCat'LVM v1 vn r a b
@@ -138,7 +143,8 @@ instance forall g x xs b r a v1 vn.
                     (\(MkYulCat'LVV fxs) -> fNP (MkYulCat'LVV (\a -> (consNP x (fxs a)))))
 
 yulmonad'v :: forall xs b r vd m1 m1b m2 m2b f' b'.
-  ( YulO3 (NP xs) b r
+  ( KnownNat vd
+  , YulO3 (NP xs) b r
   -- m1, m1b, m2, m2b
   , P'V         0 r ~ m1
   , YulMonad 0 vd r ~ m1b
@@ -163,7 +169,8 @@ yulmonad'v f =
 newtype YulCat'LPM v1 vn r a b = MkYulCat'LPM (P'P r a ⊸ YulMonad v1 vn r b)
 
 instance forall b v1 vn r a.
-         ( YulO3 b r a
+         ( KnownNat v1, KnownNat vn
+         , YulO3 b r a
          , LiftFunction b (P'P r) (P'V vn r) One ~ P'V vn r b
          ) =>
          UncurriableNP (P'V vn r b) '[] (P'V vn r b)
@@ -184,7 +191,8 @@ instance forall x xs b g v1 vn r a.
      f h MkYulCat'LPP (\(MkYulCat'LPM g) -> g))
 
 yulmonad'p :: forall xs b r vd m1 m1b m2 m2b f' b'.
-  ( YulO3 (NP xs) b r
+  ( KnownNat vd
+  , YulO3 (NP xs) b r
   -- m1, m1b, m2, m2b
   , P'P           r ~ m1
   , YulMonad 0 vd r ~ m1b

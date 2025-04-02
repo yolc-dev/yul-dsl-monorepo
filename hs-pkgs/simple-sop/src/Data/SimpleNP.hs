@@ -108,14 +108,14 @@ class LinearDistributiveNP t xs where
   --
   --   In some linear-typed system, conjuring up @t ()@ from nothing is impossible. In such a system, to start the
   --   distribution process, a nil value is provided, instead.
-  linearDistributeNP :: forall. NP (MapList t xs) -> t () %1 -> t (NP xs)
+  linearDistributeNP :: forall. NP (MapList t xs) %1 -> t () %1 -> t (NP xs)
   -- ^ The default implementation for 'linearDistributeNP' when it is also an 'constructibleNP'.
   default linearDistributeNP :: forall x' xs'.
     ( x':xs' ~ xs
     , ConstructibleNP t x' xs' One
     , LinearDistributiveNP t xs'
     ) =>
-    NP (MapList t xs) -> t () %1 -> t (NP xs)
+    NP (MapList t xs) %1 -> t () %1 -> t (NP xs)
   linearDistributeNP (x :* xs) tnil = consNP x (linearDistributeNP xs tnil)
 
 --

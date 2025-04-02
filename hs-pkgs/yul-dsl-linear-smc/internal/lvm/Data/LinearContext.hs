@@ -115,4 +115,4 @@ contextualSeqN ctx a bN =
 -- | Providing a linear context @ctx@ for embedding a pure value @a@ in @m@.
 class ContextualEmbeddable ctx m a where
   -- | Consume @a@ linearly.
-  contextualEmbed :: ctx ⊸ a ⊸ (ctx, m a)
+  contextualEmbed :: ctx ⊸ a -> (ctx, m a)

@@ -94,8 +94,8 @@ class ( EquivalentNPOfFunction f xs b
       ) =>
       UncurriableNP f xs b m1 m1b m2 m2b p | m1 -> p where
   uncurryNP :: forall.
-    LiftFunction           f  m1 m1b p %p-> -- ^ from this lifted function
-    LiftFunction (NP xs -> b) m2 m2b p      -- ^ to this lifted function
+    LiftFunction           f  m1 m1b p %p -> -- ^ from this lifted function
+    LiftFunction (NP xs -> b) m2 m2b p       -- ^ to this lifted function
 
 -- | Curry a function of @NP xs@ to @b@.
 class ( EquivalentNPOfFunction f xs b
@@ -105,8 +105,8 @@ class ( EquivalentNPOfFunction f xs b
       ) =>
       CurriableNP f xs b m1 mb m2 p | m2 -> p where
   curryNP :: forall.
-    LiftFunction (NP xs -> b) m2 mb p %p-> -- ^ from this lifted function
-    LiftFunction           f  m1 mb p      -- ^ to this lifted function
+    LiftFunction (NP xs -> b) m2 mb p %p -> -- ^ from this lifted function
+    LiftFunction           f  m1 mb p       -- ^ to this lifted function
 
 class ( EquivalentNPOfFunction f (x:xs) b
       ) =>

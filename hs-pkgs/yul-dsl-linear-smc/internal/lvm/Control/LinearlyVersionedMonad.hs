@@ -30,7 +30,7 @@ module Control.LinearlyVersionedMonad
   ) where
 
 -- base
-import GHC.TypeLits           (Nat, type (<=))
+import GHC.TypeLits           (KnownNat, type (<=))
 -- constraints
 import Data.Constraint.Linear (Dict (Dict), (\\))
 import Data.Constraint.Nat    (leTrans)
@@ -53,20 +53,22 @@ import Data.LinearContext
 -- additional 'LVM' monad laws in relations to the bind operations '(>>=)', '(>>)'.
 
 -- | Linear versioned monad (LVM) is a parameterized reader monad with linear safety.
-newtype LVM ctx (va :: Nat) (vb :: Nat) a = MkLVM (ctx ⊸ (Dict (va <= vb), ctx, a))
+data LVM ctx va vb a = (KnownNat va, KnownNat vb) => MkLVM (ctx ⊸ (Dict (va <= vb), ctx, a))
 
 -- | Unwrap the LVM linearly; otherwise the GHC default syntax createwith a multiplicity-polymorphic arrow.
-unLVM :: forall ctx va vb a. ()
-      => LVM ctx va vb a ⊸ ctx ⊸ (Dict (va <= vb), ctx, a)
+unLVM :: forall ctx va vb a.
+  (KnownNat va, KnownNat vb) =>
+  LVM ctx va vb a ⊸ ctx ⊸ (Dict (va <= vb), ctx, a)
 unLVM (MkLVM fa) = fa
 
 -- | Run a linearly versioned monad.
-runLVM :: forall a va vb ctx. ()
-       => ctx ⊸ LVM ctx va vb a ⊸ (ctx, a)
+runLVM :: forall a va vb ctx.
+  (KnownNat va, KnownNat vb) =>
+  ctx ⊸ LVM ctx va vb a ⊸ (ctx, a)
 runLVM ctx m = let !(lp, ctx', a) = unLVM m ctx in lseq lp (ctx', a)
 
 -- | Lift a value into a LVM.
-pure :: forall ctx v a. a ⊸ LVM ctx v v a
+pure :: forall ctx v a. KnownNat v => a ⊸ LVM ctx v v a
 pure a = MkLVM (Dict, , a)
 
 -- | Monad bind operator for 'LVM', working with the QualifiedDo syntax.
@@ -85,36 +87,45 @@ pure a = MkLVM (Dict, , a)
 -- we have:
 --
 -- 1) Law of linearly versioned monad: @ ma [va \<= vb] \>>= mb [vb <= vc] ≡ mc [va <= vc] @
-(>>=) :: forall ctx va vb vc a b. ()
-      => LVM ctx va vb a ⊸ (a ⊸ LVM ctx vb vc b) ⊸ LVM ctx va vc b
+(>>=) :: forall ctx va vb vc a b.
+  (KnownNat va, KnownNat vb, KnownNat vc) =>
+  LVM ctx va vb a ⊸ (a ⊸ LVM ctx vb vc b) ⊸ LVM ctx va vc b
 ma >>= f = MkLVM \ctx -> let !(aleb, ctx', a) = unLVM ma ctx
                              !(blec, ctx'', a') = unLVM (f a) ctx'
                          in  (Dict \\ leTrans @va @vb @vc \\ aleb \\ blec, ctx'', a')
 
 -- | Reverse monad bind operator for 'LVM'.
-(=<<) :: forall ctx va vb vc a b. ()
-      => (a ⊸ LVM ctx vb vc b) ⊸ LVM ctx va vb a ⊸ LVM ctx va vc b
+(=<<) :: forall ctx va vb vc a b.
+  (KnownNat va, KnownNat vb, KnownNat vc) =>
+  (a ⊸ LVM ctx vb vc b) ⊸ LVM ctx va vb a ⊸ LVM ctx va vc b
 (=<<) = flip (>>=)
 
 -- | Monad bind & discard operator, working with the QualifiedDo syntax.
-(>>) :: forall ctx va vb vc a b. (ContextualConsumable ctx a)
-     => LVM ctx va vb a ⊸ LVM ctx vb vc b ⊸ LVM ctx va vc b
+(>>) :: forall ctx va vb vc a b.
+  ( KnownNat va, KnownNat vb, KnownNat vc
+  , ContextualConsumable ctx a) =>
+  LVM ctx va vb a ⊸ LVM ctx vb vc b ⊸ LVM ctx va vc b
 ma >> mb = ma >>= \a -> MkLVM \ctx -> let !(bltec, ctx', b) = unLVM mb ctx
                                       in (bltec, contextualConsume ctx' a, b)
 
 infixl 1 >>=, >>
 infixr 1 =<<
 
--- Unsafely coerce version proofs.
-unsafeCoerceLVM :: LVM ctx va vb a ⊸ LVM ctx vc vd a
-unsafeCoerceLVM (MkLVM f) = MkLVM \ctx -> let !(d, ctx', a) = f ctx
-                                          in (lseq d unsafeAxiom, ctx', a)
+-- Unsafely coerce version proofs, with the same initial version @va@.
+unsafeCoerceLVM :: forall va vb vc ctx a.
+  ( KnownNat va, KnownNat vb, KnownNat vc
+  , va <= vc
+  ) =>
+  LVM ctx va vb a ⊸ LVM ctx va vc a
+unsafeCoerceLVM (MkLVM f) = MkLVM \ctx ->
+  let !(d, ctx', a) = f ctx
+  in (lseq d unsafeAxiom, ctx', a)
 
 --
 -- Instances for linear-base
 --
 
-instance Data.Functor.Linear.Functor (LVM ctx va vb) where
+instance (KnownNat va, KnownNat vb) => Data.Functor.Linear.Functor (LVM ctx va vb) where
   fmap f ma = ma >>= \a -> MkLVM (Dict, , f a)
-instance Control.Functor.Linear.Functor (LVM ctx va vb) where
+instance (KnownNat va, KnownNat vb) => Control.Functor.Linear.Functor (LVM ctx va vb) where
   fmap = UnsafeLinear.toLinear Data.Functor.Linear.fmap

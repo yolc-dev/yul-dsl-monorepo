@@ -19,6 +19,9 @@ module Control.LinearlyVersionedMonad.Combinators
   , toss1, tossN
   , pass1, pass1_, passN, passN_
   ) where
+-- base
+import GHC.TypeLits                   (KnownNat (natSing), fromSNat)
+import Prelude                        qualified as BasePrelude
 -- constraints
 import Data.Constraint.Linear         (Dict (Dict))
 -- simple-sop
@@ -30,13 +33,17 @@ import Data.LinearContext
 
 -- | Embed a value into the context of a LVM.
 embed :: forall ctx m v a.
-  ContextualEmbeddable ctx m a =>
-  a ⊸ LVM ctx v v (m a)
+  ( KnownNat v
+  , ContextualEmbeddable ctx m a
+  ) =>
+  a -> LVM ctx v v (m a)
 embed a = MkLVM \ctx -> let !(ctx', ma) = contextualEmbed ctx a in (Dict, ctx', ma)
 
 -- | Eject a single value to become the context-free unit (the terminal object of Hask).
 eject :: forall ctx v a.
-  ContextualConsumable ctx a =>
+  ( KnownNat v
+  , ContextualConsumable ctx a
+  ) =>
   a ⊸ LVM ctx v v ()
 eject x = MkLVM \ctx -> (Dict, contextualConsume ctx x, ())
 
@@ -46,7 +53,8 @@ eject x = MkLVM \ctx -> (Dict, contextualConsume ctx x, ())
 
 -- | Toss a TupleN into a contextual unit.
 tossN :: forall ctx v aN m.
-  ( ConvertibleTupleNtoNP aN
+  ( KnownNat v
+  , ConvertibleTupleNtoNP aN
   , ContextualConsumable ctx (TupleNtoNP aN)
   , ContextualEmbeddable ctx m ()
   ) =>
@@ -58,7 +66,8 @@ tossN aN = MkLVM \ctx ->
 
 -- | Toss a single value into a contextual unit.
 toss1 :: forall ctx v a m.
-  ( ContextualConsumable ctx a
+  ( KnownNat v
+  , ContextualConsumable ctx a
   , ContextualEmbeddable ctx m ()
   ) =>
   a ⊸ LVM ctx v v (m ())
@@ -70,20 +79,24 @@ toss1 x = tossN (MkSolo x)
 
 -- -- | Combinator 'pass' for TupleN.
 passN :: forall ctx va vb aN b.
-  ( ConvertibleTupleNtoNP aN, ContextualDupable ctx (TupleNtoNP aN)
+  ( KnownNat va, KnownNat vb
+  , ConvertibleTupleNtoNP aN, ContextualDupable ctx (TupleNtoNP aN)
   , ContextualDupable ctx b, ContextualSeqable ctx b (TupleNtoNP aN)
   ) =>
   aN ⊸ (aN ⊸ LVM ctx va vb b) ⊸ LVM ctx va vb (aN, b)
 passN aN mb = MkLVM \ctx ->
   let !(ctx1, (aN1, aN2)) = contextualDupTupleN ctx aN
       !(alteb, ctx2, b) = unLVM (mb aN1) ctx1
-      !(ctx3, (b1, b2)) = contextualDup ctx2 b
-      !(ctx4, aN3) = contextualSeqN ctx3 b1 aN2
-  in (alteb, ctx4, (aN3, b2))
+  in if fromSNat (natSing @va) BasePrelude.== fromSNat (natSing @vb)
+     then (alteb, ctx2, (aN2, b))
+     else let !(ctx3, (b1, b2)) = contextualDup ctx2 b
+              !(ctx4, aN3) = contextualSeqN ctx3 b1 aN2
+          in (alteb, ctx4, (aN3, b2))
 
 -- | Combinator 'pass_' for TupleN.
 passN_ :: forall ctx va vb aN b.
-  ( ConvertibleTupleNtoNP aN, ContextualDupable ctx (TupleNtoNP aN)
+  ( KnownNat va, KnownNat vb
+  , ConvertibleTupleNtoNP aN, ContextualDupable ctx (TupleNtoNP aN)
   , ContextualDupable ctx b, ContextualConsumable ctx b, ContextualSeqable ctx b (TupleNtoNP aN)
   ) =>
   aN ⊸ (aN ⊸ LVM ctx va vb b) ⊸ LVM ctx va vb aN
@@ -91,7 +104,8 @@ passN_ aN mb = passN aN mb >>= (\(aN', b) -> eject b >> pure aN')
 
 -- | Pass the copied data to the next process, then pass both the original data and the result to the next stage.
 pass1 :: forall ctx va vb a b.
-  ( ContextualDupable ctx a
+  ( KnownNat va, KnownNat vb
+  , ContextualDupable ctx a
   , ContextualDupable ctx b
   , ContextualSeqable ctx b a
   ) =>
@@ -100,7 +114,8 @@ pass1 a mb = passN (MkSolo a) (\(MkSolo a') -> mb a') >>= \(MkSolo a'', b) -> pu
 
 -- | Pass the copied data to the next process, then pass the original data to the next stage and discard the restart.
 pass1_ :: forall ctx va vb a b.
-  ( ContextualDupable ctx a
+  ( KnownNat va, KnownNat vb
+  , ContextualDupable ctx a
   , ContextualDupable ctx b
   , ContextualSeqable ctx b a
   ) =>

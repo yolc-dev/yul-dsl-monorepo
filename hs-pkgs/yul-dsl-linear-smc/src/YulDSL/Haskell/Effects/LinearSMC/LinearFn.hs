@@ -17,7 +17,7 @@ module YulDSL.Haskell.Effects.LinearSMC.LinearFn
   , externalCall
   ) where
 -- base
-import GHC.TypeLits                                  (KnownNat, type (+))
+import GHC.TypeLits                                  (KnownNat, type (+), type (<=))
 -- template-haskell
 import Language.Haskell.TH                           qualified as TH
 -- linear-base
@@ -129,7 +129,8 @@ instance forall f x xs b va g r.
 
 class YulMonadCallableFunctionNP fn vd | fn -> vd where
   ycall :: forall xs x b va vb g r fncls.
-    ( YulO4 x (NP xs) b r
+    ( KnownNat va, KnownNat vb, va <= vb
+    , YulO4 x (NP xs) b r
     , va + vd ~ vb
     , ClassifiedYulCat fn fncls (NP (x:xs)) b
     , CurriableNP g xs (P'V vb r b) (P'V va r) (YulMonad va vb r) (YulCat'LVV va va r ()) One
@@ -142,7 +143,7 @@ class YulMonadCallableFunctionNP fn vd | fn -> vd where
         !(x', u) = mkUnit'l x
     in curryNP @g @xs @(P'V vb r b) @(P'V va r) @(YulMonad va vb r) @(YulCat'LVV va va r ()) @One
        \(MkYulCat'LVV fxs) -> encodeWith'l
-                              (LVM.unsafeCoerceLVM . ypure)
+                              (LVM.unsafeCoerceLVM . LVM.pure)
                               (YulJmpU f')
                               $ consNP x' (fxs u)
 
@@ -154,16 +155,17 @@ instance YulMonadCallableFunctionNP (OmniFn f) 1
 -- ycall0
 --
 
-class YulMonadCallableFunctionNil fn vd | fn -> vd where
+class KnownNat vd => YulMonadCallableFunctionNil fn vd | fn -> vd where
   ycall0' :: forall va r b fncls.
-    ( YulO2 b r
+    ( KnownNat va, KnownNat (va + vd), va <= va + vd
+    , YulO2 b r
     , EquivalentNPOfFunction b '[] b
     , ClassifiedYulCat fn fncls (NP '[]) b
     ) =>
     fn -> (P'V va r () ⊸ YulMonad va (va + vd) r (P'V (va + vd) r b))
   ycall0' f u =
     let f' = withClassifiedYulCat f unsafeCoerceNamedYulCat :: NamedYulCat (VersionedInputOutput vd) (NP '[]) b
-    in encodeWith'l (LVM.unsafeCoerceLVM . ypure) (YulJmpU f') (coerceType'l u)
+    in encodeWith'l (LVM.unsafeCoerceLVM . LVM.pure) (YulJmpU f') (coerceType'l u)
 
 instance YulMonadCallableFunctionNil (PureFn f) 0
 instance YulMonadCallableFunctionNil (StaticFn f) 0
@@ -187,49 +189,51 @@ class YulMonadCallableFunctionN fn f xs b r va vd | fn -> vd where
     NPtoTupleN (NP (MapList (P'V va r) xs)) ⊸
     YulMonad va (va + vd) r (P'V (va + vd) r b)
 
-instance YulMonadCallableFunctionN (PureFn b) b '[] b r va 0 where
-  ycallN (MkPureFn f) () =
+instance KnownNat va => YulMonadCallableFunctionN (PureFn b) b '[] b r va 0 where
+  ycallN (MkPureFn f) () = yembed () LVM.>>= \u ->
     let f' = unsafeCoerceNamedYulCat f :: NamedYulCat (VersionedInputOutput 0) (NP '[]) b
-    in yembed () LVM.>>=
-       \u -> encodeWith'l ypure (YulJmpU f') (coerceType'l u)
+    in encodeWith'l ypure (YulJmpU f') (coerceType'l u)
 
 instance forall f x xs b r va.
-         ( YulO2 x (NP xs)
-         , DistributiveNP (P'V va r) (x:xs)
+         ( KnownNat va
+         , YulO2 x (NP xs)
+         , LinearDistributiveNP (P'V va r) (x:xs)
          ) =>
          YulMonadCallableFunctionN (PureFn f) f (x:xs) b r va 0 where
-  ycallN (MkPureFn f) tpl =
+  ycallN (MkPureFn f) tpl = yembed () LVM.>>= \u ->
     let f' = unsafeCoerceNamedYulCat f :: NamedYulCat (VersionedInputOutput 0) (NP (x:xs)) b
-        xxs = distributeNP (fromTupleNtoNP tpl) :: P'V va r (NP (x:xs))
+        xxs = linearDistributeNP (fromTupleNtoNP tpl) u :: P'V va r (NP (x:xs))
     in ypure (encodeWith'l id (YulJmpU f') xxs)
 
 instance YulMonadCallableFunctionN (PureFn f) f xs b r va 0 =>
          YulMonadCallableFunctionN (StaticFn f) f xs b r va 0 where
   ycallN (MkStaticFn f) = ycallN (MkPureFn (unsafeCoerceNamedYulCat f))
 
-instance YulMonadCallableFunctionN (OmniFn b) b '[] b r va 1 where
-  ycallN (MkOmniFn f) () =
+instance ( KnownNat va, KnownNat (va + 1), va <= va + 1
+         ) => YulMonadCallableFunctionN (OmniFn b) b '[] b r va 1 where
+  ycallN (MkOmniFn f) () = yembed () LVM.>>= \u ->
     let f' = unsafeCoerceNamedYulCat f :: NamedYulCat (VersionedInputOutput 1) (NP '[]) b
-    in yembed () LVM.>>=
-       \u -> encodeWith'l (LVM.unsafeCoerceLVM . ypure) (YulJmpU f') (coerceType'l u)
+    in encodeWith'l (LVM.unsafeCoerceLVM . LVM.pure) (YulJmpU f') (coerceType'l u)
 
 instance forall f x xs b r va.
-         ( YulO4 x (NP xs) b r
-         , DistributiveNP (P'V va r) (x:xs)
+         ( KnownNat va, KnownNat (va + 1), va <= va + 1
+         , YulO4 x (NP xs) b r
+         , LinearDistributiveNP (P'V va r) (x:xs)
          , ConvertibleNPtoTupleN (NP (MapList (P'V va r) (x:xs)))
          ) =>
          YulMonadCallableFunctionN (OmniFn f) f (x:xs) b r va 1 where
-  ycallN (MkOmniFn f) tpl =
+  ycallN (MkOmniFn f) tpl = yembed () LVM.>>= \u ->
     let f' = unsafeCoerceNamedYulCat f :: NamedYulCat (VersionedInputOutput 1) (NP (x:xs)) b
-        xxs = distributeNP (fromTupleNtoNP tpl) :: P'V va r (NP (x:xs))
-    in (LVM.unsafeCoerceLVM . ypure) (encodeWith'l id (YulJmpU f') xxs)
+        xxs = linearDistributeNP (fromTupleNtoNP tpl) u :: P'V va r (NP (x:xs))
+    in encodeWith'l (LVM.unsafeCoerceLVM . LVM.pure) (YulJmpU f') xxs
 
 ------------------------------------------------------------------------------------------------------------------------
 -- calling external functions (Yul Monadic)
 ------------------------------------------------------------------------------------------------------------------------
 
 externalCall :: forall f x xs b g b' r v1 addrEff.
-  ( YulO4 x (NP xs) b r
+  ( KnownNat v1, KnownNat (v1 + 1), v1 <= v1 + 1
+  , YulO4 x (NP xs) b r
   , P'V (v1 + 1) r b ~ b'
   , EquivalentNPOfFunction f (x:xs) b
   , EquivalentNPOfFunction g xs b'
@@ -246,7 +250,9 @@ externalCall (MkExternalFn sel) addr x =
                                @(VersionedInputOutput 1) @(VersionedPort v1) @(VersionedPort (v1 + 1))
                                @_ @_ @_ {- r a b -}
                                @(YulMonad v1 (v1 + 1) r b')
-                               (\(b' :: P'V (v1 + 1) r b) -> LVM.unsafeCoerceLVM (LVM.pure b'))
+                               (\b' -> LVM.unsafeCoerceLVM
+                                       (LVM.pure b' :: YulMonad v1 v1 r (P'V (v1 + 1) r b))
+                                       :: YulMonad v1 (v1 + 1) r (P'V (v1 + 1) r b))
                                YulId
                                $ go (consNP x' (fxs u))
   where go :: forall. P'x (VersionedPort v1) r (NP (x : xs)) ⊸ P'V v1 r b

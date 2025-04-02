@@ -3,7 +3,7 @@ module YulDSL.Haskell.Data.SHMap
   , shmapRef, shmapGet, shmapPut
   ) where
 -- base
-import GHC.TypeLits                   (type (+))
+import GHC.TypeLits                   (KnownNat, type (+))
 -- linear-base
 import Prelude.Linear                 (String, fromInteger, type (~))
 -- yul-dsl
@@ -22,7 +22,8 @@ shmap key = SHMap (fromInteger (bytesnToInteger (stringKeccak256 key)))
 
 -- | Get a storage reference from the storage hash-map.
 shmapRef :: forall a b ie r v.
-  YulO3 r a b =>
+  ( KnownNat v, YulO3 r a b
+  ) =>
   SHMap a b ->
   P'x ie r a ⊸
   YulMonad v v r (P'x ie r (REF b))

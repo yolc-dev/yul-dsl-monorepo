@@ -1,3 +1,4 @@
+{-# LANGUAGE UndecidableInstances #-}
 {-|
 
 Copyright   : (c) 2024-2025 Miao, ZhiCheng
@@ -20,7 +21,7 @@ module YulDSL.Haskell.Effects.LinearSMC.Storage
   ) where
 -- base
 import Data.List.NonEmpty                        (NonEmpty ((:|)))
-import GHC.TypeLits                              (type (+))
+import GHC.TypeLits                              (KnownNat, type (+))
 -- constraints
 import Data.Constraint.Unsafe                    (unsafeAxiom)
 -- linear-base
@@ -36,18 +37,21 @@ import YulDSL.Haskell.Effects.LinearSMC.YulMonad
 import YulDSL.Haskell.Effects.LinearSMC.YulPort
 
 
-class ( YulO2 a b, Versionable'L ie v
+class ( KnownNat v, KnownNat (v + 1)
+      , YulO2 a b, Versionable'L ie v
       ) => SReferenceable ie v r a b where
   sget :: forall. YulO1 r => P'x ie r a ⊸ YulMonad v v r (P'V v r b)
   sput :: forall. YulO1 r => P'x ie r a ⊸ P'V v r b ⊸ YulMonad v (v + 1) r (P'V (v + 1) r ())
 
-instance ( YulO1 b, ABIWordValue b, Versionable'L ie v
+instance ( KnownNat v, KnownNat (v + 1)
+         , YulO1 b, ABIWordValue b, Versionable'L ie v
          ) => SReferenceable ie v r B32 b where
   sget s = ypure (encodeP'x YulSGet (ver'l s))
   sput s x = encodeP'x YulSPut (merge'l (ver'l s, x))
              & \u -> MkLVM (unsafeAxiom, , unsafeCoerceYulPort u)
 
-instance ( YulO1 a, ABIWordValue a, Versionable'L ie v
+instance ( KnownNat v, KnownNat (v + 1)
+         , YulO1 a, ABIWordValue a, Versionable'L ie v
          ) => SReferenceable ie v r (REF a) a where
   sget s = ypure (encodeP'x YulSGet (reduceType'l (ver'l s)))
   sput s x = encodeP'x YulSPut (merge'l (reduceType'l (ver'l s), x))
@@ -57,10 +61,10 @@ instance ( YulO1 a, ABIWordValue a, Versionable'L ie v
 -- sgetNP, sgetN, (<==)
 ------------------------------------------------------------------------------------------------------------------------
 
-class SGettableNP v r a b where
+class (KnownNat v, YulO1 r) => SGettableNP v r a b where
   sgetNP :: forall. a ⊸ YulMonad v v r b
 
-instance SGettableNP v r (NP '[]) (NP '[]) where
+instance (KnownNat v, YulO1 r) => SGettableNP v r (NP '[]) (NP '[]) where
   sgetNP Nil = LVM.pure Nil
 
 instance ( YulO1 r
@@ -74,7 +78,8 @@ instance ( YulO1 r
     LVM.pure (b :* bs)
 
 sgetN :: forall tpl_a tpl_b v r.
-  ( ConvertibleTupleNtoNP tpl_a, ConvertibleTupleNtoNP tpl_b
+  ( KnownNat v
+  , ConvertibleTupleNtoNP tpl_a, ConvertibleTupleNtoNP tpl_b
   , SGettableNP v r (TupleNtoNP tpl_a) (TupleNtoNP tpl_b)
   ) => tpl_a ⊸ YulMonad v v r tpl_b
 sgetN tpl_a = let np_a = fromTupleNtoNP tpl_a
@@ -91,14 +96,14 @@ sgetN tpl_a = let np_a = fromTupleNtoNP tpl_a
 -- sputN
 ------------------------------------------------------------------------------------------------------------------------
 
-class SPuttableNP v r a where
+class (KnownNat v, KnownNat (v + 1), YulO1 r) => SPuttableNP v r a where
   sputNP :: forall. a ⊸ YulMonad v (v + 1) r (P'V (v + 1) r ())
 
-instance (YulO1 r) => SPuttableNP v r (NP '[]) where
+instance (KnownNat v, KnownNat (v + 1), YulO1 r) => SPuttableNP v r (NP '[]) where
   sputNP Nil = MkLVM \ctx -> let !(ctx', u) = contextualEmbed ctx ()
                              in (unsafeAxiom, ctx', u)
 
-instance ( YulO1 r
+instance ( KnownNat v, KnownNat (v + 1), YulO1 r
          , Versionable'L ie v
          , SReferenceable ie v r a b
          , SPuttableNP v r (NP xs)
@@ -123,7 +128,9 @@ data StorageAssignment v r = forall a b ie. SReferenceable ie v r a b => P'x ie 
 sassign :: forall v r. YulO1 r => StorageAssignment v r ⊸ YulMonad v (v + 1) r (P'V (v + 1) r ())
 sassign (to := x) = sput to x
 
-sputs :: forall v r. YulO1 r => NonEmpty (StorageAssignment v r) ⊸ YulMonad v (v + 1) r (P'V (v + 1) r ())
+sputs :: forall v r.
+  ( KnownNat v, KnownNat (v + 1), YulO1 r
+  ) => NonEmpty (StorageAssignment v r) ⊸ YulMonad v (v + 1) r (P'V (v + 1) r ())
 sputs (sa :| []) = sassign sa
 sputs (sa :| (sa':sas)) =
   let x  = sassign sa LVM.>>= LVM.pure . unsafeCoerceYulPort:: YulMonad v (v + 1) r (P'V v r ())

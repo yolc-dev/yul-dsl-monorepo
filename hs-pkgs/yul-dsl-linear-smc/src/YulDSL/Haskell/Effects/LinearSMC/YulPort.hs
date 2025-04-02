@@ -4,7 +4,7 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
   ( -- * Yul Port Definitions
     -- $LinearPortDefs
     PortEffect (PurePort, VersionedPort)
-  , P'x (MkP'x), P'V, P'P, unP'x, encodeP'x, decodeP'x
+  , P'x (MkP'x), unP'x, P'V, P'P, encodeP'x, decodeP'x
   , Versionable'L (ver'l)
   , unsafeCoerceYulPort, unsafeCoerceYulPortDiagram
   , unsafeUncurryNil'lx, uncurryNP'lx
@@ -22,7 +22,6 @@ import Prelude                             qualified as BasePrelude
 import Language.Haskell.TH                 qualified as TH
 -- linear-base
 import Prelude.Linear
-import Unsafe.Linear                       qualified as UnsafeLinear
 -- linear-smc
 import Control.Category.Linear             (P, copy, decode, discard, encode, ignore, merge, mkUnit, split)
 -- yul-dsl-pure
@@ -49,24 +48,36 @@ newtype P'x (eff :: PortEffect) r a = MkP'x (P (YulCat PortEffect) r a)
 -- ^ Role annotation to make sure @eff@ is nominal, so only unsafe coercing is allowed.
 type role P'x nominal _ _
 
+unP'x :: forall (eff :: PortEffect) r a. P'x eff r a ⊸ P (YulCat PortEffect) r a
+unP'x (MkP'x x) = x
+
 -- | Linear port of yul category with pure data, aka. pure yul ports.
 type P'P = P'x PurePort
 
 -- | Linear port of yul category with linearly versioned data, aka. versioned yul ports.
 type P'V v = P'x (VersionedPort v)
 
-unP'x :: P'x eff r a ⊸ P (YulCat PortEffect) r a
-unP'x (MkP'x x) = x
+encodeP'x :: forall (eff :: PortEffect) a b r.
+  YulO3 r a b =>
+  YulCat PortEffect a b ->
+  (P'x eff r a ⊸ P'x eff r b)
+encodeP'x c = MkP'x . encode c . unP'x
 
-encodeP'x :: forall (eff :: PortEffect) a b r. YulO3 r a b
-  => YulCat PortEffect a b
-  ⊸ (P'x eff r a ⊸ P'x eff r b)
-encodeP'x c (MkP'x a) = MkP'x $ encode c a
-
-decodeP'x :: forall (eff :: PortEffect) a b. YulO2 a b
-  => (forall r. YulO1 r => P'x eff r a ⊸ P'x eff r b)
-  -> YulCat PortEffect a b
+decodeP'x :: forall (eff :: PortEffect) a b.
+  YulO2 a b =>
+  (forall r. YulO1 r => P'x eff r a ⊸ P'x eff r b) ->
+  YulCat PortEffect a b
 decodeP'x f = decode (\a -> unP'x (f (MkP'x a)))
+
+-- | Unsafe coerce yul port' effects.
+unsafeCoerceYulPort :: forall (eff1 :: PortEffect) (eff2 :: PortEffect) r a.
+  P'x eff1 r a ⊸ P'x eff2 r a
+unsafeCoerceYulPort = MkP'x . unP'x
+
+-- | Unsafe coerce yul port diagram's effects.
+unsafeCoerceYulPortDiagram :: forall (eff1 :: PortEffect) (eff2 :: PortEffect) (eff3 :: PortEffect) r a b.
+    (P'x eff1 r a ⊸ P'x eff2 r b) ⊸ (P'x eff3 r a ⊸ P'x eff3 r b)
+unsafeCoerceYulPortDiagram f x = unsafeCoerceYulPort (f (unsafeCoerceYulPort x))
 
 -- Versionable ports
 
@@ -79,28 +90,12 @@ instance Versionable'L (VersionedPort v) v where
 instance Versionable'L PurePort v where
   ver'l = unsafeCoerceYulPort
 
--- -- | Pure port can be converted to any versioned port.
--- ver'l :: forall a v r.
---   YulO2 a r
---   => P'P r a ⊸ P'V v r a
--- ver'l = unsafeCoerceYulPort
-
--- | Unsafe coerce yul port' effects.
-unsafeCoerceYulPort :: forall (eff1 :: PortEffect) (eff2 :: PortEffect) r a.
-  P'x eff1 r a ⊸ P'x eff2 r a
-unsafeCoerceYulPort = UnsafeLinear.coerce
-
--- | Unsafe coerce yul port diagram's effects.
-unsafeCoerceYulPortDiagram :: forall (eff1 :: PortEffect) (eff2 :: PortEffect) (eff3 :: PortEffect) r a b.
-    (P'x eff1 r a ⊸ P'x eff2 r b) ⊸ (P'x eff3 r a ⊸ P'x eff3 r b)
-unsafeCoerceYulPortDiagram f x = unsafeCoerceYulPort (f (unsafeCoerceYulPort x))
-
 -- uncurryNP'lx
 
 unsafeUncurryNil'lx :: forall a b r ie oe m1.
   YulO3 a b r =>
   P'x oe r b ⊸
-  (m1 a ⊸ P'x ie r (NP '[])) ->
+  (m1 a ⊸ P'x ie r (NP '[])) ⊸
   (m1 a ⊸ P'x oe r b)
 unsafeUncurryNil'lx b h a =
   h a                   -- :: P'V v1 (NP '[])
@@ -116,14 +111,14 @@ uncurryNP'lx :: forall g x xs b m1 m1b m2_ m2b_ r a ie.
   , UncurriableNP g xs b m1 m1b (m2_ a) (m2b_ a) One
   , YulCatObj (NP xs)
   ) =>
-  (m1 x ⊸ LiftFunction g m1 m1b One) ->      -- f
-  (m1 a ⊸ m1 (NP (x : xs))) ->               -- h
-  ((m1 a ⊸ m1 (NP xs)) ⊸ (m2_ a) (NP xs)) -> -- mk
-  ((m2b_ a) b ⊸ (m1 a ⊸ m1b b)) ->           -- un
+  (m1 x ⊸ LiftFunction g m1 m1b One) ⊸      -- f
+  (m1 a ⊸ m1 (NP (x : xs))) ⊸               -- h
+  ((m1 a ⊸ m1 (NP xs)) ⊸ (m2_ a) (NP xs)) ⊸ -- mk
+  ((m2b_ a) b ⊸ (m1 a ⊸ m1b b)) ⊸           -- un
   (m1 a ⊸ m1b b)
 uncurryNP'lx f h mk un xxs =
   dup2'l xxs
-  & \(xxs1, xxs2) -> unconsNP (h xxs1)
+  & \(xxs1, xxs2) -> unconsNP @m1 @x @xs @One (h xxs1)
   & \(x, xs) -> let g = uncurryNP @g @xs @b @m1 @m1b @(m2_ a) @(m2b_ a) @One
                         (f x)
                         (mk (\a -> ignore'l (discard'l a) xs))
@@ -138,53 +133,56 @@ uncurryNP'lx f h mk un xxs =
 
 discard'l :: forall a eff r. YulO2 r a
   => P'x eff r a ⊸ P'x eff r ()
-discard'l (MkP'x a) = MkP'x $ discard a
+discard'l = MkP'x . discard . unP'x
 
 ignore'l :: forall a eff r. YulO2 r a
   => P'x eff r () ⊸ P'x eff r a ⊸ P'x eff r a
-ignore'l (MkP'x u) (MkP'x a) = MkP'x $ ignore u a
+ignore'l u a = MkP'x $ ignore (unP'x u) (unP'x a)
 
 mkUnit'l :: forall a eff r. YulO2 r a
   => P'x eff r a ⊸ (P'x eff r a, P'x eff r ())
-mkUnit'l (MkP'x a) = mkUnit a & \ (a', u) -> (MkP'x a', MkP'x u)
+mkUnit'l a = mkUnit (unP'x a) & \ (a', u) -> (MkP'x a', MkP'x u)
 
 -- | Embed a free value to a yul port diagram that discards any input yul ports.
 emb'l :: forall a b eff r. YulO3 r a b
   => a -> (P'x eff r b ⊸ P'x eff r a)
-emb'l a (MkP'x b) = MkP'x $ encode (yulEmb a) b
+emb'l a = MkP'x . encode (yulEmb a) . unP'x
 
 -- | Create a constant yul port diagram that discards any input yul ports.
 const'l :: forall a b eff r. YulO3 r a b
   => P'x eff r a ⊸ (P'x eff r b ⊸ P'x eff r a)
-const'l (MkP'x a) (MkP'x b) = MkP'x $ ignore (discard b) a
+const'l a b = MkP'x $ ignore (discard (unP'x b)) (unP'x a)
 
 -- | Duplicate the input yul port twice as a tuple.
 dup2'l :: forall a eff r. YulO2 a r
   => P'x eff r a ⊸ (P'x eff r a, P'x eff r a)
-dup2'l (MkP'x a) = let !(a1, a2) = split (copy a) in (MkP'x a1, MkP'x a2)
+dup2'l a = let !(a1, a2) = (split . copy . unP'x) a in (MkP'x a1, MkP'x a2)
 
 merge'l :: forall a b eff r. YulO3 r a b
   => (P'x eff r a, P'x eff r b) ⊸ P'x eff r (a, b)
-merge'l (MkP'x a, MkP'x b) = MkP'x $ merge (a, b)
+merge'l (a, b) = MkP'x $ merge (unP'x a, unP'x b)
 
 split'l :: forall a b eff r. YulO3 r a b
   => P'x eff r (a, b) ⊸ (P'x eff r a, P'x eff r b)
-split'l (MkP'x ab) = let !(a, b) = split ab in (MkP'x a, MkP'x b)
+split'l ab = let !(a, b) = split (unP'x ab) in (MkP'x a, MkP'x b)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $TypeOps
 ------------------------------------------------------------------------------------------------------------------------
 
 -- | Coerce input yul port to an ABI coercible output yul port.
-coerceType'l :: forall a b eff r. (YulO3 a b r, ABITypeCoercible a b) =>
+coerceType'l :: forall a b eff r.
+  (YulO3 a b r, ABITypeCoercible a b) =>
   P'x eff r a ⊸ P'x eff r b
 coerceType'l = encodeP'x YulCoerceType
 
-reduceType'l :: forall a eff r. (YulO3 a (ABITypeDerivedOf a) r) =>
+reduceType'l :: forall a eff r.
+  (YulO3 a (ABITypeDerivedOf a) r) =>
   P'x eff r a ⊸ P'x eff r (ABITypeDerivedOf a)
 reduceType'l = encodeP'x YulReduceType
 
-extendType'l :: forall a eff r. (YulO3 a (ABITypeDerivedOf a) r) =>
+extendType'l :: forall a eff r.
+  (YulO3 a (ABITypeDerivedOf a) r) =>
   P'x eff r (ABITypeDerivedOf a) ⊸ P'x eff r a
 extendType'l = encodeP'x YulExtendType
 
