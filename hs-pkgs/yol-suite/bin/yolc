@@ -21,6 +21,8 @@ build_dir=
 codegen_name=
 show_output_always=
 
+CABAL=(cabal --builddir="$build_dir")
+
 help() {
   cat <<EOF
 yolc, the YulDSL commandline transpiler.
@@ -50,7 +52,6 @@ debug() {
 }
 
 do_runyol() {
-  local CABAL=(cabal --builddir="$build_dir")
   local CABAL_V=0
   is_verbose && CABAL_V=1
   runbin=$("${CABAL[@]}" "$@" -v0 list-bin runyol)
@@ -108,12 +109,13 @@ main() {
     ## FIXME support nix-distribution mode
     die "Nix-distribution mode not supported"
   else
+    run_cabal_path=("${CABAL[@]}" -v0 path --output-format=json)
     dist_path=$(readlink -f "$(dirname "$PROGRAM_PATH")"/../../..)
     out_dir=${dist_path}/build
     build_dir=$out_dir/default
-    cabal_package_db=$(cabal -v0 --builddir="$build_dir" path --output-format=json |
-                       jq -r '."store-dir" + "/" + .compiler.id + "-inplace/package.db"')
-    dist_package_db=$(readlink -f "${build_dir}"/packagedb/ghc-9.10.1)
+    cabal_package_db=$("${run_cabal_path[@]}" | jq -r '."store-dir" + "/" + .compiler.id + "-inplace/package.db"')
+    ghc_id=$("${run_cabal_path[@]}" | jq -r .compiler.id)
+    dist_package_db=$(readlink -f "${build_dir}/packagedb/${ghc_id}")
   fi
 
   is_verbose && {
