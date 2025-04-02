@@ -12,10 +12,3 @@ packages:
 
 -- doc: https://cabal.readthedocs.io/en/stable/cabal-commands.html#cmdoption-enable-multi-repl
 multi-repl: true
-
--- only tested with 9.10.1
-with-compiler: ghc-9.10.1
-
-package *
-  -- FIXME: due to a likely GHC 9.10.1 bug, building with -O1 produces faulty binary; to be reported.
-  ghc-options: -O0

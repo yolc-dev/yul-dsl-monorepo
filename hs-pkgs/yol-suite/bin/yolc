@@ -21,8 +21,6 @@ build_dir=
 codegen_name=
 show_output_always=
 
-CABAL=(cabal --builddir="$build_dir")
-
 help() {
   cat <<EOF
 yolc, the YulDSL commandline transpiler.
@@ -52,10 +50,11 @@ debug() {
 }
 
 do_runyol() {
+  local CABAL=(cabal --builddir="$build_dir")
   local CABAL_V=0
   is_verbose && CABAL_V=1
-  runbin=$("${CABAL[@]}" "$@" -v0 list-bin runyol)
-  "${CABAL[@]}" "$@" -v${CABAL_V} build runyol 1>&2 && {
+  runbin=$("${CABAL[@]}"  "$@" -v0 list-bin runyol)
+  "${CABAL[@]}" -v${CABAL_V} "$@" build runyol 1>&2 && {
     is_verbose && {
       debug "+ exec: $runbin"
     }
@@ -109,12 +108,14 @@ main() {
     ## FIXME support nix-distribution mode
     die "Nix-distribution mode not supported"
   else
-    run_cabal_path=("${CABAL[@]}" -v0 path --output-format=json)
     dist_path=$(readlink -f "$(dirname "$PROGRAM_PATH")"/../../..)
     out_dir=${dist_path}/build
-    build_dir=$out_dir/default
+
+    run_cabal_path=(cabal --builddir="$out_dir/path" -v0 path --output-format=json)
     cabal_package_db=$("${run_cabal_path[@]}" | jq -r '."store-dir" + "/" + .compiler.id + "-inplace/package.db"')
     ghc_id=$("${run_cabal_path[@]}" | jq -r .compiler.id)
+
+    build_dir=$out_dir/${ghc_id}-default
     dist_package_db=$(readlink -f "${build_dir}/packagedb/${ghc_id}")
   fi
 
@@ -207,9 +208,6 @@ package-dbs: clear, global, ${cabal_package_db}, ${dist_package_db}
 packages:
   $cabal_path
   $yol_dir/runyol.cabal
-
-package *
-  ghc-options: -O0
 EOF
 
   # instantiate runyol.cabal template

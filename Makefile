@@ -7,8 +7,7 @@ LINEAR_SMC_VERSION = 2.2.3
 LINEAR_SMC_PATH_FILE = 3rd-parties/linear-smc-$(LINEAR_SMC_VERSION).patch
 
 # Output directories
-DEFAULT_BUILDDIR ?= $(PWD)/build/default
-CABAL_TEST_COVERAGE_BUILDDIR ?= $(PWD)/build/dist-coverage
+DEFAULT_OUT_DIR ?= $(PWD)/build
 
 # Build options
 BUILD_OPTIONS ?=
@@ -27,13 +26,19 @@ CABAL_VERBOSITY ?= 1
 
 CABAL ?= cabal -v$(CABAL_VERBOSITY)
 
-CABAL_PACKAGE_DB = $(shell $(CABAL) -v0 --builddir=$(DEFAULT_BUILDDIR) path --output-format=json | \
+# Cabal Paths
+CABAL_PACKAGE_DB = $(shell $(CABAL) -v0 --builddir=$(DEFAULT_OUT_DIR)/path path --output-format=json | \
 										 jq -r '."store-dir" + "/" + .compiler.id + "-inplace/package.db"')
+GHC_ID = $(shell $(CABAL) -v0 --builddir=$(DEFAULT_OUT_DIR)/path path --output-format=json | jq .compiler.id)
 
-CABAL_BUILD    = $(CABAL) --builddir=$(DEFAULT_BUILDDIR) -O0 -j build
-CABAL_TEST     = $(CABAL) --builddir=$(DEFAULT_BUILDDIR) -O0 -j test $(CABAL_TEST_OPTIONS)
-CABAL_DOCS     = $(CABAL) --builddir=$(DEFAULT_BUILDDIR) -O0 -j haddock
-CABAL_COVERAGE = $(CABAL) --builddir=$(CABAL_TEST_COVERAGE_BUILDDIR) -O0 -j coverage
+CABAL_DEFAULT_BUILD_DIR ?= $(DEFAULT_OUT_DIR)/$(GHC_ID)-default
+CABAL_DOCS_BUILD_DIR ?= $(DEFAULT_OUT_DIR)/$(GHC_ID)-docs
+CABAL_TEST_COVERAGE_BUILD_DIR ?= $(DEFAULT_OUT_DIR)/$(GHC_ID)-dist-coverage
+
+CABAL_BUILD    = $(CABAL) --builddir=$(CABAL_DEFAULT_BUILD_DIR) -O0 -j build
+CABAL_TEST     = $(CABAL) --builddir=$(CABAL_DEFAULT_BUILD_DIR) -O0 -j test $(CABAL_TEST_OPTIONS)
+CABAL_DOCS     = $(CABAL) --builddir=$(CABAL_DOCS_BUILD_DIR) -O0 -j haddock
+CABAL_COVERAGE = $(CABAL) --builddir=$(CABAL_TEST_COVERAGE_BUILD_DIR) -O0 -j coverage
 
 # Yolc Options
 
@@ -67,7 +72,7 @@ build-docs:
 
 build-display-docs:
 	for i in $(ALL_YULDSL_MODULES); do \
-		xdg-open $(DEFAULT_BUILDDIR)/build/*/*/$${i}-*/noopt/doc/html/$${i}/index.html; \
+		xdg-open $(CABAL_DOCS_BUILD_DIR)/build/*/*/$${i}-*/noopt/doc/html/$${i}/index.html; \
   done
 
 build-docs-and-display: build-docs build-display-docs
@@ -105,7 +110,7 @@ dev:
 	nodemon -w hs-pkgs -w yol-demo -w examples -e "hs sol cabal" -i "#.*" -x "make $(DEV_TARGETS) || exit 1"
 
 repl-eth-abi:
-	$(CABAL) --builddir=$(DEFAULT_BUILDDIR) repl eth-abi
+	$(CABAL) --builddir=$(CABAL_DEFAULT_BUILD_DIR) repl eth-abi
 
 .PHONY: all lint build build-* clean install-* test test-* dev repl-eth-abi
 
