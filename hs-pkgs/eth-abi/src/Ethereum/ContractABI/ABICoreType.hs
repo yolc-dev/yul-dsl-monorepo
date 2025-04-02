@@ -127,11 +127,13 @@ abiCoreTypeCompactName (ARRAY' a)  = "[" ++ abiCoreTypeCompactName a ++ "]"
 
 -- | Decode result from 'abiCoreTypeCompactName'.
 decodeAbiCoreTypeCompactName :: String -> [ABICoreType]
-decodeAbiCoreTypeCompactName part = case results of
-  [(rs, "")] -> rs
-  []         -> error ("Invalid abiCoreTypeCompactName, no match: " ++ part)
-  xs         -> error ("Invalid abiCoreTypeCompactName, non-unique match: " ++ show xs)
-  where parseOne = do
+decodeAbiCoreTypeCompactName part =
+  case RP.readP_to_S (RP.manyTill parseOne RP.eof) part of
+    [(rs, "")] -> rs
+    []         -> error ("Invalid abiCoreTypeCompactName, no match: " ++ part)
+    xs         -> error ("Invalid abiCoreTypeCompactName, non-unique match: " ++ show xs)
+  where parseOne :: RP.ReadP ABICoreType
+        parseOne = do
           a <- RP.get
           case a of
             'b' -> pure BOOL'
@@ -143,10 +145,10 @@ decodeAbiCoreTypeCompactName part = case results of
               _ <- RP.char ']'
               pure (ARRAY' a')
             _ -> RP.pfail
+        parseINTx :: Bool -> RP.ReadP ABICoreType
         parseINTx s = do
           digits <- RP.many1 $ RP.satisfy isDigit
           maybe RP.pfail pure (withSomeValidINTx s (read digits) INTx')
-        results = RP.readP_to_S (RP.manyTill parseOne RP.eof) part
 
 instance Show ABICoreType where show = abiCoreTypeCanonName
 
