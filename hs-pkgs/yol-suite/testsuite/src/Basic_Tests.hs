@@ -3,6 +3,8 @@ Test code generations for typical and problematic functions.
 -}
 module Basic_Tests where
 import Prelude.YulDSL
+import Control.LinearlyVersionedMonad qualified as LVM
+
 
 embUnit'p :: PureFn (I256 -> ())
 embUnit'p = $fn $ \a -> a >.> yulEmb ()
@@ -43,6 +45,25 @@ callExternalFoo2 :: OmniFn (ADDR -> U256 -> U256 -> U256)
 callExternalFoo2 = $lfn $ yulmonad'v
   \to val1 val2 -> externalCall external_foo2 to val1 val2
 
+sgetTest :: StaticFn (ADDR -> ())
+sgetTest = $lfn $ yulmonad'v
+  \ acc -> LVM.do
+    key <- yembed (42 :: U32)
+    ref <- ypure (extendType'l @(REF U256) (keccak256'l (merge'l (key, acc))))
+    toss1 ref
+
+shmapGetTest :: StaticFn (ADDR -> ())
+shmapGetTest = $lfn $ yulmonad'v
+  \acc -> LVM.do
+    ref <- (shmapRef @ADDR @U256) (shmap "YolcStorageTest" :: SHMap ADDR U256) acc
+    toss1 ref
+
+varSharing :: PureFn (U256 -> U256 -> U256)
+varSharing = $fn \a b -> let c = a + b in c * c
+
+varSharingL :: StaticFn (U256 -> U256 -> U256)
+varSharingL = $lfn $ yulmonad'p \a b -> let c = a + b in dup2'l c & \(c1, c2) -> ypure (ver'l (c1 * c2))
+
 object = mkYulObject "BasicTests" yulNoop
   [ pureFn   "embUnit$p" embUnit'p
   , pureFn   "embTrue$p" embTrue'p
@@ -53,6 +74,12 @@ object = mkYulObject "BasicTests" yulNoop
 -- , omniFn   "callExternalFoo0" callExternalFoo0
   , omniFn   "callExternalFoo1" callExternalFoo1
   , omniFn   "callExternalFoo2" callExternalFoo2
+
+  , staticFn "sgetTest" sgetTest
+  , staticFn "shmapGetTest" shmapGetTest
+
+  , pureFn "varSharing" varSharing
+  , staticFn "varSharingL" varSharingL
   ]
 
 
