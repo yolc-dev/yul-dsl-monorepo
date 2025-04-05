@@ -8,6 +8,7 @@ module YulDSL.CodeGens.Yul.Internal.CodeGen
   , cg_reset_for_fn
   , cg_reset_for_object
     -- $codegen_vars
+  , cg_next_var
   , cg_create_vars
     -- $codegen_dependencies
   , cg_list_dependent_cats

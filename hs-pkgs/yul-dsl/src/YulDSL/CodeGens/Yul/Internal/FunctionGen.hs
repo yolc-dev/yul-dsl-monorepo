@@ -7,7 +7,8 @@ module YulDSL.CodeGens.Yul.Internal.FunctionGen
   ) where
 
 -- base
-import Control.Monad                        (unless, when)
+import Control.Monad                        (mapAndUnzipM, unless, when)
+import Data.Maybe                           (catMaybes)
 -- text
 import Data.Text.Lazy                       qualified as T
 --
@@ -129,7 +130,23 @@ go_dup :: forall a. (HasCallStack, YulO1 a)
 go_dup = build_code_block @a @(a, a) $ \ind (code, a_ins) -> do
   let title = "dup (" ++ abiTypeCompactName @a ++ ")"
   decor_code <- cg_get_code_decor
-  pure (decor_code ind title code, a_ins ++ a_ins)
+  (b_vars, new_code_list) <- mapAndUnzipM
+    (\case
+        -- save SimpleExpr to a let variable to avoid duplicated runs.
+        SimpleExpr expr -> do
+          var <- cg_next_var
+          pure ( var
+               , Just (declare_vars ind [var] <>
+                       assign_vars ind [var] [SimpleExpr expr])
+               )
+        -- pass on let variables, otherwise.
+        LetVar var -> pure (var , Nothing)
+    ) a_ins
+  let new_code = T.concat (catMaybes new_code_list)
+  pure (decor_code ind title $
+        code <>
+        new_code
+       , mk_rhs_vars (b_vars ++ b_vars))
 
 go_emb :: forall b. (HasCallStack, YulO1 b)
        => b -> CGState RhsExprGen

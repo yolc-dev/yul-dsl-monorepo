@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings   #-}
 module YulDSL.CodeGens.Yul.Internal.RhsExpr
   ( -- * Right-hand-side Expression
-    RhsExpr
+    RhsExpr (LetVar, SimpleExpr)
   , rhs_expr_to_code, spread_rhs, mk_rhs_vars, assign_vars
     -- * Right-hand-side Expression Group
     -- * Right-hand-side Expression Generator
@@ -51,14 +51,6 @@ assign_vars ind vars rexprs = gen_assert_msg ("assign_vars" ++ show(length vars,
   (\a b -> T.init $ ind $ a <> " := " <> b)
   (fmap unVar vars)
   (fmap rhs_expr_to_code rexprs)
-
-------------------------------------------------------------------------------------------------------------------------
--- RhsExprGroup
-------------------------------------------------------------------------------------------------------------------------
-
--- type RhsExprGroup = ([(RhsExpr, Int)], Map.Map Int (Maybe Code))
-
--- rhsgrp_take_vars =
 
 ------------------------------------------------------------------------------------------------------------------------
 -- RhsExprGen
