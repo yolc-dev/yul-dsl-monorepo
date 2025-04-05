@@ -22,7 +22,7 @@ shmap key = SHMap (fromInteger (bytesnToInteger (stringKeccak256 key)))
 
 -- | Get a storage reference from the storage hash-map.
 shmapRef :: forall a b ie r v.
-  ( KnownNat v, YulO3 r a b
+  ( KnownNat v, YulO4 r a b (REF b)
   ) =>
   SHMap a b ->
   P'x ie r a ⊸
