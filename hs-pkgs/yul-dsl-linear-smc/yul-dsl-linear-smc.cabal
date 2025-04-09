@@ -87,6 +87,7 @@ library linearly-versioned-monad
     Data.LinearContext
     Control.LinearlyVersionedMonad
     Control.LinearlyVersionedMonad.Combinators
+    Control.LinearlyVersionedMonad.LVMVar
   other-modules:
     -- support linear types for constraints package
     Data.Constraint.Linear

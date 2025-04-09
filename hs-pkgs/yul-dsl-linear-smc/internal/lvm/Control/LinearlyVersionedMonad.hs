@@ -53,17 +53,15 @@ import Data.LinearContext
 -- additional 'LVM' monad laws in relations to the bind operations '(>>=)', '(>>)'.
 
 -- | Linear versioned monad (LVM) is a parameterized reader monad with linear safety.
-data LVM ctx va vb a = (KnownNat va, KnownNat vb) => MkLVM (ctx ⊸ (Dict (va <= vb), ctx, a))
+newtype LVM ctx va vb a = MkLVM (ctx ⊸ (Dict (va <= vb), ctx, a))
 
 -- | Unwrap the LVM linearly; otherwise the GHC default syntax createwith a multiplicity-polymorphic arrow.
 unLVM :: forall ctx va vb a.
-  (KnownNat va, KnownNat vb) =>
   LVM ctx va vb a ⊸ ctx ⊸ (Dict (va <= vb), ctx, a)
 unLVM (MkLVM fa) = fa
 
 -- | Run a linearly versioned monad.
 runLVM :: forall a va vb ctx.
-  (KnownNat va, KnownNat vb) =>
   ctx ⊸ LVM ctx va vb a ⊸ (ctx, a)
 runLVM ctx m = let !(lp, ctx', a) = unLVM m ctx in lseq lp (ctx', a)
 
@@ -113,9 +111,7 @@ infixr 1 =<<
 
 -- Unsafely coerce version proofs, with the same initial version @va@.
 unsafeCoerceLVM :: forall va vb vc ctx a.
-  ( KnownNat va, KnownNat vb, KnownNat vc
-  , va <= vc
-  ) =>
+  va <= vc =>
   LVM ctx va vb a ⊸ LVM ctx va vc a
 unsafeCoerceLVM (MkLVM f) = MkLVM \ctx ->
   let !(d, ctx', a) = f ctx

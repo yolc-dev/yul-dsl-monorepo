@@ -10,7 +10,7 @@ LINEAR_SMC_PATH_FILE = 3rd-parties/linear-smc-$(LINEAR_SMC_VERSION).patch
 DEFAULT_OUT_DIR ?= $(PWD)/build
 
 # Build options
-BUILD_OPTIONS ?=
+CABAL_BUILD_OPTIONS ?=
 
 # Test options
 CABAL_TEST_SHOW_DETAILS_MODE ?= direct # alternatively: always | failure | never
@@ -24,34 +24,34 @@ FORGE_TEST_OPTIONS ?= -vv
 # Cabal flavors
 CABAL_VERBOSITY ?= 1
 
-CABAL ?= cabal -v$(CABAL_VERBOSITY)
+CABAL ?= cabal
 
 # Cabal Paths
-CABAL_PACKAGE_DB = $(shell $(CABAL) -v0 --builddir=$(DEFAULT_OUT_DIR)/path path --output-format=json | \
-										 jq -r '."store-dir" + "/" + .compiler.id + "-inplace/package.db"')
-GHC_ID = $(shell $(CABAL) -v0 --builddir=$(DEFAULT_OUT_DIR)/path path --output-format=json | jq .compiler.id)
+CABAL_PATH = $(CABAL) -v0 --builddir=$(DEFAULT_OUT_DIR)/path path --output-format=json
+
+CABAL_PACKAGE_DB = $(shell $(CABAL_PATH) | jq -r '."store-dir" + "/" + .compiler.id + "-inplace/package.db"')
+GHC_ID = $(shell $(CABAL_PATH) | jq -r .compiler.id)
 
 CABAL_DEFAULT_BUILD_DIR ?= $(DEFAULT_OUT_DIR)/$(GHC_ID)-default
 CABAL_DOCS_BUILD_DIR ?= $(DEFAULT_OUT_DIR)/$(GHC_ID)-docs
 CABAL_TEST_COVERAGE_BUILD_DIR ?= $(DEFAULT_OUT_DIR)/$(GHC_ID)-dist-coverage
 
-CABAL_BUILD    = $(CABAL) --builddir=$(CABAL_DEFAULT_BUILD_DIR) -O0 -j build
-CABAL_TEST     = $(CABAL) --builddir=$(CABAL_DEFAULT_BUILD_DIR) -O0 -j test $(CABAL_TEST_OPTIONS)
-CABAL_DOCS     = $(CABAL) --builddir=$(CABAL_DOCS_BUILD_DIR) -O0 -j haddock
-CABAL_COVERAGE = $(CABAL) --builddir=$(CABAL_TEST_COVERAGE_BUILD_DIR) -O0 -j coverage
+CABAL_BUILD    = $(CABAL) -v$(CABAL_VERBOSITY) --builddir=$(CABAL_DEFAULT_BUILD_DIR) -O0 -j build $(CABAL_BUILD_OPTIONS)
+CABAL_TEST     = $(CABAL) -v$(CABAL_VERBOSITY) --builddir=$(CABAL_DEFAULT_BUILD_DIR) -O0 -j test $(CABAL_TEST_OPTIONS)
+CABAL_DOCS     = $(CABAL) -v$(CABAL_VERBOSITY) --builddir=$(CABAL_DOCS_BUILD_DIR) -O0 -j haddock
+CABAL_COVERAGE = $(CABAL) -v$(CABAL_VERBOSITY) --builddir=$(CABAL_TEST_COVERAGE_BUILD_DIR) -O0 -j coverage
 
 # Yolc Options
 
 export YOLC_DEBUG_LEVEL ?= 0
-
-# Misc
-DEV_TARGETS = build-all test-all test-yol-suite test-demo-foundry lint
 
 ########################################################################################################################
 # TARGETS
 ########################################################################################################################
 
 ALL_YULDSL_MODULES = simple-sop eth-abi yul-dsl yul-dsl-pure yul-dsl-linear-smc yol-suite
+
+DEV_TARGETS = build-all test-all test-yol-suite test-demo-foundry lint
 
 all: lint build test
 
@@ -62,10 +62,10 @@ lint:
 build: build-all build-docs
 
 build-all:
-	$(CABAL_BUILD) $(BUILD_OPTIONS) all
+	$(CABAL_BUILD) all
 
 build-module-%:
-	$(CABAL_BUILD) $(BUILD_OPTIONS) $*
+	$(CABAL_BUILD) $*
 
 build-docs:
 	$(CABAL_DOCS) $(ALL_YULDSL_MODULES)
