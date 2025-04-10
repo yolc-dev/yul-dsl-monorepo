@@ -26,7 +26,7 @@ module Control.LinearlyVersionedMonad
   ( -- $linear_safety
     LVM (MkLVM), unLVM, runLVM
   , pure, (>>=), (>>), (=<<)
-  , unsafeCoerceLVM
+  , unsafeCoerceLVM, veryUnsafeCoerceLVM
   ) where
 
 -- base
@@ -34,7 +34,6 @@ import GHC.TypeLits           (KnownNat, type (<=))
 -- constraints
 import Data.Constraint.Linear (Dict (Dict), (\\))
 import Data.Constraint.Nat    (leTrans)
-import Data.Constraint.Unsafe (unsafeAxiom)
 -- linear-base
 import Control.Functor.Linear qualified
 import Data.Functor.Linear qualified
@@ -115,7 +114,16 @@ unsafeCoerceLVM :: forall va vb vc ctx a.
   LVM ctx va vb a ⊸ LVM ctx va vc a
 unsafeCoerceLVM (MkLVM f) = MkLVM \ctx ->
   let !(d, ctx', a) = f ctx
-  in (lseq d unsafeAxiom, ctx', a)
+  in (lseq d Dict, ctx', a)
+
+-- More unsafely coerce version proofs than 'unsafeCoerceLVM'.
+veryUnsafeCoerceLVM :: forall va vb vp vq ctx a.
+  (va <= vb, vp <= vq) =>
+  LVM ctx va vb a ⊸ LVM ctx vp vq a
+veryUnsafeCoerceLVM (MkLVM f) = MkLVM \ctx ->
+  let !(d, ctx', a) = f ctx
+  in (lseq d Dict, ctx', a)
+
 
 --
 -- Instances for linear-base
