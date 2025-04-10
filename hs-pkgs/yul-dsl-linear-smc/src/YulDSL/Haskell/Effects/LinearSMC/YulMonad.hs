@@ -7,6 +7,7 @@ module YulDSL.Haskell.Effects.LinearSMC.YulMonad
   , YulCat'LVM (MkYulCat'LVM), YulCat'LPM (MkYulCat'LPM)
   , yulmonad'v, yulmonad'p
   , module Control.LinearlyVersionedMonad.Combinators
+  , module Control.LinearlyVersionedMonad.LVMVar
   , Control.Functor.Linear.fmap
   --
   , withinPureY
@@ -21,6 +22,7 @@ import YulDSL.Haskell.LibPure
 import Control.LinearlyVersionedMonad                (LVM, runLVM)
 import Control.LinearlyVersionedMonad                qualified as LVM
 import Control.LinearlyVersionedMonad.Combinators
+import Control.LinearlyVersionedMonad.LVMVar
 import Data.LinearContext
 --
 import YulDSL.Haskell.Effects.LinearSMC.LinearYulCat
@@ -91,6 +93,10 @@ instance YulO2 r a => ContextualEmbeddable (YulMonadCtx r) (P'x eff r) a where
   contextualEmbed (MkYulMonadCtx ud) x'p = let !(ud', u') = ud_dupu ud
                                                x'v = emb'l x'p u'
                                            in (MkYulMonadCtx ud', x'v)
+
+instance YulO2 a r => LinearlyVersionRestrictable (YulMonadCtx r) (P'P r a) where
+  type instance LinearlyRestrictedVersion (YulMonadCtx r) (P'P r a) v = P'V v r a
+  restrictVersion a = let !(a1, a2) = dup2'l a in LVM.pure (a1, unsafeCoerceYulPort a2)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- yulmonad'v
