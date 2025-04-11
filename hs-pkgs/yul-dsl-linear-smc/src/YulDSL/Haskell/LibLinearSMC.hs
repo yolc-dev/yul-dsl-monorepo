@@ -5,17 +5,17 @@ module YulDSL.Haskell.LibLinearSMC
   , ycaller
   ) where
 -- linear-base
-import GHC.TypeLits                     (KnownNat)
+import GHC.TypeLits                       (KnownNat)
 import Prelude.Linear
 -- yul-dsl
 import YulDSL.Core
-import YulDSL.StdBuiltIns.ABICodec      ()
+import YulDSL.StdBuiltIns.ABICodec        ()
 -- yul-dsl-pure
 import YulDSL.Haskell.LibPure
 -- (lvm)
-import Control.LinearlyVersionedMonad   qualified as LVM
+import Control.LinearlyVersionedMonad.LVM qualified as LVM
 --
-import Data.Num.Linear.YulDSL           ()
+import Data.Num.Linear.YulDSL             ()
 import YulDSL.Haskell.Effects.LinearSMC
 
 

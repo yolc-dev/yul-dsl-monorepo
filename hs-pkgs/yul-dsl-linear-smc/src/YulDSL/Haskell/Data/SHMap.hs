@@ -3,13 +3,13 @@ module YulDSL.Haskell.Data.SHMap
   , shmapRef, shmapGet, shmapPut
   ) where
 -- base
-import GHC.TypeLits                   (KnownNat, type (+))
+import GHC.TypeLits                       (KnownNat, type (+))
 -- linear-base
-import Prelude.Linear                 (String, fromInteger, type (~))
+import Prelude.Linear                     (String, fromInteger, type (~))
 -- yul-dsl
 import YulDSL.Core
 --
-import Control.LinearlyVersionedMonad qualified as LVM
+import Control.LinearlyVersionedMonad.LVM qualified as LVM
 import YulDSL.Haskell.LibLinearSMC
 
 

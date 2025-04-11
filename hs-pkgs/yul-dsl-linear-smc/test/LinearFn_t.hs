@@ -2,7 +2,7 @@ module LinearFn_t where
 -- hspec
 import Test.Hspec
 -- (lvm)
-import Control.LinearlyVersionedMonad qualified as LVM
+import Control.LinearlyVersionedMonad.LVM qualified as LVM
 --
 import Prelude                        ()
 import Prelude.YulDSL

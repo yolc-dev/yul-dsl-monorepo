@@ -1,5 +1,5 @@
 module ERC20 where
-import Control.LinearlyVersionedMonad qualified as LVM
+import Control.LinearlyVersionedMonad.LVM qualified as LVM
 import Prelude.YulDSL
 
 -- | Ethereum contract is a Yul Object in Yolc.

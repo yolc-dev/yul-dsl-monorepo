@@ -3,7 +3,7 @@ Test code generations for typical and problematic functions.
 -}
 module Basic_Tests where
 import Prelude.YulDSL
-import Control.LinearlyVersionedMonad qualified as LVM
+import Control.LinearlyVersionedMonad.LVM qualified as LVM
 
 
 embUnit'p :: PureFn (I256 -> ())

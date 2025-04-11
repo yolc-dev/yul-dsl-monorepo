@@ -19,8 +19,8 @@ import Unsafe.Linear                              qualified as UnsafeLinear
 -- constraints
 import Data.Constraint.Linear                     (Dict (Dict))
 --
-import Control.LinearlyVersionedMonad             as LVM
 import Control.LinearlyVersionedMonad.Combinators
+import Control.LinearlyVersionedMonad.LVM         qualified as LVM
 import Data.LinearContext
 
 
@@ -31,10 +31,10 @@ import Data.LinearContext
 -- | Data that is linearly restrictable to any version.
 class LinearlyVersionRestrictable ctx a where
   type family LinearlyRestrictedVersion ctx a (v :: Nat) = (a' :: Type) | a' -> ctx
-  restrictVersion :: forall v. KnownNat v => a ⊸ LVM ctx v v (LinearlyRestrictedVersion ctx a v)
+  restrictVersion :: forall v. KnownNat v => a ⊸ LVM.LVM ctx v v (LinearlyRestrictedVersion ctx a v)
 
 class (KnownNat v, LinearlyVersionRestrictable ctx a) => UsableLVMVar v var ctx a | var -> ctx a where
-  copyLVMVar :: forall. var ⊸ LVM ctx v v (var, a)
+  copyLVMVar :: forall. var ⊸ LVM.LVM ctx v v (var, a)
 
 --
 -- Unrestricted-version (Uv) LVMVar
@@ -48,7 +48,7 @@ data UvLVMVar ctx a where
     , ContextualSeqable ctx a a
     , ContextualConsumable ctx a
     ) =>
-    (forall v_. KnownNat v_ => LVM ctx v_ v_ a) ⊸ UvLVMVar ctx a
+    (forall v_. KnownNat v_ => LVM.LVM ctx v_ v_ a) ⊸ UvLVMVar ctx a
 
 data AnyUvLVMVar ctx where MkAnyUvLVMVar :: forall ctx a. UvLVMVar ctx a ⊸ AnyUvLVMVar ctx
 
@@ -59,14 +59,14 @@ mkUvLVMVar :: forall ctx a.
     , ContextualConsumable ctx a
     ) =>
   a ⊸ UvLVMVar ctx a
-mkUvLVMVar a = UvLVMVar (MkLVM (Dict, , a))
+mkUvLVMVar a = UvLVMVar (LVM.MkLVM (Dict, , a))
 
 instance ( KnownNat v
          , LinearlyVersionRestrictable ctx a
          ) =>
          UsableLVMVar v (UvLVMVar ctx a) ctx a where
   copyLVMVar (UvLVMVar var) = LVM.do
-    a <- unsafeCoerceLVM var
+    a <- LVM.unsafeCoerceLVM var
     (a', a'') <- pass1 a LVM.pure
     LVM.pure (mkUvLVMVar a', a'')
 
@@ -82,7 +82,7 @@ data VrLVMVar ctx v a where
     , ContextualSeqable ctx a a
     , LinearlyVersionRestrictable ctx a
     ) =>
-    LVM ctx v v a ⊸ VrLVMVar ctx v a
+    LVM.LVM ctx v v a ⊸ VrLVMVar ctx v a
 
 data AnyVrLVMVar ctx where MkAnyVrLVMVar :: forall ctx v_ a. VrLVMVar ctx v_ a ⊸ AnyVrLVMVar ctx
 
@@ -93,7 +93,7 @@ mkVrLVMVar :: forall ctx v a.
   , LinearlyVersionRestrictable ctx a
   ) =>
   a ⊸ VrLVMVar ctx v a
-mkVrLVMVar a = VrLVMVar (MkLVM (Dict, , a) :: LVM ctx v v a)
+mkVrLVMVar a = VrLVMVar (LVM.MkLVM (Dict, , a) :: LVM.LVM ctx v v a)
 
 instance ( KnownNat v
          , LinearlyVersionRestrictable ctx a
@@ -117,21 +117,21 @@ data LVMVarRegistry ctx where
 initLVMVarRegistry :: LVMVarRegistry ctx
 initLVMVarRegistry = MkLVMVarRegistry [] []
 
-consumeLVMVarRegistry :: forall ctx v. KnownNat v => LVMVarRegistry ctx ⊸ LVM ctx v v ()
+consumeLVMVarRegistry :: forall ctx v. KnownNat v => LVMVarRegistry ctx ⊸ LVM.LVM ctx v v ()
 consumeLVMVarRegistry (MkLVMVarRegistry vurs vrs) = go1 vurs LVM.>> go2 vrs
   where go1 ([])                                = LVM.pure ()
-        go1 (MkAnyUvLVMVar (UvLVMVar var) : xs) = unsafeCoerceLVM (var LVM.>>= eject) LVM.>> go1 xs
+        go1 (MkAnyUvLVMVar (UvLVMVar var) : xs) = LVM.unsafeCoerceLVM (var LVM.>>= eject) LVM.>> go1 xs
         go2 ([])                                = LVM.pure ()
-        go2 (MkAnyVrLVMVar (VrLVMVar var) : xs) = veryUnsafeCoerceLVM (var LVM.>>= eject) LVM.>> go2 xs
+        go2 (MkAnyVrLVMVar (VrLVMVar var) : xs) = LVM.veryUnsafeCoerceLVM (var LVM.>>= eject) LVM.>> go2 xs
 
 class ( KnownNat v
       , LinearlyVersionRestrictable ctx a
       ) => LVMVarReferenciable v ref ctx a | ref -> ctx a where
-  readLVMVarRef :: forall. ref ⊸ LVMVarRegistry ctx ⊸ LVM ctx v v (a, LVMVarRegistry ctx)
+  readLVMVarRef :: forall. ref ⊸ LVMVarRegistry ctx ⊸ LVM.LVM ctx v v (a, LVMVarRegistry ctx)
 
   vreadLVMVarRef :: forall a'.
     LinearlyRestrictedVersion ctx a v ~ a' =>
-    ref ⊸ LVMVarRegistry ctx ⊸ LVM ctx v v (a', LVMVarRegistry ctx)
+    ref ⊸ LVMVarRegistry ctx ⊸ LVM.LVM ctx v v (a', LVMVarRegistry ctx)
   vreadLVMVarRef ref registry = LVM.do
     (a, registry') <- readLVMVarRef ref registry
     a' <- restrictVersion a

@@ -29,8 +29,8 @@ import Prelude.Linear                            ((&), (.))
 -- yul-dsl
 import YulDSL.Core
 -- linearly-versioned-monad
-import Control.LinearlyVersionedMonad            (LVM (MkLVM))
-import Control.LinearlyVersionedMonad            qualified as LVM
+import Control.LinearlyVersionedMonad.LVM        (LVM (MkLVM))
+import Control.LinearlyVersionedMonad.LVM        qualified as LVM
 import Data.LinearContext                        (contextualEmbed)
 --
 import YulDSL.Haskell.Effects.LinearSMC.YulMonad

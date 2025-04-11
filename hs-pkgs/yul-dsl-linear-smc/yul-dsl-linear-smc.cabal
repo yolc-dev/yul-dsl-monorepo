@@ -71,8 +71,7 @@ library
     Prelude.YulDSL
   reexported-modules:
     Data.LinearContext,
-    Control.LinearlyVersionedMonad,
-    Control.LinearlyVersionedMonad.Combinators
+    Control.LinearlyVersionedMonad.LVM
 
 library linearly-versioned-monad
   import:         basic-options
@@ -85,7 +84,7 @@ library linearly-versioned-monad
   -- modules
   exposed-modules:
     Data.LinearContext
-    Control.LinearlyVersionedMonad
+    Control.LinearlyVersionedMonad.LVM
     Control.LinearlyVersionedMonad.Combinators
     Control.LinearlyVersionedMonad.LVMVar
   other-modules:

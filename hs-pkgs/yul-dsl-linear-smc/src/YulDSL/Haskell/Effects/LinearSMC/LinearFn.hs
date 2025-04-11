@@ -27,7 +27,7 @@ import YulDSL.Core
 -- yul-dsl-pure
 import YulDSL.Haskell.LibPure
 -- (linearly-versioned-monoad)
-import Control.LinearlyVersionedMonad                qualified as LVM
+import Control.LinearlyVersionedMonad.LVM            qualified as LVM
 --
 import YulDSL.Haskell.Effects.LinearSMC.LinearYulCat
 import YulDSL.Haskell.Effects.LinearSMC.YulMonad

@@ -19,9 +19,9 @@ import Prelude.Linear
 -- yul-dsl-pure
 import YulDSL.Haskell.LibPure
 -- linearly-versioned-monad
-import Control.LinearlyVersionedMonad                (LVM, runLVM)
-import Control.LinearlyVersionedMonad                qualified as LVM
 import Control.LinearlyVersionedMonad.Combinators
+import Control.LinearlyVersionedMonad.LVM            (LVM, runLVM)
+import Control.LinearlyVersionedMonad.LVM            qualified as LVM
 import Control.LinearlyVersionedMonad.LVMVar
 import Data.LinearContext
 --

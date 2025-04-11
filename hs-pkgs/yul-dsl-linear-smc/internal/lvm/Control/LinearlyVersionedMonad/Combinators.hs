@@ -20,14 +20,14 @@ module Control.LinearlyVersionedMonad.Combinators
   , pass1, pass1_, passN, passN_
   ) where
 -- base
-import GHC.TypeLits                   (KnownNat (natSing), fromSNat)
-import Prelude                        qualified as BasePrelude
+import GHC.TypeLits                       (KnownNat (natSing), fromSNat)
+import Prelude                            qualified as BasePrelude
 -- constraints
-import Data.Constraint.Linear         (Dict (Dict))
+import Data.Constraint.Linear             (Dict (Dict))
 -- simple-sop
-import Data.TupleN                    (ConvertibleTupleNtoNP, Solo (MkSolo), TupleNtoNP, fromTupleNtoNP)
+import Data.TupleN                        (ConvertibleTupleNtoNP, Solo (MkSolo), TupleNtoNP, fromTupleNtoNP)
 --
-import Control.LinearlyVersionedMonad
+import Control.LinearlyVersionedMonad.LVM
 import Data.LinearContext
 
 

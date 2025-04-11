@@ -1,4 +1,3 @@
-{-# LANGUAGE UndecidableInstances #-}
 {-|
 
 Copyright   : (c) 2024 Miao, ZhiCheng
@@ -23,7 +22,7 @@ matter, please refer to [Orchard, Dominic, Philip Wadler, and Harley Eades III. 
 monads." arXiv preprint arXiv:2001.10274 (2020).]
 
 -}
-module Control.LinearlyVersionedMonad
+module Control.LinearlyVersionedMonad.LVM
   ( -- $linear_safety
     LVM (MkLVM), unLVM, runLVM
   , pure, (>>=), (>>), (=<<)
