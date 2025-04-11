@@ -1,3 +1,4 @@
+{-# LANGUAGE UndecidableInstances #-}
 {-|
 
 Copyright   : (c) 2024 Miao, ZhiCheng
@@ -28,7 +29,6 @@ module Control.LinearlyVersionedMonad
   , pure, (>>=), (>>), (=<<)
   , unsafeCoerceLVM, veryUnsafeCoerceLVM
   ) where
-
 -- base
 import GHC.TypeLits           (KnownNat, type (<=))
 -- constraints
@@ -38,7 +38,6 @@ import Data.Constraint.Nat    (leTrans)
 import Control.Functor.Linear qualified
 import Data.Functor.Linear qualified
 import Prelude.Linear         (flip, lseq)
-import Unsafe.Linear          qualified as UnsafeLinear
 --
 import Data.LinearContext
 
@@ -66,7 +65,7 @@ runLVM ctx m = let !(lp, ctx', a) = unLVM m ctx in lseq lp (ctx', a)
 
 -- | Lift a value into a LVM.
 pure :: forall ctx v a. KnownNat v => a ⊸ LVM ctx v v a
-pure a = MkLVM (Dict, , a)
+pure = Control.Functor.Linear.pure
 
 -- | Monad bind operator for 'LVM', working with the QualifiedDo syntax.
 --
@@ -132,4 +131,15 @@ veryUnsafeCoerceLVM (MkLVM f) = MkLVM \ctx ->
 instance (KnownNat va, KnownNat vb) => Data.Functor.Linear.Functor (LVM ctx va vb) where
   fmap f ma = ma >>= \a -> MkLVM (Dict, , f a)
 instance (KnownNat va, KnownNat vb) => Control.Functor.Linear.Functor (LVM ctx va vb) where
-  fmap = UnsafeLinear.toLinear Data.Functor.Linear.fmap
+  fmap f ma = ma >>= \a -> MkLVM (Dict, , f a)
+
+instance KnownNat v => Data.Functor.Linear.Applicative (LVM ctx v v) where
+  pure a = MkLVM (Dict, , a)
+  liftA2 f ma mb = ma >>= \a -> mb >>= \b -> Control.Functor.Linear.pure (f a b)
+
+instance KnownNat v => Control.Functor.Linear.Applicative (LVM ctx v v) where
+  pure a = MkLVM (Dict, , a)
+  liftA2 f ma mb = ma >>= \a -> mb >>= \b -> Control.Functor.Linear.pure (f a b)
+
+instance KnownNat v => Control.Functor.Linear.Monad (LVM ctx v v) where
+  (>>=) = (>>=)

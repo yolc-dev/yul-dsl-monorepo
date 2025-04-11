@@ -96,7 +96,7 @@ instance YulO2 r a => ContextualEmbeddable (YulMonadCtx r) (P'x eff r) a where
 
 instance YulO2 a r => LinearlyVersionRestrictable (YulMonadCtx r) (P'P r a) where
   type instance LinearlyRestrictedVersion (YulMonadCtx r) (P'P r a) v = P'V v r a
-  restrictVersion a = let !(a1, a2) = dup2'l a in LVM.pure (a1, unsafeCoerceYulPort a2)
+  restrictVersion a = LVM.pure (unsafeCoerceYulPort a)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- yulmonad'v

@@ -59,18 +59,27 @@ shmapGetTest = $lfn $ yulmonad'v
     toss1 ref
 
 varSharing :: PureFn (U256 -> U256 -> U256)
-varSharing = $fn \a b -> let c = a + b in c * c
+varSharing = $fn \a b ->
+  let c = a + b in c * c
 
 varSharingL :: StaticFn (U256 -> U256 -> U256)
-varSharingL = $lfn $ yulmonad'p \a b -> let c = a + b in dup2'l c & \(c1, c2) -> ypure (ver'l (c1 * c2))
+varSharingL = $lfn $ yulmonad'p \a b ->
+  let c = a + b in dup2'l c & \(c1, c2) -> ypure (ver'l (c1 * c2))
+
+lvmvar_test_ugly :: StaticFn (U256 -> U256)
+lvmvar_test_ugly = $lfn $ yulmonad'p
+  \x -> LVM.do
+    let !(x1, x2') = dup2'l (ver'l x)
+        !(x2, x3)  = dup2'l x2'
+    ypure (x1 + x2 * x3)
 
 lvmvar_test :: StaticFn (U256 -> U256)
 lvmvar_test = $lfn $ yulmonad'p
   \x -> LVM.do
-    let !(Ur varX, registry) = addUrLVMVar x initLVMVarRegistry
-    (x1, registry) <- takeUrLVMVar varX registry
-    (x2, registry) <- takeUrLVMVar varX registry
-    (x3, registry) <- takeUrLVMVar varX registry
+    let !(Ur varX, registry) = registerUvLVMVar x initLVMVarRegistry
+    (x1, registry) <- vreadLVMVarRef varX registry
+    (x2, registry) <- vreadLVMVarRef varX registry
+    (x3, registry) <- vreadLVMVarRef varX registry
     consumeLVMVarRegistry registry
     ypure (x1 + x2 * x3)
 
@@ -91,6 +100,7 @@ object = mkYulObject "BasicTests" yulNoop
   , pureFn "varSharing" varSharing
   , staticFn "varSharingL" varSharingL
 
+  , staticFn "lvmvar_test_ugly" lvmvar_test_ugly
   , staticFn "lvmvar_test" lvmvar_test
   ]
 
