@@ -12,7 +12,7 @@ Stability   : experimental
 module YulDSL.Haskell.Effects.LinearSMC.LinearFn
   ( -- * Build Linear Yul Functions
     StaticFn, OmniFn, lfn', lfn
-  , ycall, ycall0', ycall0, ycallN
+  , ycall, ycall0, ycallN
     -- * Call External Smart Contract Functions
   , externalCall
   ) where
@@ -156,23 +156,21 @@ instance YulMonadCallableFunctionNP (OmniFn f) 1
 --
 
 class KnownNat vd => YulMonadCallableFunctionNil fn vd | fn -> vd where
-  ycall0' :: forall va r b fncls.
+  ycall0 :: forall va r b fncls.
     ( KnownNat va, KnownNat (va + vd), va <= va + vd
     , YulO2 b r
     , EquivalentNPOfFunction b '[] b
     , ClassifiedYulCat fn fncls (NP '[]) b
     ) =>
-    fn -> (P'V va r () ⊸ YulMonad va (va + vd) r (P'V (va + vd) r b))
-  ycall0' f u =
+    fn -> YulMonad va (va + vd) r (P'V (va + vd) r b)
+  ycall0 f = LVM.do
+    u <- yembed ()
     let f' = withClassifiedYulCat f unsafeCoerceNamedYulCat :: NamedYulCat (VersionedInputOutput vd) (NP '[]) b
-    in encodeWith'l (LVM.unsafeCoerceLVM . LVM.pure) (YulJmpU f') (coerceType'l u)
+    encodeWith'l (LVM.unsafeCoerceLVM . LVM.pure) (YulJmpU f') (coerceType'l u)
 
 instance YulMonadCallableFunctionNil (PureFn f) 0
 instance YulMonadCallableFunctionNil (StaticFn f) 0
 instance YulMonadCallableFunctionNil (OmniFn f) 1
-
-ycall0 :: TH.Q TH.Exp
-ycall0 = [| \f -> yembed () LVM.>>= \u -> ycall0' f u |]
 
 --
 -- ycallN

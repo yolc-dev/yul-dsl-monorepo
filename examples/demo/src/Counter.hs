@@ -16,13 +16,13 @@ globalCounterLoc = $fn do
 incGlobalCounter :: OmniFn (U256 -> ())
 incGlobalCounter = $lfn $ yulmonad'p
   \inc_p -> LVM.do
-    counterRef <- $ycall0 globalCounterLoc
+    counterRef <- ycall0 globalCounterLoc
     (counterRef, currentValue) <- pass1 counterRef sget
     sput counterRef (currentValue + ver'l inc_p)
 
 getGlobalCounter :: StaticFn U256
 getGlobalCounter = $lfn $ yulmonad'p $ LVM.do
-  counterRef <- $ycall0 globalCounterLoc
+  counterRef <- ycall0 globalCounterLoc
   sget counterRef
 
 -- | Storage map of user counters
