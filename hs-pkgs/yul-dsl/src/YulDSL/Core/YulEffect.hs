@@ -2,7 +2,7 @@
 module YulDSL.Core.YulEffect
   ( IsEffectNonPure, MayAffectWorld
   , YulCatEffectClass (PureEffect, StaticEffect, OmniEffect), KnownYulCatEffect (classifyYulCatEffect)
-  , SYulCatEffectClass, KnownYulCatEffectClass(yulCatEffectClassSing, fromSYulCatEffectClass)
+  , SYulCatEffectClass, KnownYulCatEffectClass (yulCatEffectClassSing, fromSYulCatEffectClass)
   , AssertPureEffect, AssertNonPureEffect, AssertStaticEffect, AssertOmniEffect, IsNonsenseEffect
   ) where
 -- base

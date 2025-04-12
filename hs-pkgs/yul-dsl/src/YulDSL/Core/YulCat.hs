@@ -136,7 +136,7 @@ data YulCat eff a b where
   -- ^ Put storage word.
   YulSPut :: forall eff a.
     ( YulO1 a, ABIWordValue a
-    , AssertNonPureEffect eff
+    , AssertOmniEffect eff
     ) =>
     YulCat eff (B32, a) ()
 
