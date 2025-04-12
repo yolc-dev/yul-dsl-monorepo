@@ -44,11 +44,11 @@ import YulDSL.Core
 data PureEffectKind = Pure  -- ^ Pure morphism, may not be total
                     | Total -- ^ TODO, to further distinguish totality from other pure morphism.
 
-instance ClassifiedYulCatEffect Pure where classifyYulCatEffect = PureEffect
-instance ClassifiedYulCatEffect Total where classifyYulCatEffect = PureEffect
+type instance IsEffectNonPure (eff :: PureEffectKind) = False
+instance KnownYulCatEffect Pure
 
-type instance IsEffectNotPure (eff :: PureEffectKind) = False
-type instance MayEffectWorld  (eff :: PureEffectKind) = False
+type instance MayAffectWorld (eff :: PureEffectKind) = False
+instance KnownYulCatEffect Total
 
 -- | Pure yul category morphisms.
 type YulCat'P = YulCat Pure
@@ -113,8 +113,8 @@ data PureFn f where
 
 deriving instance Show (PureFn f)
 
-instance EquivalentNPOfFunction f xs b => ClassifiedYulCat (PureFn f) PureEffect (NP xs) b where
-  withClassifiedYulCat (MkPureFn f) g = g f
+instance EquivalentNPOfFunction f xs b => KnownNamedYulCat (PureFn f) PureEffect (NP xs) b where
+  withKnownNamedYulCat (MkPureFn f) g = g f
 
 -- -- | Function without side effects and bottom, hence total.
 -- newtype TotalFn f = MkPureFn (Fn Total f)

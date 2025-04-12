@@ -26,7 +26,7 @@ module YulDSL.Core.YulCat
   ( -- * YulCat, the Categorical DSL of Yul
     YulCat (..), AnyYulCat (..)
   , YulCallTarget, YulCallGasLimit, YulCallValue
-  , NamedYulCat, ClassifiedYulCat (withClassifiedYulCat), unsafeCoerceNamedYulCat
+  , NamedYulCat, KnownNamedYulCat (withKnownNamedYulCat), unsafeCoerceNamedYulCat
   -- * YulCat Stringify Functions
   , yulCatCompactShow, yulCatToUntypedLisp, yulCatFingerprint
   ) where
@@ -146,14 +146,14 @@ data YulCat eff a b where
     YulCat eff1 a b %1-> YulCat eff2 a b
 
 -- | Yul morphisms with classified effect.
-class ClassifiedYulCat fn (efc :: YulCatEffectClass) a b | fn -> efc a b where
-  -- | Process the named YulCat morphism with its classified effect enclosed within a continuation.
+class KnownNamedYulCat fn (efc :: YulCatEffectClass) a b | fn -> efc a b where
+  -- | Process the named YulCat morphism with its known effect enclosed within a continuation.
   --
   -- The law of sound classification:
   -- @ fromSYulCatEffectClass (yulCatEffectClassSing @efc) == classifyYulCatEffect @eff @
-  withClassifiedYulCat :: forall r.
+  withKnownNamedYulCat :: forall r.
     fn ->
-    (forall k (eff :: k). ClassifiedYulCatEffect eff => NamedYulCat eff a b -> r) %1->
+    (forall k (eff :: k). KnownYulCatEffect eff => NamedYulCat eff a b -> r) %1->
     r
 
 -- | Unsafely convert between yul morphisms of different effects.

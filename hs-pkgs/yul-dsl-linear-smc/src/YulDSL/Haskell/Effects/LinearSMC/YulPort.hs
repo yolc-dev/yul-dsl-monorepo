@@ -39,8 +39,8 @@ import Control.Category.Constrained.YulDSL ()
 data PortEffect = PurePort          -- ^ Pure port that does not need to be versioned
                 | VersionedPort Nat -- ^ Linearly versioned port
 
-type instance IsEffectNotPure PortEffect = True
-type instance MayEffectWorld  PortEffect = True
+type instance IsEffectNonPure PortEffect = True
+type instance MayAffectWorld  PortEffect = True
 
 -- | Linear port of yul categories with the port effect kind, aka. yul ports.
 newtype P'x (eff :: PortEffect) r a = MkP'x (P (YulCat PortEffect) r a)

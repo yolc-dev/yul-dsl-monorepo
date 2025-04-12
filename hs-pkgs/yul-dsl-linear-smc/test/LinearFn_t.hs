@@ -4,9 +4,19 @@ import Test.Hspec
 -- (lvm)
 import Control.LinearlyVersionedMonad.LVM qualified as LVM
 --
-import Prelude                        ()
+import Prelude                        ((>>))
+import Prelude qualified as BasePrelude
 import Prelude.YulDSL
 
+
+test_effect_classification :: Bool
+test_effect_classification = and
+  [ classifyYulCatEffect @PureInputPureOutput BasePrelude.== PureEffect
+  , classifyYulCatEffect @(PureInputVersionedOutput 0) BasePrelude.== StaticEffect
+  , classifyYulCatEffect @(PureInputVersionedOutput 1) BasePrelude.== OmniEffect
+  , classifyYulCatEffect @(VersionedInputOutput 0) BasePrelude.== StaticEffect
+  , classifyYulCatEffect @(VersionedInputOutput 1) BasePrelude.== OmniEffect
+  ]
 
 --------------------------------------------------------------------------------
 -- declaring simple linear functions
@@ -111,6 +121,6 @@ callSPut = $lfn $ yulmonad'p
 
 --
 
-tests = describe "LinearFn Tests" $ do
-  describe "lfn: linear function builder" $ do
-    it "simple fn definitions" True
+tests = describe "YulDSL.Haskell.Effects.LinearSMC.LinearFn" $ do
+  it "pure effects classification" test_effect_classification
+  it "simple fn definitions" True

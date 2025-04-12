@@ -39,21 +39,23 @@ import YulDSL.Haskell.Effects.LinearSMC.YulPort
 
 data StaticFn f where
   MkStaticFn :: forall (eff :: LinearEffectKind) f xs b.
-                ( ClassifiedYulCatEffect eff, AssertStaticEffect eff
+                ( KnownYulCatEffect eff
+                , AssertStaticEffect eff
                 , EquivalentNPOfFunction f xs b
                 ) => NamedYulCat eff (NP xs) b ⊸ StaticFn f
 
-instance EquivalentNPOfFunction f xs b => ClassifiedYulCat (StaticFn f) StaticEffect (NP xs) b where
-  withClassifiedYulCat (MkStaticFn f) g = g f
+instance EquivalentNPOfFunction f xs b => KnownNamedYulCat (StaticFn f) StaticEffect (NP xs) b where
+  withKnownNamedYulCat (MkStaticFn f) g = g f
 
 data OmniFn f where
   MkOmniFn :: forall (eff :: LinearEffectKind) f xs b.
-              ( ClassifiedYulCatEffect eff, AssertOmniEffect eff
+              ( KnownYulCatEffect eff
+              , AssertOmniEffect eff
               , EquivalentNPOfFunction f xs b
               ) => NamedYulCat eff (NP xs) b ⊸ OmniFn f
 
-instance EquivalentNPOfFunction f xs b => ClassifiedYulCat (OmniFn f) OmniEffect (NP xs) b where
-  withClassifiedYulCat (MkOmniFn f) g = g f
+instance EquivalentNPOfFunction f xs b => KnownNamedYulCat (OmniFn f) OmniEffect (NP xs) b where
+  withKnownNamedYulCat (MkOmniFn f) g = g f
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Constructible Linear Functions
@@ -76,11 +78,15 @@ instance ConstructibleLinearFn StaticFn (VersionedPort 0) (VersionedPort 0) wher
 instance ConstructibleLinearFn StaticFn PurePort (VersionedPort 0) where
   lfn' cid f = MkStaticFn (cid, decode'l f)
 
-instance (KnownNat vd, AssertOmniEffect (VersionedInputOutput vd)) =>
+instance ( KnownNat vd
+         , AssertOmniEffect (VersionedInputOutput vd)
+         ) =>
          ConstructibleLinearFn OmniFn (VersionedPort 0) (VersionedPort vd) where
   lfn' cid f = MkOmniFn (cid, decode'l f)
 
-instance (KnownNat vd, AssertOmniEffect (PureInputVersionedOutput vd)) =>
+instance ( KnownNat vd
+         , AssertOmniEffect (PureInputVersionedOutput vd)
+         ) =>
          ConstructibleLinearFn OmniFn PurePort (VersionedPort vd) where
   lfn' cid f = MkOmniFn (cid, decode'l f)
 
@@ -132,14 +138,14 @@ class YulMonadCallableFunctionNP fn vd | fn -> vd where
     ( KnownNat va, KnownNat vb, va <= vb
     , YulO4 x (NP xs) b r
     , va + vd ~ vb
-    , ClassifiedYulCat fn fncls (NP (x:xs)) b
+    , KnownNamedYulCat fn fncls (NP (x:xs)) b
     , CurriableNP g xs (P'V vb r b) (P'V va r) (YulMonad va vb r) (YulCat'LVV va va r ()) One
     ) =>
     fn ->
     P'V va r x ⊸
     LiftFunction (CurryNP (NP xs) (P'V vb r b)) (P'V va r) (YulMonad va vb r) One
   ycall f x =
-    let f' = withClassifiedYulCat f unsafeCoerceNamedYulCat :: NamedYulCat (VersionedInputOutput vd) (NP (x:xs)) b
+    let f' = withKnownNamedYulCat f unsafeCoerceNamedYulCat :: NamedYulCat (VersionedInputOutput vd) (NP (x:xs)) b
         !(x', u) = mkUnit'l x
     in curryNP @g @xs @(P'V vb r b) @(P'V va r) @(YulMonad va vb r) @(YulCat'LVV va va r ()) @One
        \(MkYulCat'LVV fxs) -> encodeWith'l
@@ -160,12 +166,12 @@ class KnownNat vd => YulMonadCallableFunctionNil fn vd | fn -> vd where
     ( KnownNat va, KnownNat (va + vd), va <= va + vd
     , YulO2 b r
     , EquivalentNPOfFunction b '[] b
-    , ClassifiedYulCat fn fncls (NP '[]) b
+    , KnownNamedYulCat fn fncls (NP '[]) b
     ) =>
     fn -> YulMonad va (va + vd) r (P'V (va + vd) r b)
   ycall0 f = LVM.do
     u <- yembed ()
-    let f' = withClassifiedYulCat f unsafeCoerceNamedYulCat :: NamedYulCat (VersionedInputOutput vd) (NP '[]) b
+    let f' = withKnownNamedYulCat f unsafeCoerceNamedYulCat :: NamedYulCat (VersionedInputOutput vd) (NP '[]) b
     encodeWith'l (LVM.unsafeCoerceLVM . LVM.pure) (YulJmpU f') (coerceType'l u)
 
 instance YulMonadCallableFunctionNil (PureFn f) 0
@@ -181,7 +187,7 @@ class YulMonadCallableFunctionN fn f xs b r va vd | fn -> vd where
     ( YulO3 (NP xs) b r
     , EquivalentNPOfFunction f xs b
     , ConvertibleNPtoTupleN (NP (MapList (P'V va r) xs))
-    , ClassifiedYulCat fn fncls (NP xs) b
+    , KnownNamedYulCat fn fncls (NP xs) b
     ) =>
     fn ->
     NPtoTupleN (NP (MapList (P'V va r) xs)) ⊸

@@ -3,8 +3,8 @@
 module YulDSL.Haskell.Effects.LinearSMC.LinearYulCat
   ( -- * Linear Effect Kind
     -- $LinearEffectKind
-    LinearEffectKind (PureInputVersionedOutput, VersionedInputOutput)
-  , LinearEffectVersionDelta, IsLinearEffectNonStatic
+    LinearEffectKind (PureInputPureOutput, PureInputVersionedOutput, VersionedInputOutput)
+  , LinearEffectVersionDelta
     -- * Yul Port Diagrams
     -- $YulPortDiagrams
   , YulCat'LVV (MkYulCat'LVV), YulCat'LPV (MkYulCat'LPV), YulCat'LPP (MkYulCat'LPP)
@@ -14,7 +14,6 @@ module YulDSL.Haskell.Effects.LinearSMC.LinearYulCat
   ) where
 -- base
 import GHC.TypeLits                             (KnownNat, type (+))
-import Prelude                                  qualified as BasePrelude
 -- linear-base
 import Prelude.Linear
 -- yul-dsl-pure
@@ -31,30 +30,32 @@ import YulDSL.Haskell.Effects.LinearSMC.YulPort
 --
 -- Note that the pure input pure output linear effect is included. For that, use the pure effect from the 'YulDSL.core'
 -- directly.
-data LinearEffectKind = PureInputVersionedOutput Nat -- ^ Pure input ports, versioned output ports
+data LinearEffectKind = PureInputPureOutput          -- ^ Pure input ports, pure output ports
+                      | PureInputVersionedOutput Nat -- ^ Pure input ports, versioned output ports
                       | VersionedInputOutput Nat     -- ^ Versioned input and output ports
 
 -- | Extract Linear effect version delta.
 type family LinearEffectVersionDelta (eff :: LinearEffectKind) :: Nat where
-  LinearEffectVersionDelta (VersionedInputOutput vd) = vd
+  LinearEffectVersionDelta PureInputPureOutput           = 0
+  LinearEffectVersionDelta (VersionedInputOutput vd)     = vd
   LinearEffectVersionDelta (PureInputVersionedOutput vd) = vd
 
--- | Judging if the linear effect is static from its version delta.
-type family IsLinearEffectNonStatic (vd :: Nat) :: Bool where
-  IsLinearEffectNonStatic 0 = False
-  IsLinearEffectNonStatic vd = True
+-- Note: Using (<=?) from TypeLits would require UndecidableInstances because it is a nested type family application.
+type family IsNoneZero (vd :: Nat) :: Bool where
+  IsNoneZero 0 = False
+  IsNoneZero vd = True
 
--- ^ A linear effect is always not pure.
-type instance IsEffectNotPure (eff :: LinearEffectKind) = True
+type instance IsEffectNonPure PureInputPureOutput = False
+type instance MayAffectWorld PureInputPureOutput = False
+instance KnownYulCatEffect PureInputPureOutput
 
-type instance MayEffectWorld (VersionedInputOutput vd) = IsLinearEffectNonStatic vd
-type instance MayEffectWorld (PureInputVersionedOutput vd) = IsLinearEffectNonStatic vd
+type instance IsEffectNonPure (PureInputVersionedOutput _) = True
+type instance MayAffectWorld (PureInputVersionedOutput vd) = IsNoneZero vd
+instance KnownNat vd => KnownYulCatEffect (PureInputVersionedOutput vd)
 
-instance KnownNat vd => ClassifiedYulCatEffect (VersionedInputOutput vd) where
-  classifyYulCatEffect = if fromSNat (natSing @vd) BasePrelude.== 0 then StaticEffect else OmniEffect
-
-instance KnownNat vd => ClassifiedYulCatEffect (PureInputVersionedOutput vd) where
-  classifyYulCatEffect = if fromSNat (natSing @vd) BasePrelude.== 0 then StaticEffect else OmniEffect
+type instance IsEffectNonPure (VersionedInputOutput _) = True
+type instance MayAffectWorld (VersionedInputOutput vd) = IsNoneZero vd
+instance KnownNat vd => KnownYulCatEffect (VersionedInputOutput vd)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $YulPortDiagrams
@@ -103,6 +104,7 @@ class EncodableYulPortDiagram eff ie oe where
 instance (va + vd ~ vb) => EncodableYulPortDiagram (VersionedInputOutput vd) (VersionedPort va) (VersionedPort vb)
 instance EncodableYulPortDiagram (PureInputVersionedOutput v) PurePort (VersionedPort v)
 instance EncodableYulPortDiagram eff PurePort PurePort
+
 
 ------------------------------------------------------------------------------------------------------------------------
 -- (P'V v1 r x1 ⊸ P'V v1 r x2 ⊸ ... P'V vn r b) <=> YulCat'LVV v1 vn r (NP xs) b

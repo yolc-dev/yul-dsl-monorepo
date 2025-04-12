@@ -76,7 +76,7 @@ evalYulCat s a = evalState (evalYulCat' s a) initEvalState
 
 evalFn :: forall fn efc xs b.
           ( YulO2 (NP xs) b
-          , ClassifiedYulCat fn efc (NP xs) b
+          , KnownNamedYulCat fn efc (NP xs) b
           )
        => fn -> NP xs -> b
-evalFn fn = withClassifiedYulCat fn (evalYulCat . snd)
+evalFn fn = withKnownNamedYulCat fn (evalYulCat . snd)

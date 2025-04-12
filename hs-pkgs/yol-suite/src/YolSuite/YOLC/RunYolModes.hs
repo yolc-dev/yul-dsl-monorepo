@@ -14,13 +14,13 @@ type RunYolResult = Either T.Text T.Text
 -- yul modes
 
 yulFnMode :: forall fn efc xs b.
-  ( ClassifiedYulCat fn efc (NP xs) b
+  ( KnownNamedYulCat fn efc (NP xs) b
   , YulO2 (NP xs) b
   ) =>
   fn -> IO RunYolResult
 yulFnMode fn = do
   config <- YOLCBuilder.getCodeGenConfig
-  withClassifiedYulCat fn (pure . Right . YulCodeGen.compileFn config)
+  withKnownNamedYulCat fn (pure . Right . YulCodeGen.compileFn config)
 
 yulObjectMode :: YulObject -> IO RunYolResult
 yulObjectMode obj = do
@@ -44,8 +44,8 @@ showProjectMode = pure . Right . T.pack . show
 -- lisp modes
 
 lispFnMode :: forall fn efc xs b.
-  ( ClassifiedYulCat fn efc (NP xs) b
+  ( KnownNamedYulCat fn efc (NP xs) b
   , YulO2 (NP xs) b
   ) =>
   fn -> IO RunYolResult
-lispFnMode fn = withClassifiedYulCat fn (pure . Right . yulCatToUntypedLisp . snd)
+lispFnMode fn = withKnownNamedYulCat fn (pure . Right . yulCatToUntypedLisp . snd)
