@@ -34,21 +34,21 @@ import Control.Category.Constrained.YulDSL ()
 -- $LinearPortDefs
 ------------------------------------------------------------------------------------------------------------------------
 
-
 -- | Various types of port effects for the yul port API.
 data PortEffect = PurePort          -- ^ Pure port that does not need to be versioned
                 | VersionedPort Nat -- ^ Linearly versioned port
 
-type instance IsEffectNonPure PortEffect = True
-type instance MayAffectWorld  PortEffect = True
+-- | An intermediate linear effect kind for encodeP and decodeP to work with.
+data LinearEffectX
+type instance IsEffectNonPure LinearEffectX = True
+type instance MayAffectWorld  LinearEffectX = True
 
 -- | Linear port of yul categories with the port effect kind, aka. yul ports.
-newtype P'x (eff :: PortEffect) r a = MkP'x (P (YulCat PortEffect) r a)
-
+newtype P'x (eff :: PortEffect) r a = MkP'x (P (YulCat LinearEffectX) r a)
 -- ^ Role annotation to make sure @eff@ is nominal, so only unsafe coercing is allowed.
-type role P'x nominal _ _
+type role P'x nominal nominal nominal
 
-unP'x :: forall (eff :: PortEffect) r a. P'x eff r a ⊸ P (YulCat PortEffect) r a
+unP'x :: forall (eff :: PortEffect) r a. P'x eff r a ⊸ P (YulCat LinearEffectX) r a
 unP'x (MkP'x x) = x
 
 -- | Linear port of yul category with pure data, aka. pure yul ports.
@@ -59,14 +59,14 @@ type P'V v = P'x (VersionedPort v)
 
 encodeP'x :: forall (eff :: PortEffect) a b r.
   YulO3 r a b =>
-  YulCat PortEffect a b ->
+  YulCat LinearEffectX a b ->
   (P'x eff r a ⊸ P'x eff r b)
 encodeP'x c = MkP'x . encode c . unP'x
 
 decodeP'x :: forall (eff :: PortEffect) a b.
   YulO2 a b =>
   (forall r. YulO1 r => P'x eff r a ⊸ P'x eff r b) ->
-  YulCat PortEffect a b
+  YulCat LinearEffectX a b
 decodeP'x f = decode (\a -> unP'x (f (MkP'x a)))
 
 -- | Unsafe coerce yul port' effects.
@@ -76,7 +76,7 @@ unsafeCoerceYulPort = MkP'x . unP'x
 
 -- | Unsafe coerce yul port diagram's effects.
 unsafeCoerceYulPortDiagram :: forall (eff1 :: PortEffect) (eff2 :: PortEffect) (eff3 :: PortEffect) r a b.
-    (P'x eff1 r a ⊸ P'x eff2 r b) ⊸ (P'x eff3 r a ⊸ P'x eff3 r b)
+  (P'x eff1 r a ⊸ P'x eff2 r b) ⊸ (P'x eff3 r a ⊸ P'x eff3 r b)
 unsafeCoerceYulPortDiagram f x = unsafeCoerceYulPort (f (unsafeCoerceYulPort x))
 
 -- Versionable ports
