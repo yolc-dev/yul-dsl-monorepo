@@ -27,9 +27,9 @@ data YulCatEffectClass
   deriving (Eq, Show)
 
 -- | Singleton type class for any known yulcat effect.
-class KnownYulCatEffect eff where
+class (KnownBool (IsEffectNonPure eff), KnownBool (MayAffectWorld eff)) => KnownYulCatEffect eff where
   -- | Get the classification of the known yul effect.
-  classifyYulCatEffect :: (KnownBool (IsEffectNonPure eff), KnownBool (MayAffectWorld eff)) => YulCatEffectClass
+  classifyYulCatEffect :: YulCatEffectClass
   classifyYulCatEffect =
     let nonPure = fromBoolKind @(IsEffectNonPure eff)
         effectful = fromBoolKind @(MayAffectWorld eff)

@@ -79,12 +79,14 @@ instance ConstructibleLinearFn StaticFn PurePort (VersionedPort 0) where
   lfn' cid f = MkStaticFn (cid, decode'l f)
 
 instance ( KnownNat vd
+         , KnownYulCatEffect (VersionedInputOutput vd)
          , AssertOmniEffect (VersionedInputOutput vd)
          ) =>
          ConstructibleLinearFn OmniFn (VersionedPort 0) (VersionedPort vd) where
   lfn' cid f = MkOmniFn (cid, decode'l f)
 
 instance ( KnownNat vd
+         , KnownYulCatEffect (PureInputVersionedOutput vd)
          , AssertOmniEffect (PureInputVersionedOutput vd)
          ) =>
          ConstructibleLinearFn OmniFn PurePort (VersionedPort vd) where

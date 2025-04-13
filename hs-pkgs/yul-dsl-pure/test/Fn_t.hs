@@ -16,13 +16,6 @@ import YulDSL.Haskell.LibPure hiding ((==))
 import TestCommon                   ()
 
 
-
-test_effect_classification :: Bool
-test_effect_classification = and
-  [ classifyYulCatEffect @Pure  == PureEffect
-  , classifyYulCatEffect @Total == PureEffect
-  ]
-
 --------------------------------------------------------------------------------
 -- Trivial Functions
 --------------------------------------------------------------------------------
@@ -170,11 +163,19 @@ test_maybe_fn = and
 
 --------------------------------------------------------------------------------
 
+test_effect_classification :: Bool
+test_effect_classification = and
+  [ classifyYulCatEffect @Pure  == PureEffect
+  , classifyYulCatEffect @Total == PureEffect
+  , withKnownNamedYulCat constant_fn (\(_ :: NamedYulCat eff a b) -> classifyYulCatEffect @eff) == PureEffect
+  , classifyKnownNamedYulCat constant_fn == PureEffect
+  ]
+
 -- | "YulDSL.Core.Fn" tests.
 tests = describe "YulDSL.Core.Fn" $ do
-  it "pure effects classification" test_effect_classification
   it "trivial functions" test_trvial_fns
   it "simple functions" $ property test_simple_fns
   it "NP functions" $ property test_np_fns
   it "polymorphic function" test_poly_foo
   it "pattern matching with Maybe" test_maybe_fn
+  it "pure effects classification" test_effect_classification

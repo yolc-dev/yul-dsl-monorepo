@@ -9,15 +9,6 @@ import Prelude qualified as BasePrelude
 import Prelude.YulDSL
 
 
-test_effect_classification :: Bool
-test_effect_classification = and
-  [ classifyYulCatEffect @PureInputPureOutput BasePrelude.== PureEffect
-  , classifyYulCatEffect @(PureInputVersionedOutput 0) BasePrelude.== StaticEffect
-  , classifyYulCatEffect @(PureInputVersionedOutput 1) BasePrelude.== OmniEffect
-  , classifyYulCatEffect @(VersionedInputOutput 0) BasePrelude.== StaticEffect
-  , classifyYulCatEffect @(VersionedInputOutput 1) BasePrelude.== OmniEffect
-  ]
-
 --------------------------------------------------------------------------------
 -- declaring simple linear functions
 --------------------------------------------------------------------------------
@@ -119,8 +110,25 @@ callSPut = $lfn $ yulmonad'p
   \addr_p var_p -> LVM.do
   ycall fooSPut (ver'l addr_p) (ver'l var_p)
 
---
+--------------------------------------------------------------------------------
+
+test_effect_classification :: Bool
+test_effect_classification = and
+  [ classifyYulCatEffect @PureInputPureOutput BasePrelude.== PureEffect
+  , classifyYulCatEffect @(PureInputVersionedOutput 0) BasePrelude.== StaticEffect
+  , classifyYulCatEffect @(PureInputVersionedOutput 1) BasePrelude.== OmniEffect
+  , classifyYulCatEffect @(VersionedInputOutput 0) BasePrelude.== StaticEffect
+  , classifyYulCatEffect @(VersionedInputOutput 1) BasePrelude.== OmniEffect
+  , withKnownNamedYulCat foo0 (\(_ :: NamedYulCat eff a b) -> classifyYulCatEffect @eff) BasePrelude.== StaticEffect
+  , classifyKnownNamedYulCat foo0 BasePrelude.== StaticEffect
+  , withKnownNamedYulCat bar1 (\(_ :: NamedYulCat eff a b) -> classifyYulCatEffect @eff) BasePrelude.== StaticEffect
+  , classifyKnownNamedYulCat bar1 BasePrelude.== StaticEffect
+  , withKnownNamedYulCat fooSPut (\(_ :: NamedYulCat eff a b) -> classifyYulCatEffect @eff) BasePrelude.== OmniEffect
+  , classifyKnownNamedYulCat fooSPut BasePrelude.== OmniEffect
+  ]
+
+--------------------------------------------------------------------------------
 
 tests = describe "YulDSL.Haskell.Effects.LinearSMC.LinearFn" $ do
-  it "pure effects classification" test_effect_classification
   it "simple fn definitions" True
+  it "linear effects classification" test_effect_classification

@@ -1,5 +1,6 @@
 {-# LANGUAGE AllowAmbiguousTypes    #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE UndecidableInstances   #-}
 module YulDSL.Haskell.Effects.LinearSMC.LinearYulCat
   ( -- * Linear Effect Kind
     -- $LinearEffectKind
@@ -51,11 +52,15 @@ instance KnownYulCatEffect PureInputPureOutput
 
 type instance IsEffectNonPure (PureInputVersionedOutput _) = True
 type instance MayAffectWorld (PureInputVersionedOutput vd) = IsNoneZero vd
-instance KnownNat vd => KnownYulCatEffect (PureInputVersionedOutput vd)
+instance ( KnownNat vd, KnownBool (IsNoneZero vd)
+         ) =>
+         KnownYulCatEffect (PureInputVersionedOutput vd)
 
 type instance IsEffectNonPure (VersionedInputOutput _) = True
 type instance MayAffectWorld (VersionedInputOutput vd) = IsNoneZero vd
-instance KnownNat vd => KnownYulCatEffect (VersionedInputOutput vd)
+instance ( KnownNat vd, KnownBool (IsNoneZero vd)
+         ) =>
+         KnownYulCatEffect (VersionedInputOutput vd)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $YulPortDiagrams
