@@ -2,48 +2,59 @@
 ## VARIABLES
 ########################################################################################################################
 
-# Project Configurations
-LINEAR_SMC_VERSION = 2.2.3
-LINEAR_SMC_PATH_FILE = 3rd-parties/linear-smc-$(LINEAR_SMC_VERSION).patch
-
 # Output directories
-DEFAULT_OUT_DIR ?= $(PWD)/build
+BUILD_DIR ?= $(PWD)/build
 
-# Build options
+# Cabal general options
+CABAL ?= cabal
+CABAL_OPTIONS ?= -v1 -O0 -j
+
+CABAL_WITH_OPTIONS = $(CABAL) $(CABAL_OPTIONS)
+
+# Cabal build options
+
 CABAL_BUILD_OPTIONS ?=
 
-# Test options
+# Cabal test options
 CABAL_TEST_SHOW_DETAILS_MODE ?= direct # alternatively: always | failure | never
 CABAL_TEST_PROP_NUM_RUNS ?= 1000
 CABAL_TEST_OPTIONS ?= \
     --test-show-details=$(CABAL_TEST_SHOW_DETAILS_MODE) \
     --test-options="--maximum-generated-tests=$(CABAL_TEST_PROP_NUM_RUNS)"
 
-FORGE_TEST_OPTIONS ?= -vv
+# Cabal paths
 
-# Cabal flavors
-CABAL_VERBOSITY ?= 1
+CABAL_PATH= $(CABAL) -v0 --builddir=$(BUILD_DIR)/cabal-path path --output-format=json
 
-CABAL ?= cabal
-
-# Cabal Paths
-CABAL_PATH = $(CABAL) -v0 --builddir=$(DEFAULT_OUT_DIR)/path path --output-format=json
-
-CABAL_PACKAGE_DB = $(shell $(CABAL_PATH) | jq -r '."store-dir" + "/" + .compiler.id + "-inplace/package.db"')
 GHC_ID = $(shell $(CABAL_PATH) | jq -r .compiler.id)
 
-CABAL_DEFAULT_BUILD_DIR ?= $(DEFAULT_OUT_DIR)/$(GHC_ID)-default
-CABAL_DOCS_BUILD_DIR ?= $(DEFAULT_OUT_DIR)/$(GHC_ID)-docs
-CABAL_TEST_COVERAGE_BUILD_DIR ?= $(DEFAULT_OUT_DIR)/$(GHC_ID)-dist-coverage
+# Cabal commands
 
-CABAL_BUILD    = $(CABAL) -v$(CABAL_VERBOSITY) --builddir=$(CABAL_DEFAULT_BUILD_DIR) -O0 -j build $(CABAL_BUILD_OPTIONS)
-CABAL_TEST     = $(CABAL) -v$(CABAL_VERBOSITY) --builddir=$(CABAL_DEFAULT_BUILD_DIR) -O0 -j test $(CABAL_TEST_OPTIONS)
-CABAL_DOCS     = $(CABAL) -v$(CABAL_VERBOSITY) --builddir=$(CABAL_DOCS_BUILD_DIR) -O0 -j haddock
-CABAL_COVERAGE = $(CABAL) -v$(CABAL_VERBOSITY) --builddir=$(CABAL_TEST_COVERAGE_BUILD_DIR) -O0 -j coverage
+CABAL_DEFAULT_BUILD_DIR  ?= $(BUILD_DIR)/yolc/$(GHC_ID)-dist
+CABAL_DOCS_BUILD_DIR     ?= $(BUILD_DIR)/yolc/$(GHC_ID)-docs
+CABAL_COVERAGE_BUILD_DIR ?= $(BUILD_DIR)/yolc/$(GHC_ID)-coverage
 
-# Yolc Options
+CABAL_BUILD    = $(CABAL_WITH_OPTIONS) --builddir=$(CABAL_DEFAULT_BUILD_DIR) build $(CABAL_BUILD_OPTIONS)
+CABAL_REPL     = $(CABAL_WITH_OPTIONS) --builddir=$(CABAL_DEFAULT_BUILD_DIR) repl  $(CABAL_BUILD_OPTIONS)
+CABAL_TEST     = $(CABAL_WITH_OPTIONS) --builddir=$(CABAL_DEFAULT_BUILD_DIR) test  $(CABAL_TEST_OPTIONS)
 
-export YOLC_DEBUG_LEVEL ?= 0
+CABAL_DOCS     = $(CABAL_WITH_OPTIONS) --builddir=$(CABAL_DOCS_BUILD_DIR) haddock
+
+CABAL_COVERAGE = $(CABAL_WITH_OPTIONS) --builddir=$(CABAL_COVERAGE_BUILD_DIR) coverage
+
+# Yolc options
+
+export YOLC_DEBUG_LEVEL = 0
+export YOLC_PACKAGE_DB = $(CABAL_DEFAULT_BUILD_DIR)/packagedb/$(GHC_ID)
+
+# Forge options
+
+FORGE_TEST_OPTIONS ?= -vv
+
+# Other configurations
+
+LINEAR_SMC_VERSION = 2.2.3
+LINEAR_SMC_PATH_FILE = 3rd-parties/linear-smc-$(LINEAR_SMC_VERSION).patch
 
 ########################################################################################################################
 # TARGETS
@@ -51,7 +62,7 @@ export YOLC_DEBUG_LEVEL ?= 0
 
 ALL_YULDSL_MODULES = simple-sop eth-abi yul-dsl yul-dsl-pure yul-dsl-linear-smc yol-suite
 
-DEV_TARGETS = build-all test-all test-yol-suite test-demo-foundry lint
+DEV_TARGETS = build-dist test-all test-yol-suite test-demo-foundry lint
 
 all: lint build test
 
@@ -59,10 +70,21 @@ lint:
 	hlint --ignore-glob=hs-pkgs/yol-suite/templates/*.hs hs-pkgs/
 	hlint examples/
 
-build: build-all build-docs
+build: build-dist build-docs
 
-build-all:
+build-dist:
 	$(CABAL_BUILD) all
+
+	@cd $(CABAL_DEFAULT_BUILD_DIR); find build -path '*/t' -prune -o -type f -print \
+		| xargs tar c \
+		| md5sum > $(CABAL_DEFAULT_BUILD_DIR)/dist.md5sum.new
+	@cd $(CABAL_DEFAULT_BUILD_DIR); if ! diff dist.md5sum.new dist.md5sum &>/dev/null; then \
+		echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"; \
+		echo "!! WARNING: Yolc dist changed. To force rebuilding yol projects."; \
+		echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"; \
+		mv dist.md5sum.new dist.md5sum; \
+		rm -rf $(BUILD_DIR)/yol; \
+	fi
 
 build-module-%:
 	$(CABAL_BUILD) $*
@@ -70,16 +92,23 @@ build-module-%:
 build-docs:
 	$(CABAL_DOCS) $(ALL_YULDSL_MODULES)
 
-build-display-docs:
+build-docs-display:
 	for i in $(ALL_YULDSL_MODULES); do \
 		xdg-open $(CABAL_DOCS_BUILD_DIR)/build/*/*/$${i}-*/noopt/doc/html/$${i}/index.html; \
   done
 
-build-docs-and-display: build-docs build-display-docs
+build-docs-and-display: build-docs build-docs-display
 
 build-patches: $(LINEAR_SMC_PATH_FILE)
 
-clean:
+clean: clean-all
+
+# This clean up all the yolsuite built projects.
+# If you experience weird build errors while developing yolc, this can help.
+clean-yol:
+	rm -rf build/yol
+
+clean-all:
 	rm -rf build cache out dist-*
 
 test: test-all test-yol-suite test-demo
@@ -91,28 +120,28 @@ test-module-%:
 	$(CABAL_TEST) $*
 
 test-yol-suite:
-	yolc -fm yul hs-pkgs/yol-suite/testsuite
+	yolc -m yul hs-pkgs/yol-suite/testsuite
 	cd hs-pkgs/yol-suite/testsuite && forge test -vvv
 
 test-demo: test-demo-show test-demo-yul test-demo-foundry
 
 test-demo-show:
-	time yolc -fm show "examples/demo:ERC20"
+	time yolc -m show "examples/demo:ERC20"
 
 test-demo-yul:
-	time yolc -fm yul "examples/demo:ERC20"
+	time yolc -m yul "examples/demo:ERC20"
 
 test-demo-foundry:
-	time yolc -fm yul "examples/demo"
+	time yolc -m yul "examples/demo"
 	cd examples/demo && forge test $(FORGE_TEST_OPTIONS)
 
 dev:
 	nodemon -w hs-pkgs -w yol-demo -w examples -e "hs sol cabal" -i "#.*" -x "make $(DEV_TARGETS) || exit 1"
 
-repl-eth-abi:
-	$(CABAL) --builddir=$(CABAL_DEFAULT_BUILD_DIR) repl eth-abi
+repl-%:
+	$(CABAL_REPL) $*
 
-.PHONY: all lint build build-* clean install-* test test-* dev repl-eth-abi
+.PHONY: all lint build build-* clean clean-* test test-* dev repl-*
 
 $(LINEAR_SMC_PATH_FILE):
 	[ -d 3rd-parties/linear-smc ] || exit 1

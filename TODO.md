@@ -16,7 +16,6 @@ TODO
 
 - [ ] Haddock doc cleanup and prettifying.
 - [ ] Use sop-core.
-- [ ] We may not need use linear-smc yul port approach, and use categorical yul values directly.
 
 ## TODOs for 0.1.0.0
 

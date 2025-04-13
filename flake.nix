@@ -24,6 +24,8 @@
           solc.overlay
         ];
       };
+      ghcId = "ghc910";
+      ghcVer = pkgs.haskell.compiler.${ghcId}.version;
       commonDevInputs = with pkgs; [
         jq
         shellcheck
@@ -31,6 +33,8 @@
       shellHook = ''
         # This makes binaries of this project available for testing, e.g. `yolc`
         export PATH=$PWD/hs-pkgs/yol-suite/bin/:$PATH
+        # Localy testing yolc requires package db to be provided
+        export YOLC_PACKAGE_DB=$PWD/build/yolc/ghc-${ghcVer}-dist/packagedb/ghc-${ghcVer}
       '';
     in {
       devShells.default = pkgs.mkShell {
@@ -43,10 +47,10 @@
           foundry-bin
           # haskell tooling
           cabal-install
-          haskell.compiler.ghc910
+          haskell.compiler.${ghcId}
           haskell.packages.ghc98.hlint_3_8
           haskell.packages.ghc98.stylish-haskell # it doesn't work with 9.10
-          haskell.packages.ghc910.haskell-language-server
+          haskell.packages.${ghcId}.haskell-language-server
         ];
         inherit shellHook;
       };

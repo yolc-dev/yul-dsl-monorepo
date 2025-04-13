@@ -13,11 +13,13 @@
 #-----------------------------------------------------------------------------------------------------------------------
 
 opt_verbose=; function is_verbose() { [[ -n "$opt_verbose" ]]; }
-opt_force_rebuild=;
-is_nix_dist=
-dist_path=
+opt_force_rebuild=
+
 out_dir=
-build_dir=
+yolsuite_src_dir=
+yolc_package_db=
+cabal_package_db=
+
 codegen_name=
 show_output_always=
 
@@ -50,16 +52,37 @@ debug() {
 }
 
 do_runyol() {
-  local CABAL=(cabal --builddir="$build_dir")
-  local CABAL_V=0
-  is_verbose && CABAL_V=1
-  runbin=$("${CABAL[@]}"  "$@" -v0 list-bin runyol)
-  "${CABAL[@]}" -v${CABAL_V} "$@" build runyol 1>&2 && {
+  local CABAL=(cabal)
+  is_verbose && CABAL=(cabal -v1)
+
+  runbin=$(cabal "$@" -v0 list-bin runyol)
+
+  if [ -n "$opt_force_rebuild" ]; then
+    #echo "-- Rebuilding forced at: $(date --iso-8601=seconds)"
+    "${CABAL[@]}" "$@" clean 1>&2;
+  fi
+
+  if "${CABAL[@]}" "$@" build runyol 1>&2; then
     is_verbose && {
       debug "+ exec: $runbin"
     }
     $runbin
-  }
+  fi
+}
+
+maybe_update_file() {
+  local file="$1"
+  if [ "$file" != /dev/stdout ]; then
+    cat > "${file}.new"
+    if ! diff "${file}" "${file}.new" &>/dev/null; then
+      is_verbose && debug "${file} changed"
+      mv "${file}.new" "${file}"
+    else
+      rm -f "${file}.new"
+    fi
+  else
+    cat
+  fi
 }
 
 main() {
@@ -102,27 +125,24 @@ main() {
   done
   shift $(( "$OPTIND" - 1 ))
 
-  # detect distribution mode
-  [[ -z "${PROGRAM_PATH##/nix/store}" ]] && is_nix_dist=1
-  if [[ -n "$is_nix_dist" ]]; then
-    ## FIXME support nix-distribution mode
-    die "Nix-distribution mode not supported"
-  else
-    dist_path=$(readlink -f "$(dirname "$PROGRAM_PATH")"/../../..)
-    out_dir=${dist_path}/build
+  out_dir=build
 
-    run_cabal_path=(cabal --builddir="$out_dir/path" -v0 path --output-format=json)
-    cabal_package_db=$("${run_cabal_path[@]}" | jq -r '."store-dir" + "/" + .compiler.id + "-inplace/package.db"')
-    ghc_id=$("${run_cabal_path[@]}" | jq -r .compiler.id)
+  yolsuite_src_dir=$(dirname "$(dirname "$(readlink -f "${PROGRAM_PATH}")")")
 
-    build_dir=$out_dir/${ghc_id}-default
-    dist_package_db=$(readlink -f "${build_dir}/packagedb/${ghc_id}")
-  fi
+  # detect yolc package db from the distribution
+  [[ -z "${YOLC_PACKAGE_DB}" ]] && die "Yolc package db not provided"
+  [[ -f "${YOLC_PACKAGE_DB}/package.cache" ]] || die "Yolc package db not found"
+  yolc_package_db=${YOLC_PACKAGE_DB}
+
+  # locate cabal global package db
+  local run_cabal_path=(cabal -v0 --builddir="$out_dir/cabal-path" path --output-format=json)
+  cabal_package_db=$("${run_cabal_path[@]}" | jq -r '."store-dir" + "/" + .compiler.id + "-inplace/package.db"')
 
   is_verbose && {
-    debug "Distribution path : $dist_path"
-    debug "Codegen mode      : $codegen_name"
-    debug "Output directory  : $out_dir"
+    debug "YolSuite src dir : $yolsuite_src_dir"
+    debug "Yolc package db  : $yolc_package_db"
+    debug "Output dir       : $out_dir"
+    debug "Codegen name     : $codegen_name"
     debug
   }
 
@@ -174,7 +194,7 @@ build_yol_module() {
     codegen_mode=ProjectMode
     cmpl_syms=manifest
     yol_dir=${pkg_name}
-    yol_output_file="${out_dir}/${yol_dir}/contracts/Contracts.sol"
+    yol_output_file="contracts/Contracts.sol"
   elif [ -z "$cmpl_syms" ]; then
     codegen_mode=ObjectMode # object mode
     cmpl_syms=object
@@ -183,7 +203,10 @@ build_yol_module() {
     codegen_mode=FnMode # fn mode
     yol_dir=${pkg_name}.${mod_name}.custom
   fi
-  yol_dir=${out_dir}/${yol_dir}
+
+  yol_dir=${out_dir}/yol/${yol_dir}
+  [ -n "$yol_output_file" ] && yol_output_file=${yol_dir}/${yol_output_file}
+
   mkdir -p "$yol_dir"
   mkdir -p "$yol_dir/contracts"
 
@@ -202,18 +225,22 @@ build_yol_module() {
   #
 
   # prepare cabal build files and build
-  cat > "$yol_dir"/cabal.project <<EOF
-package-dbs: clear, global, ${cabal_package_db}, ${dist_package_db}
+  {
+    cat <<EOF
+package-dbs: clear, global, ${cabal_package_db}, ${yolc_package_db}
 
 packages:
   $cabal_path
-  $yol_dir/runyol.cabal
+  runyol.cabal
 EOF
+  } | maybe_update_file "$yol_dir"/cabal.project
 
   # instantiate runyol.cabal template
   {
-    sed -e "s|__YOL_PKG_NAME__|$pkg_name|g"
-  } < "$dist_path"/hs-pkgs/yol-suite/templates/runyol.cabal > "$yol_dir"/runyol.cabal
+    {
+      sed -e "s|__YOL_PKG_NAME__|$pkg_name|g"
+    } < "$yolsuite_src_dir"/templates/runyol.cabal
+  } | maybe_update_file "$yol_dir"/runyol.cabal
 
   # instantiate RunYol.hs template
   local actions
@@ -225,20 +252,20 @@ EOF
     {
       sed -e "s|%YOL_MOD_NAME%|${mod_name}|g" \
         -e "s|%COMPILE_ACTIONS%|${actions}|g"
-    } < "$dist_path"/hs-pkgs/yol-suite/templates/RunYol.hs
-
-    [ -n "$opt_force_rebuild" ] && echo "-- Rebuilding forced at: $(date --iso-8601=seconds)"
-  } > "$yol_dir"/RunYol.hs
+    } < "$yolsuite_src_dir"/templates/RunYol.hs
+  } | maybe_update_file "$yol_dir"/RunYol.hs
 
   is_verbose && {
     debug
     debug "=== BEGIN cabal.project"
     cat "$yol_dir"/cabal.project >&2
     debug "=== END cabal.project"
+
     debug
     debug "=== BEGIN runyol.cabal"
     cat "$yol_dir"/runyol.cabal >&2
     debug "=== END runyol.cabal"
+
     debug
     debug "=== BEGIN RunYol.hs"
     cat "$yol_dir"/RunYol.hs >&2
@@ -246,8 +273,7 @@ EOF
   }
 
   # run yol
-  do_runyol --project-dir="$yol_dir" \
-         > "${yol_output_file:-/dev/stdout}" || {
+  do_runyol --project-dir="$yol_dir" | maybe_update_file "${yol_output_file:-/dev/stdout}" || {
     [ -f "${yol_output_file}" ] && rm "${yol_output_file}"
     die "=== Failed to build yol module: $mod_spec"
   }
