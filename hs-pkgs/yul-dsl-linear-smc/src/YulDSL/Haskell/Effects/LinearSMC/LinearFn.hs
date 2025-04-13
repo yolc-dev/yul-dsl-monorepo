@@ -109,7 +109,7 @@ instance forall f x xs b g r.
   call (MkPureFn f') x =
     let !(x', u) = mkUnit'l x
     in curryNP @g @xs @b @(P'P r) @(P'P r) @(YulCat'LPP r ()) @One
-       \(MkYulCat'LPP fxs) -> encodeWith'l id (YulJmpU f') (consNP x' (fxs u))
+       \(MkYulCat'LPP fxs) -> encodeWith'l (YulJmpU f') id (consNP x' (fxs u))
 
 instance forall f x xs b va g r.
          ( YulO4 x (NP xs) b r
@@ -121,7 +121,7 @@ instance forall f x xs b va g r.
     let f' = unsafeCoerceNamedYulCat f :: NamedYulCat (VersionedInputOutput 0) (NP (x:xs)) b
         !(x', u) = mkUnit'l x
     in curryNP @g @xs @b @(P'V va r) @(P'V va r) @(YulCat'LVV va va r ()) @One
-       \(MkYulCat'LVV fxs) -> encodeWith'l id (YulJmpU f') (consNP x' (fxs u))
+       \(MkYulCat'LVV fxs) -> encodeWith'l (YulJmpU f') id (consNP x' (fxs u))
 
 instance forall f x xs b va g r.
          ( YulO4 x (NP xs) b r
@@ -151,8 +151,8 @@ class YulMonadCallableFunctionNP fn vd | fn -> vd where
         !(x', u) = mkUnit'l x
     in curryNP @g @xs @(P'V vb r b) @(P'V va r) @(YulMonad va vb r) @(YulCat'LVV va va r ()) @One
        \(MkYulCat'LVV fxs) -> encodeWith'l
-                              (LVM.unsafeCoerceLVM . LVM.pure)
                               (YulJmpU f')
+                              (LVM.unsafeCoerceLVM . LVM.pure)
                               $ consNP x' (fxs u)
 
 instance YulMonadCallableFunctionNP (PureFn f) 0
@@ -174,7 +174,7 @@ class KnownNat vd => YulMonadCallableFunctionNil fn vd | fn -> vd where
   ycall0 f = LVM.do
     u <- yembed ()
     let f' = withKnownNamedYulCat f unsafeCoerceNamedYulCat :: NamedYulCat (VersionedInputOutput vd) (NP '[]) b
-    encodeWith'l (LVM.unsafeCoerceLVM . LVM.pure) (YulJmpU f') (coerceType'l u)
+    encodeWith'l (YulJmpU f') (LVM.unsafeCoerceLVM . LVM.pure) (coerceType'l u)
 
 instance YulMonadCallableFunctionNil (PureFn f) 0
 instance YulMonadCallableFunctionNil (StaticFn f) 0
@@ -198,7 +198,7 @@ class YulMonadCallableFunctionN fn f xs b r va vd | fn -> vd where
 instance KnownNat va => YulMonadCallableFunctionN (PureFn b) b '[] b r va 0 where
   ycallN (MkPureFn f) () = yembed () LVM.>>= \u ->
     let f' = unsafeCoerceNamedYulCat f :: NamedYulCat (VersionedInputOutput 0) (NP '[]) b
-    in encodeWith'l ypure (YulJmpU f') (coerceType'l u)
+    in encodeWith'l (YulJmpU f') ypure (coerceType'l u)
 
 instance forall f x xs b r va.
          ( KnownNat va
@@ -209,7 +209,7 @@ instance forall f x xs b r va.
   ycallN (MkPureFn f) tpl = yembed () LVM.>>= \u ->
     let f' = unsafeCoerceNamedYulCat f :: NamedYulCat (VersionedInputOutput 0) (NP (x:xs)) b
         xxs = linearDistributeNP (fromTupleNtoNP tpl) u :: P'V va r (NP (x:xs))
-    in ypure (encodeWith'l id (YulJmpU f') xxs)
+    in encodeWith'l (YulJmpU f') ypure xxs
 
 instance YulMonadCallableFunctionN (PureFn f) f xs b r va 0 =>
          YulMonadCallableFunctionN (StaticFn f) f xs b r va 0 where
@@ -219,7 +219,7 @@ instance ( KnownNat va, KnownNat (va + 1), va <= va + 1
          ) => YulMonadCallableFunctionN (OmniFn b) b '[] b r va 1 where
   ycallN (MkOmniFn f) () = yembed () LVM.>>= \u ->
     let f' = unsafeCoerceNamedYulCat f :: NamedYulCat (VersionedInputOutput 1) (NP '[]) b
-    in encodeWith'l (LVM.unsafeCoerceLVM . LVM.pure) (YulJmpU f') (coerceType'l u)
+    in encodeWith'l (YulJmpU f') (LVM.unsafeCoerceLVM . LVM.pure) (coerceType'l u)
 
 instance forall f x xs b r va.
          ( KnownNat va, KnownNat (va + 1), va <= va + 1
@@ -231,7 +231,7 @@ instance forall f x xs b r va.
   ycallN (MkOmniFn f) tpl = yembed () LVM.>>= \u ->
     let f' = unsafeCoerceNamedYulCat f :: NamedYulCat (VersionedInputOutput 1) (NP (x:xs)) b
         xxs = linearDistributeNP (fromTupleNtoNP tpl) u :: P'V va r (NP (x:xs))
-    in encodeWith'l (LVM.unsafeCoerceLVM . LVM.pure) (YulJmpU f') xxs
+    in encodeWith'l (YulJmpU f') (LVM.unsafeCoerceLVM . LVM.pure) xxs
 
 ------------------------------------------------------------------------------------------------------------------------
 -- calling external functions (Yul Monadic)
@@ -256,15 +256,15 @@ externalCall (MkExternalFn sel) addr x =
                                @(VersionedInputOutput 1) @(VersionedPort v1) @(VersionedPort (v1 + 1))
                                @_ @_ @_ {- r a b -}
                                @(YulMonad v1 (v1 + 1) r b')
+                               YulId
                                (\b' -> LVM.unsafeCoerceLVM
                                        (LVM.pure b' :: YulMonad v1 v1 r (P'V (v1 + 1) r b))
                                        :: YulMonad v1 (v1 + 1) r (P'V (v1 + 1) r b))
-                               YulId
                                $ go (consNP x' (fxs u))
   where go :: forall. P'x (VersionedPort v1) r (NP (x : xs)) ⊸ P'V v1 r b
         go args = let !(args', u) = mkUnit'l args
                       !(gasLimit, value) = dup2'l (emb'l 0 u)
                   in encodeWith'l @(VersionedInputOutput 0) @(VersionedPort v1) @(VersionedPort v1)
-                     id
                      (YulCall sel)
+                     id
                      (merge'l (be (unsafeCoerceYulPort addr, gasLimit, value), args'))

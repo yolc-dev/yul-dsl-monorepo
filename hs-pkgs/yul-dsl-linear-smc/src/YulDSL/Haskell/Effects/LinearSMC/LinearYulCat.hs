@@ -52,15 +52,11 @@ instance KnownYulCatEffect PureInputPureOutput
 
 type instance IsEffectNonPure (PureInputVersionedOutput _) = True
 type instance MayAffectWorld (PureInputVersionedOutput vd) = IsNoneZero vd
-instance ( KnownNat vd, KnownBool (IsNoneZero vd)
-         ) =>
-         KnownYulCatEffect (PureInputVersionedOutput vd)
+instance (KnownNat vd, KnownBool (IsNoneZero vd)) => KnownYulCatEffect (PureInputVersionedOutput vd)
 
 type instance IsEffectNonPure (VersionedInputOutput _) = True
 type instance MayAffectWorld (VersionedInputOutput vd) = IsNoneZero vd
-instance ( KnownNat vd, KnownBool (IsNoneZero vd)
-         ) =>
-         KnownYulCatEffect (VersionedInputOutput vd)
+instance (KnownNat vd, KnownBool (IsNoneZero vd)) => KnownYulCatEffect (VersionedInputOutput vd)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $YulPortDiagrams
@@ -86,9 +82,10 @@ newtype YulCat'LPP r a b = MkYulCat'LPP (P'P r a ⊸ P'P r b)
 -- | Decodable yul port diagrams.
 class DecodableYulPortDiagram ie oe eff | ie oe -> eff where
   -- | Decode a linear yul port function to a yul port diagrams.
-  decode'l :: forall a b. YulO2 a b
-    => (forall r. YulO1 r => P'x ie r a ⊸ P'x oe r b)
-    -> YulCat eff a b
+  decode'l :: forall a b.
+    YulO2 a b =>
+    (forall r. YulO1 r => P'x ie r a ⊸ P'x oe r b) ->
+    YulCat eff a b
   decode'l f = YulUnsafeCoerceEffect (decodeP'x (unsafeCoerceYulPortDiagram f))
 
 instance DecodableYulPortDiagram (VersionedPort 0) (VersionedPort vd) (VersionedInputOutput vd)
@@ -96,20 +93,21 @@ instance DecodableYulPortDiagram PurePort (VersionedPort vd) (PureInputVersioned
 instance DecodableYulPortDiagram PurePort PurePort Pure
 
 -- | Encodable yul port diagrams.
-class EncodableYulPortDiagram eff ie oe where
+class EncodableYulPortDiagram eff ie oe | eff ie -> oe where
   --  | Encode a yul port diagrams to a yul port function with a continuation.
   --
   --  Note: @r@ is a skolem type variable from encoding. The continuation is the only way to have access to it.
-  encodeWith'l :: forall r a b c. YulO3 r a b
-    => (P'x oe r b ⊸ c)
-    -> YulCat eff a b
-    -> (P'x ie r a ⊸ c)
-  encodeWith'l f c x = f (unsafeCoerceYulPort (encodeP'x (YulUnsafeCoerceEffect c) x))
+  encodeWith'l :: forall r a b c.
+    YulO3 r a b =>
+    YulCat eff a b ->
+    (P'x oe r b ⊸ c) ->
+    (P'x ie r a ⊸ c)
+  encodeWith'l c f x = f (unsafeCoerceYulPort (encodeP'x (YulUnsafeCoerceEffect c) x))
 
+instance EncodableYulPortDiagram Pure PurePort PurePort
+instance EncodableYulPortDiagram PureInputPureOutput PurePort PurePort
 instance (va + vd ~ vb) => EncodableYulPortDiagram (VersionedInputOutput vd) (VersionedPort va) (VersionedPort vb)
 instance EncodableYulPortDiagram (PureInputVersionedOutput v) PurePort (VersionedPort v)
-instance EncodableYulPortDiagram eff PurePort PurePort
-
 
 ------------------------------------------------------------------------------------------------------------------------
 -- (P'V v1 r x1 ⊸ P'V v1 r x2 ⊸ ... P'V vn r b) <=> YulCat'LVV v1 vn r (NP xs) b
