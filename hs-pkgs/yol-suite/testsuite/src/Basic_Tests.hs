@@ -76,11 +76,10 @@ lvmvar_test_ugly = $lfn $ yulmonad'p
 lvmvar_test :: StaticFn (U256 -> U256)
 lvmvar_test = $lfn $ yulmonad'p
   \x -> LVM.do
-    let !(Ur varX, registry) = registerUvLVMVar x initLVMVarRegistry
-    (x1, registry) <- vreadLVMVarRef varX registry
-    (x2, registry) <- vreadLVMVarRef varX registry
-    (x3, registry) <- vreadLVMVarRef varX registry
-    consumeLVMVarRegistry registry
+    Ur varX <- yMkUvVar x
+    x1 <- yvread varX
+    x2 <- yvread varX
+    x3 <- yvread varX
     ypure (x1 + x2 * x3)
 
 object = mkYulObject "BasicTests" yulNoop

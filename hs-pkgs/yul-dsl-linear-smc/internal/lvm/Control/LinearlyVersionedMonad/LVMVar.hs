@@ -29,11 +29,11 @@ import Data.LinearContext
 ----------------------------------------------------------------------------------------------------
 
 -- | Data that is linearly restrictable to any version.
-class LinearlyVersionRestrictable ctx a where
+class KnownNat v =>  LinearlyVersionRestrictable v ctx a where
   type family LinearlyRestrictedVersion ctx a (v :: Nat) = (a' :: Type) | a' -> ctx
-  restrictVersion :: forall v. KnownNat v => a ⊸ LVM.LVM ctx v v (LinearlyRestrictedVersion ctx a v)
+  restrictVersion :: forall. a ⊸ LVM.LVM ctx v v (LinearlyRestrictedVersion ctx a v)
 
-class (KnownNat v, LinearlyVersionRestrictable ctx a) => UsableLVMVar v var ctx a | var -> ctx a where
+class (KnownNat v, LinearlyVersionRestrictable v ctx a) => UsableLVMVar v var ctx a | var -> ctx a where
   copyLVMVar :: forall. var ⊸ LVM.LVM ctx v v (var, a)
 
 --
@@ -43,8 +43,7 @@ class (KnownNat v, LinearlyVersionRestrictable ctx a) => UsableLVMVar v var ctx 
 -- | Restricted-version (Uv) linearly-versioned monadic (LVM) value in its version.
 data UvLVMVar ctx a where
   UvLVMVar :: forall ctx a.
-    ( LinearlyVersionRestrictable ctx a
-    , ContextualDupable ctx a
+    ( ContextualDupable ctx a
     , ContextualSeqable ctx a a
     , ContextualConsumable ctx a
     ) =>
@@ -53,8 +52,7 @@ data UvLVMVar ctx a where
 data AnyUvLVMVar ctx where MkAnyUvLVMVar :: forall ctx a. UvLVMVar ctx a ⊸ AnyUvLVMVar ctx
 
 mkUvLVMVar :: forall ctx a.
-    ( LinearlyVersionRestrictable ctx a
-    , ContextualDupable ctx a
+    ( ContextualDupable ctx a
     , ContextualSeqable ctx a a
     , ContextualConsumable ctx a
     ) =>
@@ -62,7 +60,7 @@ mkUvLVMVar :: forall ctx a.
 mkUvLVMVar a = UvLVMVar (LVM.MkLVM (Dict, , a))
 
 instance ( KnownNat v
-         , LinearlyVersionRestrictable ctx a
+         , LinearlyVersionRestrictable v ctx a
          ) =>
          UsableLVMVar v (UvLVMVar ctx a) ctx a where
   copyLVMVar (UvLVMVar var) = LVM.do
@@ -80,7 +78,7 @@ data VrLVMVar ctx v a where
     ( KnownNat v
     , ContextualDupable ctx a
     , ContextualSeqable ctx a a
-    , LinearlyVersionRestrictable ctx a
+    , LinearlyVersionRestrictable v ctx a
     ) =>
     LVM.LVM ctx v v a ⊸ VrLVMVar ctx v a
 
@@ -90,13 +88,13 @@ mkVrLVMVar :: forall ctx v a.
   ( KnownNat v
   , ContextualDupable ctx a
   , ContextualSeqable ctx a a
-  , LinearlyVersionRestrictable ctx a
+  , LinearlyVersionRestrictable v ctx a
   ) =>
   a ⊸ VrLVMVar ctx v a
 mkVrLVMVar a = VrLVMVar (LVM.MkLVM (Dict, , a) :: LVM.LVM ctx v v a)
 
 instance ( KnownNat v
-         , LinearlyVersionRestrictable ctx a
+         , LinearlyVersionRestrictable v ctx a
          ) =>
          UsableLVMVar v (VrLVMVar ctx v a) ctx a where
   copyLVMVar (VrLVMVar var) = LVM.do
@@ -125,7 +123,7 @@ consumeLVMVarRegistry (MkLVMVarRegistry vurs vrs) = go1 vurs LVM.>> go2 vrs
         go2 (MkAnyVrLVMVar (VrLVMVar var) : xs) = LVM.veryUnsafeCoerceLVM (var LVM.>>= eject) LVM.>> go2 xs
 
 class ( KnownNat v
-      , LinearlyVersionRestrictable ctx a
+      , LinearlyVersionRestrictable v ctx a
       ) => LVMVarReferenciable v ref ctx a | ref -> ctx a where
   readLVMVarRef :: forall. ref ⊸ LVMVarRegistry ctx ⊸ LVM.LVM ctx v v (a, LVMVarRegistry ctx)
 
@@ -148,7 +146,6 @@ registerUvLVMVar :: forall ctx a.
   ( ContextualConsumable ctx a
   , ContextualDupable ctx a
   , ContextualSeqable ctx a a
-  , LinearlyVersionRestrictable ctx a
   ) =>
   a ⊸
   LVMVarRegistry ctx ⊸
@@ -159,7 +156,7 @@ registerUvLVMVar a (MkLVMVarRegistry vurs vrs) =
   in (L.Ur (UvLVMVarRef idx), MkLVMVarRegistry (MkAnyUvLVMVar var : vurs') vrs)
 
 instance ( KnownNat v
-         , LinearlyVersionRestrictable ctx a
+         , LinearlyVersionRestrictable v ctx a
          ) =>
          LVMVarReferenciable v (UvLVMVarRef ctx a) ctx a where
   readLVMVarRef (UvLVMVarRef idx) (MkLVMVarRegistry vurs vrs) =
@@ -180,7 +177,7 @@ type role VrLVMVarRef nominal nominal nominal
 
 registerVrLVMVar :: forall v ctx a.
   ( KnownNat v
-  , LinearlyVersionRestrictable ctx a
+  , LinearlyVersionRestrictable v ctx a
   , ContextualDupable ctx a
   , ContextualSeqable ctx a a
   ) =>
@@ -193,7 +190,7 @@ registerVrLVMVar a (MkLVMVarRegistry vurs vrs) =
   in (L.Ur (VrLVMVarRef idx), MkLVMVarRegistry vurs (MkAnyVrLVMVar var : xs'))
 
 instance ( KnownNat v
-         , LinearlyVersionRestrictable ctx a
+         , LinearlyVersionRestrictable v ctx a
          ) =>
          LVMVarReferenciable v (VrLVMVarRef ctx v a) ctx a where
   readLVMVarRef (VrLVMVarRef idx) (MkLVMVarRegistry vurs vrs) =

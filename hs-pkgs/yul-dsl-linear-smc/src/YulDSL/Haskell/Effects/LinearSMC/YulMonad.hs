@@ -3,6 +3,7 @@ module YulDSL.Haskell.Effects.LinearSMC.YulMonad
   ( -- * Yul Monad
     YulMonad, runYulMonad
   , ypure, yembed
+  , withYulVarRegistry, yMkUvVar, yMkVrVar, yvread
     -- * Yul Monadic Diagrams
   , YulCat'LVM (MkYulCat'LVM), YulCat'LPM (MkYulCat'LPM)
   , yulmonad'v, yulmonad'p
@@ -12,15 +13,19 @@ module YulDSL.Haskell.Effects.LinearSMC.YulMonad
   --
   , withinPureY
   ) where
+-- base
 import GHC.TypeLits                                  (KnownNat)
 -- linear-base
 import Control.Functor.Linear qualified
 import Prelude.Linear
+import Unsafe.Linear                                 qualified as UnsafeLinear
+-- constraints
+import Data.Constraint                               (Dict (Dict))
 -- yul-dsl-pure
 import YulDSL.Haskell.LibPure
 -- linearly-versioned-monad
 import Control.LinearlyVersionedMonad.Combinators
-import Control.LinearlyVersionedMonad.LVM            (LVM, runLVM)
+import Control.LinearlyVersionedMonad.LVM            (LVM (MkLVM), runLVM, unLVM)
 import Control.LinearlyVersionedMonad.LVM            qualified as LVM
 import Control.LinearlyVersionedMonad.LVMVar
 import Data.LinearContext
@@ -36,15 +41,29 @@ import YulDSL.Haskell.Effects.LinearSMC.YulPort
 type YulMonad va vb r = LVM (YulMonadCtx r) va vb
 
 -- | Run a YulMonad with an initial unit port and returns a versioned result.
-runYulMonad :: forall vd r a ue .
+runYulMonad :: forall b vd r ie.
   ( KnownNat vd
-  , YulO2 r a
+  , YulO2 r b
   ) =>
-  P'x ue r () ⊸ YulMonad 0 vd r (P'V vd r a) ⊸ P'V vd r a
-runYulMonad u m = let ud = MkUnitDumpster (unsafeCoerceYulPort u)
-                      !(ctx', a) = runLVM (MkYulMonadCtx ud) m
-                      !(MkYulMonadCtx (MkUnitDumpster u')) = ctx'
-                  in ignore'l (unsafeCoerceYulPort u') a
+  P'x ie r () ⊸ YulMonad 0 vd r (P'V vd r b) ⊸ P'V vd r b
+runYulMonad u m = let ctx = mkYulMonadCtx u
+                      !(ctx', b) = runLVM ctx mWrapper
+                  in rmYulMonadCtx ctx' b
+  where mWrapper = LVM.do
+          initRgstr
+          b <- m
+          consumeRgstr
+          LVM.pure b
+        initRgstr :: YulMonad 0 0 r ()
+        initRgstr = MkLVM \(MkYulMonadCtx ud mbRgstr) ->
+          let rgstr = case mbRgstr of
+                Nothing -> initLVMVarRegistry
+                err     -> lseq (error "initRgstr: registry should be empty" :: ()) (UnsafeLinear.coerce err)
+          in (Dict, MkYulMonadCtx ud (Just rgstr), ())
+        consumeRgstr :: YulMonad vd vd r ()
+        consumeRgstr = withYulVarRegistry \rgstr -> LVM.do
+          consumeLVMVarRegistry rgstr
+          LVM.pure (Nothing, ())
 
 -- An alias to 'LVM.pure' to avoid naming conflict with Monad pure function.
 ypure :: forall a v r. KnownNat v => P'V v r a ⊸ YulMonad v v r (P'V v r a)
@@ -58,45 +77,100 @@ yembed = embed
 -- YulMonad Context
 --------------------------------------------------------------------------------
 
--- A dumpster of units and its utility functions start with "ud_".
-newtype UnitDumpster r = MkUnitDumpster (P'V 0 r ())
-
--- Duplicate a unit.
-ud_dupu :: forall eff r. YulO1 r
-        => UnitDumpster r ⊸ (UnitDumpster r, P'x eff r ())
-ud_dupu (MkUnitDumpster u) = let !(u1, u2) = dup2'l u
-                             in (MkUnitDumpster u1, unsafeCoerceYulPort u2)
-
--- Gulp an input port.
-ud_gulp :: forall eff r a. YulO2 r a
-        => P'x eff r a ⊸ UnitDumpster r ⊸ UnitDumpster r
-ud_gulp x (MkUnitDumpster u) = let u' = ignore'l u (unsafeCoerceYulPort(discard'l x))
-                               in MkUnitDumpster u'
+type YulVarRegistry r = LVMVarRegistry (YulMonadCtx r)
 
 -- Context to be with the 'YulMonad'.
-newtype YulMonadCtx r = MkYulMonadCtx (UnitDumpster r)
+data YulMonadCtx r where
+  MkYulMonadCtx :: YulPortUniter r ⊸ Maybe (YulVarRegistry r) ⊸ YulMonadCtx r
+
+mkYulMonadCtx ::  P'x ie r () ⊸ YulMonadCtx r
+mkYulMonadCtx u = MkYulMonadCtx (MkYulPortUniter (unsafeCoerceYulPort u)) Nothing
+
+rmYulMonadCtx :: YulO2 b r => YulMonadCtx r ⊸ P'x oe r b ⊸ P'x oe r b
+rmYulMonadCtx (MkYulMonadCtx (MkYulPortUniter u) mbRgstr) =
+  case mbRgstr of
+    Nothing -> ()
+    err     -> lseq (error "rmYulMonadCtx: registry not consumed" :: ()) (UnsafeLinear.coerce err)
+  `lseq` ignore'l (unsafeCoerceYulPort u)
 
 instance YulO2 r a => ContextualConsumable (YulMonadCtx r) (P'x eff r a) where
 
-  contextualConsume (MkYulMonadCtx ud) x = MkYulMonadCtx (ud_gulp x ud)
+  contextualConsume (MkYulMonadCtx ud rgstr) x = MkYulMonadCtx (yulPortUniterGulp ud x) rgstr
 
 instance YulO3 r a b => ContextualSeqable (YulMonadCtx r) (P'x eff1 r a) (P'x eff2 r b) where
-  contextualSeq (MkYulMonadCtx ud) a b = let ud' = ud_gulp a ud
-                                             !(ud'', u') = ud_dupu ud'
-                                             b' = ignore'l u' b
-                                         in (MkYulMonadCtx ud'', b')
+  contextualSeq (MkYulMonadCtx ud mbRgstr) a b =
+    let ud' = yulPortUniterGulp ud a
+        !(ud'', u') = yulPortUniterMkUnit ud'
+        b' = ignore'l u' b
+    in (MkYulMonadCtx ud'' mbRgstr, b')
 
 instance YulO2 r a => ContextualDupable (YulMonadCtx r) (P'x eff r a) where
   contextualDup ctx x = (ctx, dup2'l x)
 
 instance YulO2 r a => ContextualEmbeddable (YulMonadCtx r) (P'x eff r) a where
-  contextualEmbed (MkYulMonadCtx ud) x'p = let !(ud', u') = ud_dupu ud
-                                               x'v = emb'l x'p u'
-                                           in (MkYulMonadCtx ud', x'v)
+  contextualEmbed (MkYulMonadCtx ud mbRgstr) x'p =
+    let !(ud', u') = yulPortUniterMkUnit ud
+        x'v = emb'l x'p u'
+    in (MkYulMonadCtx ud' mbRgstr, x'v)
 
-instance YulO2 a r => LinearlyVersionRestrictable (YulMonadCtx r) (P'P r a) where
+instance (KnownNat v, YulO2 a r) => LinearlyVersionRestrictable v (YulMonadCtx r) (P'P r a) where
   type instance LinearlyRestrictedVersion (YulMonadCtx r) (P'P r a) v = P'V v r a
   restrictVersion a = LVM.pure (unsafeCoerceYulPort a)
+
+instance (KnownNat v, YulO2 a r) => LinearlyVersionRestrictable v (YulMonadCtx r) (P'V v r a) where
+  type instance LinearlyRestrictedVersion (YulMonadCtx r) (P'V v r a) v = P'V v r a
+  restrictVersion = LVM.pure
+
+--------------------------------------------------------------------------------
+-- LVMVar API
+--------------------------------------------------------------------------------
+
+withYulVarRegistry :: forall r v b.
+  KnownNat v =>
+  (YulVarRegistry r ⊸ YulMonad v v r (Maybe (YulVarRegistry r), b)) ⊸
+  YulMonad v v r b
+withYulVarRegistry f = MkLVM \(MkYulMonadCtx ud mbRgstr) ->
+  let ctx' = MkYulMonadCtx ud Nothing
+      !(dict, ctx'', (mbRgstr', b)) = case mbRgstr of
+        Just rgstr -> unLVM (f rgstr) ctx'
+        Nothing    -> lseq (error "withYulVarRegistry: registry should exist" :: ()) (UnsafeLinear.coerce (f, ctx'))
+      ud' = case ctx'' of
+        (MkYulMonadCtx ud'' Nothing) -> ud''
+        err                          -> lseq (error "withYulVarRegistry: nonsense" :: ()) (UnsafeLinear.coerce err)
+  in (dict, MkYulMonadCtx ud' mbRgstr', b)
+
+type YulUvVar r a = Ur (UvLVMVarRef (YulMonadCtx r) (P'P r a))
+
+type YulVrVar v r a = Ur (VrLVMVarRef (YulMonadCtx r) v (P'V v r a))
+
+yMkUvVar :: forall a r v. (KnownNat v, YulO2 a r) => P'P r a ⊸ YulMonad v v r (YulUvVar r a)
+yMkUvVar x = withYulVarRegistry \rgstr ->
+  let !(var, rgstr') = registerUvLVMVar x rgstr
+  in LVM.pure (Just rgstr', var)
+
+yMkVrVar :: forall a r v. (KnownNat v, YulO2 a r) => P'V v r a ⊸ YulMonad v v r (YulVrVar v r a)
+yMkVrVar x = withYulVarRegistry \rgstr ->
+  let !(var, rgstr') = registerVrLVMVar x rgstr
+  in LVM.pure (Just rgstr', var)
+
+-- yread :: forall ref v r a.
+--   LVMVarReferenciable v ref (YulMonadCtx r) (P'V v r a) =>
+--   ref ->
+--   YulMonad v v r (P'V v r a)
+-- yread ref = withYulVarRegistry \rgstr -> LVM.do
+--   (x, rgstr') <- readLVMVarRef ref rgstr
+--   LVM.pure (Just rgstr', x)
+--   in LVM.pure (Just rgstr', var)
+
+yvread :: forall a ref v r ie oe.
+  ( LVMVarReferenciable v ref (YulMonadCtx r) (P'x ie r a)
+  , LinearlyRestrictedVersion (YulMonadCtx r) (P'x ie r a) v ~ P'x oe r a
+  )=>
+  ref ->
+  YulMonad v v r (P'x oe r a)
+yvread ref = withYulVarRegistry \rgstr -> LVM.do
+  (x, rgstr') <- vreadLVMVarRef ref rgstr
+  LVM.pure (Just rgstr', x)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- yulmonad'v
