@@ -12,15 +12,15 @@ import Prelude.YulDSL  hiding (fromInteger, (==))
 
 
 num_add :: StaticFn (I256 -> I256 -> I256)
-num_add = $lfn $ uncurry'lvv
+num_add = $lfn $ yulports'vv
   \x1 x2 -> x1 + x2
 
 num_sub :: StaticFn (I256 -> I256 -> I256)
-num_sub = $lfn $ uncurry'lvv
+num_sub = $lfn $ yulports'vv
   \x1 x2 -> x1 - x2
 
 num_mul :: StaticFn (I256 -> I256 -> I256)
-num_mul = $lfn $ uncurry'lvv
+num_mul = $lfn $ yulports'vv
   \x1 x2 -> x1 * x2
 
 test_2op :: Gen Bool

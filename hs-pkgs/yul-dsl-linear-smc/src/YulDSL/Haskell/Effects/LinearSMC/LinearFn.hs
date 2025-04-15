@@ -72,10 +72,13 @@ class ConstructibleLinearFn fn (ie :: PortEffect) (oe :: PortEffect) where
     (forall r. YulO1 r => P'x ie r (NP xs) ⊸ P'x oe r b) ->
     fn f
 
-instance ConstructibleLinearFn StaticFn (VersionedPort 0) (VersionedPort 0) where
-  lfn' cid f = MkStaticFn (cid, decode'l f)
+instance ConstructibleLinearFn PureFn PurePort PurePort where
+  lfn' cid f = MkPureFn (cid, decode'l f)
 
 instance ConstructibleLinearFn StaticFn PurePort (VersionedPort 0) where
+  lfn' cid f = MkStaticFn (cid, decode'l f)
+
+instance ConstructibleLinearFn StaticFn (VersionedPort 0) (VersionedPort 0) where
   lfn' cid f = MkStaticFn (cid, decode'l f)
 
 instance ( KnownNat vd

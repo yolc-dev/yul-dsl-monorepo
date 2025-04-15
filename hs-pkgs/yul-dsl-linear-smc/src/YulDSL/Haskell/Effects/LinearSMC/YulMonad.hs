@@ -115,8 +115,7 @@ instance forall b v1 vn r a.
          UncurriableNP b '[] b
          (P'V v1 r) (YulMonad v1 vn r)
          (YulCat'LVV v1 v1 r a) (YulCat'LVM v1 vn r a) One where
-  uncurryNP b (MkYulCat'LVV h) = MkYulCat'LVM \a ->
-    eject (h a) LVM.>> b
+  uncurryNP b (MkYulCat'LVV h) = MkYulCat'LVM \a -> eject (h a) LVM.>> b
 
 instance forall x xs b g v1 vn r a.
          ( YulO4 x (NP xs) r a
@@ -125,9 +124,7 @@ instance forall x xs b g v1 vn r a.
          UncurriableNP (x -> g) (x:xs) b
          (P'V v1 r) (YulMonad v1 vn r)
          (YulCat'LVV v1 v1 r a) (YulCat'LVM v1 vn r a) One where
-  uncurryNP f (MkYulCat'LVV h) = MkYulCat'LVM
-    (uncurryNP'lx @g @x @xs @b @(P'V v1 r) @(YulMonad v1 vn r) @(YulCat'LVV v1 v1 r) @(YulCat'LVM v1 vn r)
-     f h MkYulCat'LVV (\(MkYulCat'LVM g) -> g))
+  uncurryNP f (MkYulCat'LVV h) = MkYulCat'LVM (uncurryNP'lx f h MkYulCat'LVV (\(MkYulCat'LVM g) -> g))
 
 instance forall b v1 vn r a.
          ( YulO2 r a
@@ -182,8 +179,7 @@ instance forall b v1 vn r a.
          UncurriableNP (P'V vn r b) '[] (P'V vn r b)
          (P'P r) (YulMonad v1 vn r)
          (YulCat'LPP r a) (YulCat'LPM v1 vn r a) One where
-  uncurryNP b (MkYulCat'LPP h) = MkYulCat'LPM \a ->
-    eject (unsafeCoerceYulPort (h a & coerceType'l @_ @())) LVM.>> b
+  uncurryNP b (MkYulCat'LPP h) = MkYulCat'LPM \a -> eject (unsafeCoerceYulPort (h a & coerceType'l @_ @())) LVM.>> b
 
 instance forall x xs b g v1 vn r a.
          ( EquivalentNPOfFunction g xs (P'V vn r b)
@@ -192,9 +188,7 @@ instance forall x xs b g v1 vn r a.
          ) =>
          UncurriableNP (x -> g) (x:xs) (P'V vn r b)
          (P'P r) (YulMonad v1 vn r) (YulCat'LPP r a) (YulCat'LPM v1 vn r a) One where
-  uncurryNP f (MkYulCat'LPP h) = MkYulCat'LPM
-    (uncurryNP'lx @g @x @xs @(P'V vn r b) @(P'P r) @(YulMonad v1 vn r) @(YulCat'LPP r) @(YulCat'LPM v1 vn r)
-     f h MkYulCat'LPP (\(MkYulCat'LPM g) -> g))
+  uncurryNP f (MkYulCat'LPP h) = MkYulCat'LPM (uncurryNP'lx f h MkYulCat'LPP (\(MkYulCat'LPM g) -> g))
 
 yulmonad'p :: forall xs b r vd m1 m1b m2 m2b f' b'.
   ( KnownNat vd
