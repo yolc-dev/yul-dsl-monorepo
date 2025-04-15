@@ -1,19 +1,18 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE TemplateHaskell     #-}
 module YulDSL.Haskell.Effects.LinearSMC.YulPort
-  ( -- * Yul Port Definitions
-    -- $LinearPortDefs
+  ( -- $YulPortDefs
     PortEffect (PurePort, VersionedPort)
   , P'x (MkP'x), unP'x, P'V, P'P, encodeP'x, decodeP'x
   , Versionable'L (ver'l)
   , unsafeCoerceYulPort, unsafeCoerceYulPortDiagram
   , unsafeUncurryNil'lx, uncurryNP'lx
-    -- * General Yul Port Operations
     -- $GeneralOps
   , discard'l, ignore'l, mkUnit'l, emb'l, const'l, dup2'l, merge'l, split'l
-    -- * Type Operations
     -- $TypeOps
   , coerceType'l, reduceType'l, extendType'l
+    -- $YulPortUniter
+  , YulPortUniter (MkYulPortUniter), yulPortUniterMkUnit, yulPortUniterGulp
   ) where
 -- base
 import Control.Monad                       (replicateM)
@@ -31,7 +30,8 @@ import Control.Category.Constrained.YulDSL ()
 
 
 ------------------------------------------------------------------------------------------------------------------------
--- $LinearPortDefs
+-- $YulPortDefs
+-- = Yul Port Definitions
 ------------------------------------------------------------------------------------------------------------------------
 
 -- | Various types of port effects for the yul port API.
@@ -126,6 +126,7 @@ uncurryNP'lx f h mk un xxs =
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $GeneralOps
+-- = General YulPort Operations
 --
 -- Note: Yul ports are defined above as "P'*", and a "yul port diagram" is a linear function from input yul port to a
 -- output yul port.
@@ -168,6 +169,7 @@ split'l ab = let !(a, b) = split (unP'x ab) in (MkP'x a, MkP'x b)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $TypeOps
+-- = Yul Port Type Operations
 ------------------------------------------------------------------------------------------------------------------------
 
 -- | Coerce input yul port to an ABI coercible output yul port.
@@ -200,6 +202,21 @@ instance YulO1 r => LinearDistributiveNP (P'x eff r) '[] where
   linearDistributeNP Nil = coerceType'l
 instance (YulO3 x (NP xs) r , LinearTraversableNP (P'x eff r) xs) => LinearTraversableNP (P'x eff r) (x:xs)
 instance (YulO3 x (NP xs) r , LinearDistributiveNP (P'x eff r) xs) => LinearDistributiveNP (P'x eff r) (x:xs)
+
+--------------------------------------------------------------------------------
+-- $YulPortUniter
+--------------------------------------------------------------------------------
+
+-- | A machinery to work with yul port units.
+newtype YulPortUniter r = MkYulPortUniter (P'P r ())
+
+-- | Create a new yul port unit from the uniter.
+yulPortUniterMkUnit :: forall eff r. YulO1 r => YulPortUniter r ⊸ (YulPortUniter r, P'x eff r ())
+yulPortUniterMkUnit (MkYulPortUniter u) = let !(u1, u2) = dup2'l u in (MkYulPortUniter u1, unsafeCoerceYulPort u2)
+
+-- | Gulp an input yul port by the uniter.
+yulPortUniterGulp :: forall eff r a. YulO2 r a => YulPortUniter r ⊸ P'x eff r a ⊸ YulPortUniter r
+yulPortUniterGulp (MkYulPortUniter u) x = MkYulPortUniter (ignore'l u (unsafeCoerceYulPort (discard'l x)))
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Instances
