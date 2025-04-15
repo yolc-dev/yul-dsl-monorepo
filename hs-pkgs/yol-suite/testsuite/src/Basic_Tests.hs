@@ -76,11 +76,11 @@ lvmvar_test_ugly = $lfn $ yulmonad'p
 lvmvar_test :: StaticFn (U256 -> U256)
 lvmvar_test = $lfn $ yulmonad'p
   \x -> LVM.do
-    Ur varX <- yMkUvVar x
-    x1 <- yvread varX
-    x2 <- yvread varX
-    x3 <- yvread varX
-    ypure (x1 + x2 * x3)
+    Ur varX <- ymkref x
+    x1 <- ytakev varX
+    x2 <- ytakev varX
+    x3 <- ytake varX
+    ypure (x1 + x2 * ver'l x3)
 
 object = mkYulObject "BasicTests" yulNoop
   [ pureFn   "embUnit$p" embUnit'p
