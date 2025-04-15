@@ -25,7 +25,7 @@ monads." arXiv preprint arXiv:2001.10274 (2020).]
 module Control.LinearlyVersionedMonad.LVM
   ( -- $linear_safety
     LVM (MkLVM), unLVM, runLVM
-  , pure, (>>=), (>>), (=<<)
+  , pure, (>>=), (>>), (=<<), fail
   , unsafeCoerceLVM, veryUnsafeCoerceLVM
   ) where
 -- base
@@ -36,7 +36,7 @@ import Data.Constraint.Nat    (leTrans)
 -- linear-base
 import Control.Functor.Linear qualified
 import Data.Functor.Linear qualified
-import Prelude.Linear         (flip, lseq)
+import Prelude.Linear         (String, error, flip, lseq)
 --
 import Data.LinearContext
 
@@ -102,6 +102,10 @@ ma >>= f = MkLVM \ctx -> let !(aleb, ctx', a) = unLVM ma ctx
   LVM ctx va vb a ⊸ LVM ctx vb vc b ⊸ LVM ctx va vc b
 ma >> mb = ma >>= \a -> MkLVM \ctx -> let !(bltec, ctx', b) = unLVM mb ctx
                                       in (bltec, contextualConsume ctx' a, b)
+
+-- | This is to handle pattern matching failures in the LVM.do notation. For now we propagate the error as GHC pleases.
+fail :: String -> LVM ctx va vb b
+fail = error
 
 infixl 1 >>=, >>
 infixr 1 =<<
