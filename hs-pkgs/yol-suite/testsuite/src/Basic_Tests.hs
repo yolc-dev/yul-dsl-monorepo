@@ -58,13 +58,13 @@ shmapGetTest = $lfn $ yulmonad'v
     ref <- (shmapRef @ADDR @U256) (shmap "YolcStorageTest" :: SHMap ADDR U256) acc
     toss1 ref
 
-varSharing :: PureFn (U256 -> U256 -> U256)
-varSharing = $fn \a b ->
-  let c = a + b in c * c
+varSharing :: PureFn (U256 -> U256 -> U256 -> U256)
+varSharing = $fn \a b c ->
+  let z = a + b * c in z * z
 
-varSharingL :: StaticFn (U256 -> U256 -> U256)
-varSharingL = $lfn $ yulmonad'p \a b ->
-  let c = a + b in dup2'l c & \(c1, c2) -> ypure (ver'l (c1 * c2))
+varSharingL :: StaticFn (U256 -> U256 -> U256 -> U256)
+varSharingL = $lfn $ yulmonad'p \a b c ->
+  let z = a + b * c in dup2'l z & \(z1, z2) -> ypure (ver'l (z1 * z2))
 
 lvmvar_test_ugly :: StaticFn (U256 -> U256)
 lvmvar_test_ugly = $lfn $ yulmonad'p
@@ -73,26 +73,24 @@ lvmvar_test_ugly = $lfn $ yulmonad'p
         !(x2, x3)  = dup2'l x2'
     ypure (x1 + x2 * x3)
 
-lvmvar_test :: StaticFn (U256 -> U256)
+lvmvar_test :: StaticFn (U256 -> U256 -> U256)
 lvmvar_test = $lfn $ yulmonad'p
-  \x -> LVM.do
-    Ur varX <- ymkref x
-    x1 <- ytakev varX
-    x2 <- ytakev varX
-    x3 <- ytake varX
-    ypure (x1 + x2 * ver'l x3)
+  \x y -> LVM.do
+    Ur xvar <- ymkref x
+    Ur yvar <- ymkref y
+    x1 <- ytakev xvar
+    x2 <- ytakev xvar
+    y1 <- ytake yvar
+    ypure (x1 + x2 * ver'l y1)
 
-lvmvar_test2 :: PureFn (U256 -> U256)
+lvmvar_test2 :: PureFn (U256 -> U256 -> U256)
 lvmvar_test2 = $lfn $ yulmonad'pp
-  \(Uv x) -> LVM.do
-    b <- embed (42 :: U256)
-    -- x1 <- ytake x
-    -- x2 <- ytake x
-    -- x3 <- ytake x
-    -- Ur rvar <- ymkref (x1 + x2 * x3)
-    -- LVM.pure (Uv rvar)
-    Ur bvar <- ymkref @0 @_ @(P'P _ U256) b
-    LVM.pure (Uv bvar)
+  \(Uv x) (Uv y) -> LVM.do
+    x1 <- ytake x
+    x2 <- ytake x
+    y1 <- ytake y
+    Ur rvar <- ymkref (x1 + x2 * y1)
+    LVM.pure (Uv rvar)
 
 lvmvar_test3 :: PureFn (U256)
 lvmvar_test3 = $lfn $ yulmonad'pp $

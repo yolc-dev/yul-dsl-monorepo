@@ -12,7 +12,7 @@ module Control.LinearlyVersionedMonad.LVMVar
 -- base
 import Data.Kind                                  (Type)
 import GHC.TypeLits                               (KnownNat)
-import Prelude                                    (Int, Maybe (..), type (~))
+import Prelude                                    (Int, Maybe (..), type (~), (-))
 -- linear-base
 import Prelude.Linear                             qualified as L
 import Unsafe.Linear                              qualified as UnsafeLinear
@@ -116,7 +116,7 @@ initLVMVarRegistry :: LVMVarRegistry ctx
 initLVMVarRegistry = MkLVMVarRegistry [] []
 
 consumeLVMVarRegistry :: forall ctx v. KnownNat v => LVMVarRegistry ctx ⊸ LVM.LVM ctx v v ()
-consumeLVMVarRegistry (MkLVMVarRegistry vurs vrs) = go1 vurs LVM.>> go2 vrs
+consumeLVMVarRegistry (MkLVMVarRegistry uvs vrs) = go1 uvs LVM.>> go2 vrs
   where go1 ([])                                = LVM.pure ()
         go1 (MkAnyUvLVMVar (UvLVMVar var) : xs) = LVM.unsafeCoerceLVM (var LVM.>>= eject) LVM.>> go1 xs
         go2 ([])                                = LVM.pure ()
@@ -140,7 +140,7 @@ class ( KnownNat v
 -- UvLVMVarRef
 --
 
-newtype UvLVMVarRef ctx a = UvLVMVarRef Int
+data UvLVMVarRef ctx a where UvLVMVarRef :: Int -> UvLVMVarRef ctx a
 type role UvLVMVarRef nominal nominal
 
 registerUvLVMVar :: forall ctx a.
@@ -151,17 +151,18 @@ registerUvLVMVar :: forall ctx a.
   a ⊸
   LVMVarRegistry ctx ⊸
   (L.Ur (UvLVMVarRef ctx a), LVMVarRegistry ctx)
-registerUvLVMVar a (MkLVMVarRegistry vurs vrs) =
+registerUvLVMVar a (MkLVMVarRegistry uvs vrs) =
   let var = mkUvLVMVar a :: UvLVMVar ctx a
-      !(L.Ur idx, vurs') = L.length vurs
-  in (L.Ur (UvLVMVarRef idx), MkLVMVarRegistry (MkAnyUvLVMVar var : vurs') vrs)
+      !(L.Ur ridx, uvs') = L.length uvs
+  in (L.Ur (UvLVMVarRef ridx), MkLVMVarRegistry (MkAnyUvLVMVar var : uvs') vrs)
 
 instance ( KnownNat v
          , LinearlyVersionRestrictable v ctx a
          ) =>
          LVMVarReferenciable v (UvLVMVarRef ctx a) ctx a where
-  takeLVMVarRef (UvLVMVarRef idx) (MkLVMVarRegistry vurs vrs) =
-    let !(ys, zzs) = L.splitAt idx vurs
+  takeLVMVarRef (UvLVMVarRef ridx) (MkLVMVarRegistry uvs vrs) =
+    let !(L.Ur len, uvs') = L.length uvs
+        !(ys, zzs) = L.splitAt (len - ridx - 1) uvs'
         !(var :: UvLVMVar ctx a, zs') = case L.uncons zzs of
           Just (MkAnyUvLVMVar (var_ :: UvLVMVar ctx a_), zs) -> (UnsafeLinear.coerce var_, zs)
           Nothing                                            -> L.error "Bad UvLVMVarRef index"
@@ -173,7 +174,7 @@ instance ( KnownNat v
 -- VrLVMVarRef
 --
 
-newtype VrLVMVarRef ctx v a = VrLVMVarRef Int
+data VrLVMVarRef ctx v a where VrLVMVarRef :: Int -> VrLVMVarRef ctx v a
 type role VrLVMVarRef nominal nominal nominal
 
 registerVrLVMVar :: forall v ctx a.
@@ -187,15 +188,16 @@ registerVrLVMVar :: forall v ctx a.
   (L.Ur (VrLVMVarRef ctx v a), LVMVarRegistry ctx)
 registerVrLVMVar a (MkLVMVarRegistry vurs vrs) =
   let !(var :: VrLVMVar ctx v a) = mkVrLVMVar a
-      !(L.Ur idx, xs') = L.length vrs
-  in (L.Ur (VrLVMVarRef idx), MkLVMVarRegistry vurs (MkAnyVrLVMVar var : xs'))
+      !(L.Ur ridx, xs') = L.length vrs
+  in (L.Ur (VrLVMVarRef ridx), MkLVMVarRegistry vurs (MkAnyVrLVMVar var : xs'))
 
 instance ( KnownNat v
          , LinearlyVersionRestrictable v ctx a
          ) =>
          LVMVarReferenciable v (VrLVMVarRef ctx v a) ctx a where
-  takeLVMVarRef (VrLVMVarRef idx) (MkLVMVarRegistry vurs vrs) =
-    let !(ys, zzs) = L.splitAt idx vrs
+  takeLVMVarRef (VrLVMVarRef ridx) (MkLVMVarRegistry vurs vrs) =
+    let !(L.Ur len, vrs') = L.length vrs
+        !(ys, zzs) = L.splitAt (len - ridx - 1) vrs'
         !(var :: VrLVMVar ctx v a, zs') = case L.uncons zzs of
           Just (MkAnyVrLVMVar (var_ :: VrLVMVar ctx v_ a_), zs) -> (UnsafeLinear.coerce var_, zs)
           Nothing                                               -> L.error "Bad VrLVMVarRef index"

@@ -116,13 +116,13 @@ uncurryNP'lx :: forall m1 m1b m2 m2b g x xs b r a ie.
   ((m1 a ⊸ m1 (NP xs)) ⊸ m2 a (NP xs)) ⊸ -- ^ mk: m1 (a ⊸ NP xs) ⊸ m2 a (NP xs)
   (m2b a b ⊸ (m1 a ⊸ m1b b)) ⊸           -- ^ un: m2b a b ⊸ (m1 a ⊸ m1b b)
   (m1 a ⊸ m1b b)
-uncurryNP'lx f h mk un xxs =
-  dup2'l xxs
-  & \(xxs1, xxs2) -> unconsNP @m1 @x @xs @One (h xxs1)
+uncurryNP'lx f h mk un a =
+  dup2'l a
+  & \(a1, a2) -> unconsNP @m1 @x @xs @One (h a1)
   & \(x, xs) -> let g = uncurryNP @g @xs @b @m1 @m1b @(m2 a) @(m2b a) @One
                         (f x)
-                        (mk (\a -> ignore'l (discard'l a) xs))
-                in (un g) xxs2
+                        (mk (\a' -> ignore'l (discard'l a') xs))
+                in (un g) a2
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $GeneralOps

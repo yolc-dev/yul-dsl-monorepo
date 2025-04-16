@@ -243,15 +243,18 @@ instance forall x xs b g v r a.
          ) =>
          UncurriableNP (x -> g) (x:xs) (UsableYulVar v r b)
          (UsableYulVar v r) (YulMonad v v r) (YulCat'LPP r a) (YulCat'LPPM v r a) One where
-  uncurryNP f (MkYulCat'LPP h) = MkYulCat'LPPM \xxs -> LVM.do
-    let !(xxs1, xxs2) = dup2'l xxs
-        !(x, xs) = unconsNP (h xxs1)
+  uncurryNP f (MkYulCat'LPP h) = MkYulCat'LPPM \a -> LVM.do
+    let !(a1, a2) = dup2'l a
+        !(x, xs) = unconsNP (h a1)
     Ur xref <- ymkref x
     let !(MkYulCat'LPPM g) = uncurryNP
           @g @xs @(UsableYulVar v r b)
           @(UsableYulVar v r) @(YulMonad v v r) @(YulCat'LPP r a) @(YulCat'LPPM v r a) @One
-          (f (Uv xref)) (MkYulCat'LPP (\a -> ignore'l (discard'l a) xs))
-    g xxs2
+          (f (Uv xref)) (MkYulCat'LPP (\a' -> ignore'l (discard'l a') xs))
+    g a2
+    -- g a2 LVM.>>= \case
+    --   Uv bvar -> LVM.pure (Uv bvar)
+    --   Vr err -> lseq (error "TODO, eliminate this case" :: ()) (UnsafeLinear.coerce err)
 
 yulmonad'pp :: forall xs b r m1 m1b m2 m2b f b'.
   ( YulO3 (NP xs) b r
