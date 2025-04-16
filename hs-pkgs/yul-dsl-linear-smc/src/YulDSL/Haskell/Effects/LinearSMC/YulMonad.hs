@@ -5,9 +5,10 @@ module YulDSL.Haskell.Effects.LinearSMC.YulMonad
     YulMonad, runYulMonad
   , ypure, yembed
   , withYulVarRegistry, ymkref, ytake, ytakev
+  , UsableYulVar (Uv, Vr)
     -- * Yul Monadic Diagrams
   , YulCat'LVM (MkYulCat'LVM), YulCat'LPM (MkYulCat'LPM)
-  , yulmonad'v, yulmonad'p
+  , yulmonad'pp, yulmonad'v, yulmonad'p
   , module Control.LinearlyVersionedMonad.Combinators
   , module Control.LinearlyVersionedMonad.LVMVar
   , Control.Functor.Linear.fmap
@@ -144,22 +145,23 @@ withYulVarRegistry f = MkLVM \(MkYulMonadCtx ud mbRgstr) ->
         err                          -> lseq (error "withYulVarRegistry: nonsense" :: ()) (UnsafeLinear.coerce err)
   in (dict, MkYulMonadCtx ud' mbRgstr', b)
 
-class MakeableYulRef v r port ref | port -> r ref where
-  ymkref :: forall. KnownNat v => port ⊸ YulMonad v v r (Ur ref)
-
 type YulUvVar r a = UvLVMVarRef (YulMonadCtx r) (P'P r a)
-
 type YulVrVar v r a = VrLVMVarRef (YulMonadCtx r) v (P'V v r a)
 
-instance YulO2 r a => MakeableYulRef v r (P'P r a) (YulUvVar r a) where
-  ymkref x = withYulVarRegistry \rgstr ->
-    let !(var, rgstr') = registerUvLVMVar x rgstr
-    in LVM.pure (Just rgstr', var)
+class MakeableYulRef v r port ref | v port -> ref where
+  ymkref :: forall. (KnownNat v, YulO1 r) => port ⊸ YulMonad v v r (Ur ref)
 
-instance YulO2 r a => MakeableYulRef v r (P'V v r a) (YulVrVar v r a) where
+instance YulO1 a => MakeableYulRef v r (P'P r a) (YulUvVar r a) where
   ymkref x = withYulVarRegistry \rgstr ->
-    let !(var, rgstr') = registerVrLVMVar x rgstr
-    in LVM.pure (Just rgstr', var)
+    let !(Ur var, rgstr') = registerUvLVMVar x rgstr
+    in LVM.pure (Just rgstr', Ur var)
+
+instance YulO1 a => MakeableYulRef v r (P'V v r a) (YulVrVar v r a) where
+  ymkref x = withYulVarRegistry \rgstr ->
+    let !(Ur var, rgstr') = registerVrLVMVar x rgstr
+    in LVM.pure (Just rgstr', Ur var)
+
+-- instance YulO2 r a => MakeableYulRef v r (P'P r a) (YulUvVar r a) where
 
 ytake :: forall a ref v r ioe.
   ( LVMVarReferenciable v ref (YulMonadCtx r) (P'x ioe r a)
@@ -180,6 +182,141 @@ ytakev ref = withYulVarRegistry \rgstr -> LVM.do
   (x, rgstr') <- takevLVMVarRef ref rgstr
   LVM.pure (Just rgstr', x)
 
+data UsableYulVar v r a where
+  Uv :: forall v a r. YulUvVar r a -> UsableYulVar v r a
+  Vr :: forall v a r. YulVrVar v r a -> UsableYulVar v r a
+
+-- yunsafeUncurryNil'x :: forall a b r ie oe v m1.
+--   YulO3 a b r =>
+--   (UsableYulVar v r b) ⊸
+--   (m1 a ⊸ P'x ie r (NP '[])) ⊸
+--   (m1 a ⊸ YulCat'LPPM v r (UsableYulVar v r b))
+-- yunsafeUncurryNil'x b h a =
+--   h a                   -- :: P'V v1 (NP '[])
+--   & coerceType'l @_ @() -- :: P'V v1 ()
+--   & unsafeCoerceYulPort -- :: P'V vn ()
+--   & \u -> ignore'l u b
+
+-- yuncurryNP'x :: forall m1 m1b m2 m2b g x xs b r a v.
+--   ( YulO4 x (NP xs) r a
+--   , EquivalentNPOfFunction g xs b
+--   , UsableYulVar v r ~ m1
+--   , YulMonad v v r
+--   , LiftFunction b (m2 a) (m2b a) One ~ (m2b a) b
+--   , UncurriableNP g xs b m1 m1b (m2 a) (m2b a) One
+--   , YulCatObj (NP xs)
+--   ) =>
+--   (m1 x ⊸ LiftFunction g m1 m1b One) ⊸   -- ^ f: m1 (x -> xs ->... -> b), the function to be uncurried
+--   (m1 a ⊸ m1 (NP (x : xs))) ⊸            -- ^ h: m1 (a ⊸ NP xxs)
+--   ((m1 a ⊸ m1 (NP xs)) ⊸ m2 a (NP xs)) ⊸ -- ^ mk: m1 (a ⊸ NP xs) ⊸ m2 a (NP xs)
+--   (m2b a b ⊸ (m1 a ⊸ m1b b)) ⊸           -- ^ un: m2b a b ⊸ (m1 a ⊸ m1b b)
+--   (m1 a ⊸ m1b b)
+-- yuncurryNP'x f h mk un xxs = _
+  -- dup2'l xxs
+  -- & \(xxs1, xxs2) -> unconsNP @m1 @x @xs @One (h xxs1)
+  -- & \(x, xs) -> let g = uncurryNP @g @xs @b @m1 @m1b @(m2 a) @(m2b a) @One
+  --                       (f x)
+  --                       (mk (\a -> ignore'l (discard'l a) xs))
+  --               in (un g) xxs2
+
+------------------------------------------------------------------------------------------------------------------------
+-- yulmonad'pp
+------------------------------------------------------------------------------------------------------------------------
+
+-- | Monadic yul port diagrams for pure input and yul monad output.
+newtype YulCat'LPPM v r a b = MkYulCat'LPPM (P'P r a ⊸ YulMonad v v r b)
+
+instance forall b v r a.
+         ( KnownNat v
+         , YulO3 b r a
+         ) =>
+         UncurriableNP (UsableYulVar v r b) '[] (UsableYulVar v r b)
+         (UsableYulVar v r) (YulMonad v v r) (YulCat'LPP r a) (YulCat'LPPM v r a) One where
+  uncurryNP b (MkYulCat'LPP h) = MkYulCat'LPPM \a -> eject (unsafeCoerceYulPort (h a & coerceType'l @_ @())) LVM.>> b
+
+instance forall x xs b g v r a.
+         ( KnownNat v
+         , EquivalentNPOfFunction g xs (UsableYulVar v r b)
+         , YulO5 x (NP xs) b r a
+         , UncurriableNP g xs (UsableYulVar v r b)
+           (UsableYulVar v r) (YulMonad v v r) (YulCat'LPP r a) (YulCat'LPPM v r a) One
+         ) =>
+         UncurriableNP (x -> g) (x:xs) (UsableYulVar v r b)
+         (UsableYulVar v r) (YulMonad v v r) (YulCat'LPP r a) (YulCat'LPPM v r a) One where
+  uncurryNP f (MkYulCat'LPP h) = MkYulCat'LPPM \xxs -> LVM.do
+    let !(xxs1, xxs2) = dup2'l xxs
+        !(x, xs) = unconsNP (h xxs1)
+    Ur xref <- ymkref x
+    let !(MkYulCat'LPPM g) = uncurryNP
+          @g @xs @(UsableYulVar v r b)
+          @(UsableYulVar v r) @(YulMonad v v r) @(YulCat'LPP r a) @(YulCat'LPPM v r a) @One
+          (f (Uv xref)) (MkYulCat'LPP (\a -> ignore'l (discard'l a) xs))
+    g xxs2
+
+yulmonad'pp :: forall xs b r m1 m1b m2 m2b f b'.
+  ( YulO3 (NP xs) b r
+  -- m1, m1b, m2, m2b
+  , UsableYulVar 0 r ~ m1
+  , YulMonad   0 0 r ~ m1b
+  , YulCat'LPP    r (NP xs) ~ m2
+  , YulCat'LPPM 0 r (NP xs) ~ m2b
+  -- b'
+  , UsableYulVar 0 r b ~ b'
+  -- f'
+  , UncurriableNP f xs b' m1 m1b m2 m2b One
+  ) =>
+  LiftFunction f m1 m1b One -> -- ^ LiftFunction               f1  m1 m1b One
+  (P'P r (NP xs) ⊸ P'P r b)    -- ^ LiftFunction (NP (():xs) -> b) m1 m1b One
+yulmonad'pp f =
+  let !(MkYulCat'LPPM f') = uncurryNP @f @xs @b' @m1 @m1b @m2 @m2b @One f (MkYulCat'LPP id)
+  in \xs -> let !(xs', u) = mkUnit'l xs in unsafeCoerceYulPort $ runYulMonad u $
+    f' xs' LVM.>>= \case
+      Uv bvar -> ytakev bvar
+      Vr err -> lseq (error "TODO, eliminate this case" :: ()) (UnsafeLinear.coerce err)
+
+------------------------------------------------------------------------------------------------------------------------
+-- yulmonad'p
+------------------------------------------------------------------------------------------------------------------------
+
+-- | Monadic yul port diagrams for pure input and yul monad output.
+newtype YulCat'LPM v1 vn r a b = MkYulCat'LPM (P'P r a ⊸ YulMonad v1 vn r b)
+
+instance forall b v1 vn r a.
+         ( KnownNat v1, KnownNat vn
+         , YulO3 b r a
+         ) =>
+         UncurriableNP (P'V vn r b) '[] (P'V vn r b)
+         (P'P r) (YulMonad v1 vn r) (YulCat'LPP r a) (YulCat'LPM v1 vn r a) One where
+  uncurryNP b (MkYulCat'LPP h) = MkYulCat'LPM \a -> eject (unsafeCoerceYulPort (h a & coerceType'l @_ @())) LVM.>> b
+
+instance forall x xs b g v1 vn r a.
+         ( EquivalentNPOfFunction g xs (P'V vn r b)
+         , YulO5 x (NP xs) b r a
+         , UncurriableNP g xs (P'V vn r b) (P'P r) (YulMonad v1 vn r) (YulCat'LPP r a) (YulCat'LPM v1 vn r a) One
+         ) =>
+         UncurriableNP (x -> g) (x:xs) (P'V vn r b)
+         (P'P r) (YulMonad v1 vn r) (YulCat'LPP r a) (YulCat'LPM v1 vn r a) One where
+  uncurryNP f (MkYulCat'LPP h) = MkYulCat'LPM (uncurryNP'lx f h MkYulCat'LPP (\(MkYulCat'LPM g) -> g))
+
+yulmonad'p :: forall xs b r vd m1 m1b m2 m2b f' b'.
+  ( KnownNat vd
+  , YulO3 (NP xs) b r
+  -- m1, m1b, m2, m2b
+  , P'P           r ~ m1
+  , YulMonad 0 vd r ~ m1b
+  , YulCat'LPP      r (NP xs) ~ m2
+  , YulCat'LPM 0 vd r (NP xs) ~ m2b
+  -- b'
+  , P'V vd r b ~ b'
+  -- f'
+  , UncurriableNP f' xs b' m1 m1b m2 m2b One
+  ) =>
+  LiftFunction f' m1 m1b One -> -- ^ LiftFunction               f1  m1 m1b One
+  (P'P r (NP xs) ⊸ P'V vd r b)  -- ^ LiftFunction (NP (():xs) -> b) m1 m1b One
+yulmonad'p f =
+  let !(MkYulCat'LPM f') = uncurryNP @f' @xs @b' @m1 @m1b @m2 @m2b @One f (MkYulCat'LPP id)
+  in \xs -> mkUnit'l xs & \(xs', u) -> runYulMonad u (f' xs')
+
 ------------------------------------------------------------------------------------------------------------------------
 -- yulmonad'v
 ------------------------------------------------------------------------------------------------------------------------
@@ -190,13 +327,9 @@ newtype YulCat'LVM v1 vn r a b = MkYulCat'LVM (P'V v1 r a ⊸ YulMonad v1 vn r b
 instance forall b v1 vn r a.
          ( KnownNat v1, KnownNat vn
          , YulO2 a r
-         , EquivalentNPOfFunction b '[] b
-         , LiftFunction b (P'V v1 r) (YulMonad v1 vn r) One ~ YulMonad v1 vn r b
-         , LiftFunction b (YulCat'LVV v1 v1 r a) (YulCat'LVM v1 vn r a) One ~ YulCat'LVM v1 vn r a b
          ) =>
-         UncurriableNP b '[] b
-         (P'V v1 r) (YulMonad v1 vn r)
-         (YulCat'LVV v1 v1 r a) (YulCat'LVM v1 vn r a) One where
+         UncurriableNP (P'V vn r b) '[] (P'V vn r b)
+         (P'V v1 r) (YulMonad v1 vn r) (YulCat'LVV v1 v1 r a) (YulCat'LVM v1 vn r a) One where
   uncurryNP b (MkYulCat'LVV h) = MkYulCat'LVM \a -> eject (h a) LVM.>> b
 
 instance forall x xs b g v1 vn r a.
@@ -210,11 +343,8 @@ instance forall x xs b g v1 vn r a.
 
 instance forall b v1 vn r a.
          ( YulO2 r a
-         , EquivalentNPOfFunction b '[] b
-         , LiftFunction (CurryNP (NP '[]) b) (P'V v1 r) (YulMonad v1 vn r) One ~ YulMonad v1 vn r b
-         , LiftFunction (CurryNP (NP '[]) b) (YulCat'LVV v1 v1 r a) (YulMonad v1 vn r) One ~ YulMonad v1 vn r b
          ) =>
-         CurriableNP b '[] b
+         CurriableNP (P'V vn r b) '[] (P'V vn r b)
          (P'V v1 r) (YulMonad v1 vn r) (YulCat'LVV v1 v1 r a) One where
   curryNP fNP = fNP (MkYulCat'LVV (\a -> coerceType'l (discard'l a)))
 
@@ -244,51 +374,6 @@ yulmonad'v :: forall xs b r vd m1 m1b m2 m2b f' b'.
   (P'V 0 r (NP xs) ⊸ P'V vd r b) -- ^ LiftFunction (NP (():xs) -> b) m1 m1b One
 yulmonad'v f =
   let !(MkYulCat'LVM f') = uncurryNP @f' @xs @b' @m1 @m1b @m2 @m2b @One f (MkYulCat'LVV id)
-  in \xs -> mkUnit'l xs & \(xs', u) -> runYulMonad u (f' xs')
-
-------------------------------------------------------------------------------------------------------------------------
--- yulmonad'p
-------------------------------------------------------------------------------------------------------------------------
-
--- | Monadic yul port diagrams for pure input and yul monad output.
-newtype YulCat'LPM v1 vn r a b = MkYulCat'LPM (P'P r a ⊸ YulMonad v1 vn r b)
-
-instance forall b v1 vn r a.
-         ( KnownNat v1, KnownNat vn
-         , YulO3 b r a
-         , LiftFunction b (P'P r) (P'V vn r) One ~ P'V vn r b
-         ) =>
-         UncurriableNP (P'V vn r b) '[] (P'V vn r b)
-         (P'P r) (YulMonad v1 vn r)
-         (YulCat'LPP r a) (YulCat'LPM v1 vn r a) One where
-  uncurryNP b (MkYulCat'LPP h) = MkYulCat'LPM \a -> eject (unsafeCoerceYulPort (h a & coerceType'l @_ @())) LVM.>> b
-
-instance forall x xs b g v1 vn r a.
-         ( EquivalentNPOfFunction g xs (P'V vn r b)
-         , YulO5 x (NP xs) b r a
-         , UncurriableNP g xs (P'V vn r b) (P'P r) (YulMonad v1 vn r) (YulCat'LPP r a) (YulCat'LPM v1 vn r a) One
-         ) =>
-         UncurriableNP (x -> g) (x:xs) (P'V vn r b)
-         (P'P r) (YulMonad v1 vn r) (YulCat'LPP r a) (YulCat'LPM v1 vn r a) One where
-  uncurryNP f (MkYulCat'LPP h) = MkYulCat'LPM (uncurryNP'lx f h MkYulCat'LPP (\(MkYulCat'LPM g) -> g))
-
-yulmonad'p :: forall xs b r vd m1 m1b m2 m2b f' b'.
-  ( KnownNat vd
-  , YulO3 (NP xs) b r
-  -- m1, m1b, m2, m2b
-  , P'P           r ~ m1
-  , YulMonad 0 vd r ~ m1b
-  , YulCat'LPP      r (NP xs) ~ m2
-  , YulCat'LPM 0 vd r (NP xs) ~ m2b
-  -- b'
-  , P'V vd r b ~ b'
-  -- f'
-  , UncurriableNP f' xs b' m1 m1b m2 m2b One
-  ) =>
-  LiftFunction f' m1 m1b One -> -- ^ LiftFunction               f1  m1 m1b One
-  (P'P r (NP xs) ⊸ P'V vd r b)  -- ^ LiftFunction (NP (():xs) -> b) m1 m1b One
-yulmonad'p f =
-  let !(MkYulCat'LPM f') = uncurryNP @f' @xs @b' @m1 @m1b @m2 @m2b @One f (MkYulCat'LPP id)
   in \xs -> mkUnit'l xs & \(xs', u) -> runYulMonad u (f' xs')
 
 ------------------------------------------------------------------------------------------------------------------------

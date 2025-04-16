@@ -82,6 +82,26 @@ lvmvar_test = $lfn $ yulmonad'p
     x3 <- ytake varX
     ypure (x1 + x2 * ver'l x3)
 
+lvmvar_test2 :: PureFn (U256 -> U256)
+lvmvar_test2 = $lfn $ yulmonad'pp
+  \(Uv x) -> LVM.do
+    b <- embed (42 :: U256)
+    -- x1 <- ytake x
+    -- x2 <- ytake x
+    -- x3 <- ytake x
+    -- Ur rvar <- ymkref (x1 + x2 * x3)
+    -- LVM.pure (Uv rvar)
+    Ur bvar <- ymkref @0 @_ @(P'P _ U256) b
+    LVM.pure (Uv bvar)
+
+lvmvar_test3 :: PureFn (U256)
+lvmvar_test3 = $lfn $ yulmonad'pp $
+  LVM.do
+    b <- embed (42 :: U256)
+    let !(b1, b2) = dup2'l b
+    Ur bvar <- ymkref @0 @_ @(P'P _ U256) (b1 + b2)
+    LVM.pure (Uv bvar)
+
 object = mkYulObject "BasicTests" yulNoop
   [ pureFn   "embUnit$p" embUnit'p
   , pureFn   "embTrue$p" embTrue'p
@@ -101,6 +121,8 @@ object = mkYulObject "BasicTests" yulNoop
 
   , staticFn "lvmvar_test_ugly" lvmvar_test_ugly
   , staticFn "lvmvar_test" lvmvar_test
+  , pureFn   "lvmvar_test2" lvmvar_test2
+  , pureFn   "lvmvar_test3" lvmvar_test3
   ]
 
 

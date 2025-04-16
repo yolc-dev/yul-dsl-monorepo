@@ -120,7 +120,9 @@ instance forall b r a.
          , EquivalentNPOfFunction b '[] b
          , LiftFunction b (P'P r) (P'P r) One ~ P'P r b
          , LiftFunction b (YulCat'LPP r a) (YulCat'LPP r a) One ~ YulCat'LPP r a b
-         ) => UncurriableNP b '[] b (P'P r) (P'P r) (YulCat'LPP r a) (YulCat'LPP r a) One where
+         ) =>
+         UncurriableNP b '[] b
+         (P'P r) (P'P r) (YulCat'LPP r a) (YulCat'LPP r a) One where
   uncurryNP b (MkYulCat'LPP h) = MkYulCat'LPP (unsafeUncurryNil'lx b h)
 
 instance forall x xs b g r a.
@@ -149,7 +151,9 @@ instance forall b r a.
          , EquivalentNPOfFunction b '[] b
          , LiftFunction (CurryNP (NP '[]) b) (P'P r) (P'P r) One ~ P'P r b
          , LiftFunction (CurryNP (NP '[]) b) (YulCat'LPP r a) (P'P r) One ~ P'P r b
-         ) => CurriableNP b '[] b (P'P r) (P'P r) (YulCat'LPP r a) One where
+         ) =>
+         CurriableNP b '[] b
+         (P'P r) (P'P r) (YulCat'LPP r a) One where
   curryNP fNP = fNP (MkYulCat'LPP (\a -> coerceType'l (discard'l a)))
 
 instance forall g x xs b r a.

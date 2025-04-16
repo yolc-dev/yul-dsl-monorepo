@@ -103,7 +103,7 @@ unsafeUncurryNil'lx b h a =
   & unsafeCoerceYulPort -- :: P'V vn ()
   & \u -> ignore'l u b
 
-uncurryNP'lx :: forall g x xs b m1 m1b m2 m2b r a ie.
+uncurryNP'lx :: forall m1 m1b m2 m2b g x xs b r a ie.
   ( YulO4 x (NP xs) r a
   , EquivalentNPOfFunction g xs b
   , P'x ie r ~ m1
@@ -111,9 +111,9 @@ uncurryNP'lx :: forall g x xs b m1 m1b m2 m2b r a ie.
   , UncurriableNP g xs b m1 m1b (m2 a) (m2b a) One
   , YulCatObj (NP xs)
   ) =>
-  (m1 x ⊸ LiftFunction g m1 m1b One) ⊸   -- ^ f: the function to be uncurried
+  (m1 x ⊸ LiftFunction g m1 m1b One) ⊸   -- ^ f: m1 (x -> xs ->... -> b), the function to be uncurried
   (m1 a ⊸ m1 (NP (x : xs))) ⊸            -- ^ h: m1 (a ⊸ NP xxs)
-  ((m1 a ⊸ m1 (NP xs)) ⊸ m2 a (NP xs)) ⊸ -- ^ mk: m1 (a ⊸  NP xs) ⊸ m2 a (NP xs)
+  ((m1 a ⊸ m1 (NP xs)) ⊸ m2 a (NP xs)) ⊸ -- ^ mk: m1 (a ⊸ NP xs) ⊸ m2 a (NP xs)
   (m2b a b ⊸ (m1 a ⊸ m1b b)) ⊸           -- ^ un: m2b a b ⊸ (m1 a ⊸ m1b b)
   (m1 a ⊸ m1b b)
 uncurryNP'lx f h mk un xxs =
