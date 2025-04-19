@@ -12,10 +12,12 @@ TODO
 > * 🔴 - Likely deferred to the future versions;
 > * ❓ - To be reviewed.
 
-## General Refactoring Ideas
+## Bigger Refactoring
 
+- [ ] Use sop-core; otherwise, the simple-sop doesn't have injectivity for type inferences.
+- [ ] Support Function object, hence closed cartesion; instead of the off-the-band NamedYuCat
+      construct.
 - [ ] Haddock doc cleanup and prettifying.
-- [ ] Use sop-core.
 
 ## TODOs for 0.1.0.0
 
@@ -32,7 +34,9 @@ TODO
   - [ ] 🟠 STRING
 - ExtendedType
   - [x] TUPLEn
-  - [x] REF, storage or memory raw reference with `constRef, keyRef`.
+  - [x] 🟠 REF, storage or memory raw reference with `constRef, keyRef`.
+    - SREF for strarage.
+    - MREF family for memory: IMREF (immutable), LMREF (locked), and MMREF (mutable).
   - [ ] 🟢 SELECTOR
 - ABICodec
   - [ ] 🟢 Compatibility with the solidity abi-spec
@@ -125,7 +129,7 @@ TODO
   - [x] TUPLEn
 - Working with pure effect
   - [x] Build pure functions `$fn`.
-  - [x] Call pure functions `callFn`.
+  - [x] Call pure functions `call`, `callN`.
 
 ### yul-dsl-linear-smc
 
@@ -135,19 +139,21 @@ TODO
     - [ ] ⚠️ Removing over-serialization, to have more parallel computations. Validate using 'diagram'
           package based visualization.
   - [x] Build linear functions with `$lfn $ uncurry'lvv | $lfn $ uncurry'lpv`.
-  - [x] Call functions linearly with `call`, `ycall`, `$ycall0`, `ycallN`.
+  - [ ] 🟢Call functions linearly with `call`, `ycall`, `ycallN`.
+  - [ ] 🟢 Fix `ypure` and `yembed` (?).
 - Working with _data ports_
   - [x] match data port and outputs new data port.
-  - [ ] 🟢 Num classes for data ports: mul, abs, sig, etc.
-  - [ ] 🟠 `ycond, ywhen, yunless` through pattern matching on BOOL data port.
+  - [ ] 🟢 `ywith` to work with data ports in pure yul functions.
+  - [ ] 🟠 `(rebound) if, ywhen, yunless` to work with BOOL data port.
 - Working with _versioned data port_ through `YulMonad`, a "Linearly Versioned Monad."
   - [x] Build YulMonad functions: `$lfn $ yulmonad'p` for versioned inputs, and `$lfn $ yulmonad'p`
         for pure inputs.
 - Working with storage:
   - [x] Assorted storage functions: `SReferenceable(sget, sput), sgetN, (<==), sputN, (:|), (:=),
         sputs`.
+    - [ ] ⚠️ YulVar variants.
+    - [ ] 🟠 Storage functions working with `Referenceable` types.
   - [x] SHMap - Storage Hash Map.
-  - [ ] 🟠 Storage functions working with `Referenceable` types.
 
 ### yol-suite
 
