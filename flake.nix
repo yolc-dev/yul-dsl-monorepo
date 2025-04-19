@@ -5,7 +5,7 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     foundry = {
-      url = "github:shazow/foundry.nix/stable";
+      url = "github:shazow/foundry.nix/72db7ea069f055d5c7856aca091179a070201931";
       inputs.flake-utils.follows = "flake-utils";
       inputs.nixpkgs.follows = "nixpkgs";
     };
