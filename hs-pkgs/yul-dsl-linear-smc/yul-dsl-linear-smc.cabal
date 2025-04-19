@@ -30,6 +30,7 @@ build-type:     Simple
 common basic-options
   default-language:   GHC2024
   ghc-options:        -Wall
+                      -Wcompat
                       -Wunused-packages
   default-extensions: UnicodeSyntax
                       BlockArguments

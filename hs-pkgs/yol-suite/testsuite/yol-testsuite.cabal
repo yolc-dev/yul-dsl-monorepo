@@ -11,6 +11,7 @@ build-type:     Simple
 common yol-module-options
     default-language:     GHC2024
     ghc-options:          -Wall
+                          -Wcompat
                           -Wunused-packages
                           -Wno-name-shadowing
                           -Wno-missing-signatures

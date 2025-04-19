@@ -27,6 +27,7 @@ build-type:      Simple
 common basic-options
   default-language: GHC2024
   ghc-options:      -Wall
+                    -Wcompat
                     -Wunused-packages
   build-depends:    base >=4.20.0.0 && < 666
 

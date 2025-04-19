@@ -22,6 +22,7 @@ common basic-options
   default-extensions: TypeFamilies
                       BlockArguments
   ghc-options:        -Wall
+                      -Wcompat
                       -Wunused-packages
   build-depends:      base >= 4.20.0.0 && < 666
 

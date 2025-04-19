@@ -27,7 +27,9 @@ build-type:     Simple
 common basic-options
   default-language:   GHC2024
   default-extensions: TypeFamilies
+                      TypeAbstractions
   ghc-options:        -Wall
+                      -Wcompat
                       -Wunused-packages
   build-depends:      base >= 4.20.0.0 && < 666
 
