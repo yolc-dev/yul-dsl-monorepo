@@ -8,12 +8,15 @@ Copyright   : (c) 2023-2025 Miao, ZhiCheng
 License     : LGPL-3
 Maintainer  : hellwolf@yolc.dev
 Stability   : experimental
+
 -}
 module YulDSL.Haskell.Effects.LinearSMC.LinearFn
-  ( -- * Build Linear Yul Functions
-    StaticFn, OmniFn, lfn', lfn
+  ( -- $LinearEffects
+    StaticFn, OmniFn
+    -- $ConstructibleLinearFn
+  , lfn', lfn
+    -- $CallableLinearFn
   , ycall, ycall0, ycallN
-    -- * Call External Smart Contract Functions
   , externalCall
   ) where
 -- base
@@ -33,8 +36,10 @@ import YulDSL.Haskell.Effects.LinearSMC.LinearYulCat
 import YulDSL.Haskell.Effects.LinearSMC.YulMonad
 import YulDSL.Haskell.Effects.LinearSMC.YulPort
 
+
 ------------------------------------------------------------------------------------------------------------------------
--- Linear Non-Pure Effects
+-- $LinearEffects
+-- = Linear Non-Pure Effects
 ------------------------------------------------------------------------------------------------------------------------
 
 data StaticFn f where
@@ -58,7 +63,8 @@ instance EquivalentNPOfFunction f xs b => KnownNamedYulCat (OmniFn f) OmniEffect
   withKnownNamedYulCat (MkOmniFn f) g = g f
 
 ------------------------------------------------------------------------------------------------------------------------
--- Constructible Linear Functions
+-- $ConstructibleLinearFn
+-- = Constructible Linear Functions
 ------------------------------------------------------------------------------------------------------------------------
 
 -- | Create classified linear kind of yul functions.
@@ -100,7 +106,8 @@ lfn :: TH.Q TH.Exp
 lfn = [e| lfn' ("$lfn_" ++ $fnLocId) |]
 
 ------------------------------------------------------------------------------------------------------------------------
--- Callable Linear Functions
+-- $CallableLinearFn
+-- = Callable Linear Functions
 ------------------------------------------------------------------------------------------------------------------------
 
 instance forall f x xs b g r.

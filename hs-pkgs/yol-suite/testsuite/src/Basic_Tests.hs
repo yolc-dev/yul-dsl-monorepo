@@ -66,22 +66,12 @@ varSharingL :: StaticFn (U256 -> U256 -> U256 -> U256)
 varSharingL = $lfn $ yulmonad'p \a b c ->
   let z = a + b * c in dup2'l z & \(z1, z2) -> ypure (ver'l (z1 * z2))
 
-lvmvar_test_ugly :: StaticFn (U256 -> U256)
-lvmvar_test_ugly = $lfn $ yulmonad'p
+lvmvar_test1 :: StaticFn (U256 -> U256)
+lvmvar_test1 = $lfn $ yulmonad'p
   \x -> LVM.do
     let !(x1, x2') = dup2'l (ver'l x)
         !(x2, x3)  = dup2'l x2'
     ypure (x1 + x2 * x3)
-
-lvmvar_test :: StaticFn (U256 -> U256 -> U256)
-lvmvar_test = $lfn $ yulmonad'p
-  \x y -> LVM.do
-    Ur xvar <- ymkref x
-    Ur yvar <- ymkref y
-    x1 <- ytakev xvar
-    x2 <- ytakev xvar
-    y1 <- ytake yvar
-    ypure (x1 + x2 * ver'l y1)
 
 lvmvar_test2 :: PureFn (U256 -> U256 -> U256)
 lvmvar_test2 = $lfn $ yulmonad'pp
@@ -90,7 +80,7 @@ lvmvar_test2 = $lfn $ yulmonad'pp
     x2 <- ytake x
     y1 <- ytake y
     Ur rvar <- ymkref (x1 + x2 * y1)
-    LVM.pure (Uv rvar)
+    LVM.pure rvar
 
 lvmvar_test3 :: PureFn (U256)
 lvmvar_test3 = $lfn $ yulmonad'pp $
@@ -98,7 +88,16 @@ lvmvar_test3 = $lfn $ yulmonad'pp $
     b <- embed (42 :: U256)
     let !(b1, b2) = dup2'l b
     Ur bvar <- ymkref @0 @_ @(P'P _ U256) (b1 + b2)
-    LVM.pure (Uv bvar)
+    LVM.pure bvar
+
+lvmvar_test4 :: StaticFn (U256 -> U256 -> U256)
+lvmvar_test4 = $lfn $ yulmonad'vv
+  \(Rv x) (Rv y) -> LVM.do
+    x1 <- ytake x
+    x2 <- ytake x
+    y1 <- ytake y
+    Ur rvar <- ymkref (x1 + x2 * y1)
+    LVM.pure rvar
 
 object = mkYulObject "BasicTests" yulNoop
   [ pureFn   "embUnit$p" embUnit'p
@@ -117,12 +116,11 @@ object = mkYulObject "BasicTests" yulNoop
   , pureFn "varSharing" varSharing
   , staticFn "varSharingL" varSharingL
 
-  , staticFn "lvmvar_test_ugly" lvmvar_test_ugly
-  , staticFn "lvmvar_test" lvmvar_test
+  , staticFn "lvmvar_test1" lvmvar_test1
   , pureFn   "lvmvar_test2" lvmvar_test2
   , pureFn   "lvmvar_test3" lvmvar_test3
+  , staticFn "lvmvar_test4" lvmvar_test4
   ]
-
 
 -- TODO generated interfaces
 
