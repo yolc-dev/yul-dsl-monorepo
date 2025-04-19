@@ -90,9 +90,9 @@ type EquivalentNPOfFunction f xs b =
 class ( EquivalentNPOfFunction f xs b
       , LiftFunction b m1 m1b p ~ m1b b
       -- rewrite the second lift function into its one-arity form
-      , LiftFunction (NP xs -> b) m2 m2b p ~ (m2 (NP xs) %p-> m2b b)
+      , LiftFunction (NP xs -> b) m2 m2b p ~ (m2 (NP xs) %p -> m2b b)
       ) =>
-      UncurriableNP f xs b m1 m1b m2 m2b p | m1 -> p where
+      UncurriableNP f xs b m1 m1b m2 m2b p where
   uncurryNP :: forall.
     LiftFunction           f  m1 m1b p %p -> -- ^ from this lifted function
     LiftFunction (NP xs -> b) m2 m2b p       -- ^ to this lifted function
@@ -100,10 +100,10 @@ class ( EquivalentNPOfFunction f xs b
 -- | Curry a function of @NP xs@ to @b@.
 class ( EquivalentNPOfFunction f xs b
       , LiftFunction b m1 mb p ~ mb b
-      -- rewrite the second lift function into its one-arity form
-      , LiftFunction (NP xs -> b) m2 mb p ~ (m2 (NP xs) %p-> mb b)
+      -- rewrite the first lift function into its one-arity form
+      , LiftFunction (NP xs -> b) m2 mb p ~ (m2 (NP xs) %p -> mb b)
       ) =>
-      CurriableNP f xs b m1 mb m2 p | m2 -> p where
+      CurriableNP f xs b m1 mb m2 p where
   curryNP :: forall.
     LiftFunction (NP xs -> b) m2 mb p %p -> -- ^ from this lifted function
     LiftFunction           f  m1 mb p       -- ^ to this lifted function
@@ -119,15 +119,3 @@ class ( EquivalentNPOfFunction f xs b
       CallableFunctionN fn f xs b m mb p | fn mb -> m p where
   callN, (<$*>) :: forall. fn f -> NPtoTupleN (NP (MapList m xs)) %p -> mb b
   (<$*>) = callN
-
---
---
---
-
--- type family SafeHead xs where
---   SafeHead '[] = ()
---   SafeHead (x:_) = x
-
--- type family SafeTail xs where
---   SafeTail '[] = '[]
---   SafeTail (_:xs) = xs
