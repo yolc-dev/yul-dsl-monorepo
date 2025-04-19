@@ -43,7 +43,7 @@ data LinearEffectX
 type instance IsEffectNonPure LinearEffectX = True
 type instance MayAffectWorld  LinearEffectX = True
 
--- | Linear port of yul categories with the port effect kind, aka. yul ports.
+-- | Yul port with the port effect kind, aka. yul ports.
 newtype P'x (eff :: PortEffect) r a = MkP'x (P (YulCat LinearEffectX) r a)
 -- ^ Role annotation to make sure @eff@ is nominal, so only unsafe coercing is allowed.
 type role P'x nominal nominal nominal
@@ -51,21 +51,21 @@ type role P'x nominal nominal nominal
 unP'x :: forall (eff :: PortEffect) r a. P'x eff r a ⊸ P (YulCat LinearEffectX) r a
 unP'x (MkP'x x) = x
 
--- | Linear port of yul category with pure data, aka. pure yul ports.
+-- | Yul port with pure data, aka. pure yul ports.
 type P'P = P'x PurePort
 
--- | Linear port of yul category with linearly versioned data, aka. versioned yul ports.
+-- | Yul port with linearly versioned data, aka. versioned yul ports.
 type P'V v = P'x (VersionedPort v)
 
-encodeP'x :: forall (eff :: PortEffect) a b r.
-  YulO3 r a b =>
+encodeP'x :: forall (ioe :: PortEffect) a b.
+  YulO2 a b =>
   YulCat LinearEffectX a b ->
-  (P'x eff r a ⊸ P'x eff r b)
+  (forall r. YulO1 r => P'x ioe r a ⊸ P'x ioe r b)
 encodeP'x c = MkP'x . encode c . unP'x
 
-decodeP'x :: forall (eff :: PortEffect) a b.
+decodeP'x :: forall (ioe :: PortEffect) a b.
   YulO2 a b =>
-  (forall r. YulO1 r => P'x eff r a ⊸ P'x eff r b) ->
+  (forall r. YulO1 r => P'x ioe r a ⊸ P'x ioe r b) ->
   YulCat LinearEffectX a b
 decodeP'x f = decode (\a -> unP'x (f (MkP'x a)))
 
@@ -98,31 +98,31 @@ unsafeUncurryNil'lx :: forall a b r ie oe m1.
   (m1 a ⊸ P'x ie r (NP '[])) ⊸
   (m1 a ⊸ P'x oe r b)
 unsafeUncurryNil'lx b h a =
-  h a                   -- :: P'V v1 (NP '[])
-  & coerceType'l @_ @() -- :: P'V v1 ()
-  & unsafeCoerceYulPort -- :: P'V vn ()
+  h a                   -- :: P'x ie v1 (NP '[])
+  & coerceType'l @_ @() -- :: P'x ie v1 ()
+  & unsafeCoerceYulPort -- :: P'x ie vn ()
   & \u -> ignore'l u b
 
-uncurryNP'lx :: forall m1 m1b m2 m2b g x xs b r a ie.
+uncurryNP'lx :: forall m1 m1b m2_ m2b_ m2' m2b' g x xs b r a ie.
   ( YulO4 x (NP xs) r a
-  , EquivalentNPOfFunction g xs b
+  , UncurriableNP g xs b m1 m1b (m2_ a) (m2b_ a) One
+  --
   , P'x ie r ~ m1
-  , LiftFunction b (m2 a) (m2b a) One ~ (m2b a) b
-  , UncurriableNP g xs b m1 m1b (m2 a) (m2b a) One
-  , YulCatObj (NP xs)
+  , m1 ~ m2'
+  , m1b ~ m2b'
   ) =>
-  (m1 x ⊸ LiftFunction g m1 m1b One) ⊸   -- ^ f: m1 (x -> xs ->... -> b), the function to be uncurried
-  (m1 a ⊸ m1 (NP (x : xs))) ⊸            -- ^ h: m1 (a ⊸ NP xxs)
-  ((m1 a ⊸ m1 (NP xs)) ⊸ m2 a (NP xs)) ⊸ -- ^ mk: m1 (a ⊸ NP xs) ⊸ m2 a (NP xs)
-  (m2b a b ⊸ (m1 a ⊸ m1b b)) ⊸           -- ^ un: m2b a b ⊸ (m1 a ⊸ m1b b)
-  (m1 a ⊸ m1b b)
+  (m1 x ⊸ LiftFunction g m1 m1b One) ->      -- ^ f: m1 x ⊸ m1 (xs ⊸...) ⊸ m1b b; the function to be uncurried
+  (m2' a ⊸ m2' (NP (x : xs))) ->             -- ^ h: m2' (a ⊸ NP xxs)
+  ((m2' a ⊸ m2' (NP xs)) ⊸ m2_ a (NP xs)) -> -- ^ mk: m2' (a ⊸ NP xs) ⊸ m2_ a (NP xs)
+  (m2b_ a b ⊸ (m2' a ⊸ m2b' b)) ->           -- ^ un: m2b_ a b ⊸ (m2' a ⊸ m2b' b)
+  (m2' a ⊸ m2b' b)
 uncurryNP'lx f h mk un a =
-  dup2'l a
-  & \(a1, a2) -> unconsNP @m1 @x @xs @One (h a1)
-  & \(x, xs) -> let g = uncurryNP @g @xs @b @m1 @m1b @(m2 a) @(m2b a) @One
-                        (f x)
-                        (mk (\a' -> ignore'l (discard'l a') xs))
-                in (un g) a2
+  let !(a1, a2) = dup2'l a
+      !(x, xs) = unconsNP (h a1)
+  in let g = uncurryNP @g @xs @b @m1 @m1b @(m2_ a) @(m2b_ a) @One
+             (f x)
+             (mk (\a' -> ignore'l (discard'l a') xs))
+     in (un g) a2
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $GeneralOps
@@ -260,11 +260,11 @@ instance (YulO1 r, ValidINTx s n) => Multiplicative (P'x eff r (INTx s n)) where
 
 -- Tuple1 is Solo and special.
 
-instance (YulO2 a r) =>
+instance YulO2 a r =>
          SingleCasePattern (P'x eff r) (Solo a) (P'x eff r a)
          YulCatObj One where
   is = coerceType'l
-instance (YulO2 a r, YulCat eff r ~ m) =>
+instance YulO2 a r =>
          PatternMatchable (P'x eff r) (Solo a) (P'x eff r a)
          YulCatObj One where
 instance YulO2 a r =>
