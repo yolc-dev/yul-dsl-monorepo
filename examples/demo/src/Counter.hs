@@ -14,14 +14,14 @@ globalCounterLoc = $fn do
   yulEmb (keyRef "Yolc.Demo.Counter.Storage.Counter.Global")
 
 incGlobalCounter :: OmniFn (U256 -> ())
-incGlobalCounter = $lfn $ yulmonad'p
+incGlobalCounter = $lfn $ yullvm'p
   \inc_p -> LVM.do
     counterRef <- ycall0 globalCounterLoc
     (counterRef, currentValue) <- pass1 counterRef sget
     sput counterRef (currentValue + ver'l inc_p)
 
 getGlobalCounter :: StaticFn U256
-getGlobalCounter = $lfn $ yulmonad'p $ LVM.do
+getGlobalCounter = $lfn $ yullvm'p $ LVM.do
   counterRef <- ycall0 globalCounterLoc
   sget counterRef
 
@@ -30,11 +30,11 @@ counterMap :: SHMap ADDR U256
 counterMap = shmap "Yolc.Demo.Counter.Storage.Counter.PerUser"
 
 getCounter :: StaticFn (ADDR -> U256)
-getCounter = $lfn $ yulmonad'p
+getCounter = $lfn $ yullvm'p
   \acc -> counterMap `shmapGet` acc
 
 incCounter :: OmniFn (U256 -> ())
-incCounter = $lfn $ yulmonad'p
+incCounter = $lfn $ yullvm'p
   \inc_p -> LVM.do
     acc <- ycaller
     counterRef <- counterMap `shmapRef` acc

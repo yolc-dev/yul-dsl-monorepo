@@ -60,7 +60,7 @@ library
     Control.Category.Constrained.YulDSL
     -- YulDSL/Haskell's LinearSMC Effect
     YulDSL.Haskell.Effects.LinearSMC.YulPort
-    YulDSL.Haskell.Effects.LinearSMC.YulMonad
+    YulDSL.Haskell.Effects.LinearSMC.YulLVM
     YulDSL.Haskell.Effects.LinearSMC.LinearYulCat
     YulDSL.Haskell.Effects.LinearSMC.LinearFn
     YulDSL.Haskell.Effects.LinearSMC.Storage

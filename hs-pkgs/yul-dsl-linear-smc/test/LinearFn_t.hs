@@ -58,20 +58,20 @@ call4 = $lfn $ yulports'vv
   \x1 x2 x3 x4 -> call foo4 x1 x2 x3 x4
 
 --------------------------------------------------------------------------------
--- declaring yulmonad functions
+-- declaring yullvm functions
 --------------------------------------------------------------------------------
 
 bar0 :: StaticFn (U256)
-bar0 = $lfn $ yulmonad'p $ LVM.do
+bar0 = $lfn $ yullvm'p $ LVM.do
   u <- yembed ()
   ypure (call foo0 u)
 
 bar1 :: StaticFn (U256 -> U256)
-bar1 = $lfn $ yulmonad'p
+bar1 = $lfn $ yullvm'p
   \x1 -> ypure (call foo1 (ver'l x1))
 
 bar3 :: StaticFn (U256 -> U256 -> U256 -> U256)
-bar3 = $lfn $ yulmonad'p
+bar3 = $lfn $ yullvm'p
   \x1 x2 x3 -> ypure (ver'l x1 + ver'l x2 + ver'l x3)
 
 --------------------------------------------------------------------------------
@@ -102,11 +102,11 @@ tuple2_input = $lfn $ yulports'vv
 --------------------------------------------------------------------------------
 
 fooSPut :: OmniFn (B32 -> U256 -> ())
-fooSPut = $lfn $ yulmonad'p
+fooSPut = $lfn $ yullvm'p
   \s_p val_p -> sput s_p (ver'l val_p)
 
 callSPut :: OmniFn (B32 -> U256 -> ())
-callSPut = $lfn $ yulmonad'p
+callSPut = $lfn $ yullvm'p
   \addr_p var_p -> LVM.do
   ycall fooSPut (ver'l addr_p) (ver'l var_p)
 

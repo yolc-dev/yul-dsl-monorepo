@@ -13,7 +13,7 @@ embTrue'p :: PureFn BOOL
 embTrue'p = $fn $ yulEmb true
 
 embTrue'l :: StaticFn BOOL
-embTrue'l = $lfn $ yulmonad'p (embed true)
+embTrue'l = $lfn $ yullvm'p (embed true)
 
 revertIfTrue :: PureFn (BOOL -> U256 -> U256)
 revertIfTrue = $fn
@@ -28,32 +28,32 @@ rangeSum'p = $fn \from step until ->
             else 0
 
 rangeSum'l :: StaticFn (U256 -> U256 -> U256 -> U256)
-rangeSum'l = $lfn $ yulmonad'p
+rangeSum'l = $lfn $ yullvm'p
   \from'p step'p until'p -> ypure $ ver'l $ call rangeSum'p from'p step'p until'p
 
   -- FIXME: yikes, this is ugly and we need to improve.
 -- FIXME: this does't even work
 -- callExternalFoo0 :: OmniFn (ADDR -> U256)
--- callExternalFoo0 = $lfn $ yulmonad'v
+-- callExternalFoo0 = $lfn $ yullvm'v
 --  \to -> dup2'l to & \(to1, to2) -> externalCall external_foo0 to1 (discard'l to2)
 
 callExternalFoo1 :: OmniFn (ADDR -> U256 -> U256)
-callExternalFoo1 = $lfn $ yulmonad'v
+callExternalFoo1 = $lfn $ yullvm'v
   \to val1 -> externalCall external_foo1 to val1
 
 callExternalFoo2 :: OmniFn (ADDR -> U256 -> U256 -> U256)
-callExternalFoo2 = $lfn $ yulmonad'v
+callExternalFoo2 = $lfn $ yullvm'v
   \to val1 val2 -> externalCall external_foo2 to val1 val2
 
 sgetTest :: StaticFn (ADDR -> ())
-sgetTest = $lfn $ yulmonad'v
+sgetTest = $lfn $ yullvm'v
   \ acc -> LVM.do
     key <- yembed (42 :: U32)
     ref <- ypure (extendType'l @(REF U256) (keccak256'l (merge'l (key, acc))))
     toss1 ref
 
 shmapGetTest :: StaticFn (ADDR -> ())
-shmapGetTest = $lfn $ yulmonad'v
+shmapGetTest = $lfn $ yullvm'v
   \acc -> LVM.do
     ref <- (shmapRef @ADDR @U256) (shmap "YolcStorageTest" :: SHMap ADDR U256) acc
     toss1 ref
@@ -63,18 +63,18 @@ varSharing = $fn \a b c ->
   let z = a + b * c in z * z
 
 varSharingL :: StaticFn (U256 -> U256 -> U256 -> U256)
-varSharingL = $lfn $ yulmonad'p \a b c ->
+varSharingL = $lfn $ yullvm'p \a b c ->
   let z = a + b * c in dup2'l z & \(z1, z2) -> ypure (ver'l (z1 * z2))
 
 lvmvar_test1 :: StaticFn (U256 -> U256)
-lvmvar_test1 = $lfn $ yulmonad'p
+lvmvar_test1 = $lfn $ yullvm'p
   \x -> LVM.do
     let !(x1, x2') = dup2'l (ver'l x)
         !(x2, x3)  = dup2'l x2'
     ypure (x1 + x2 * x3)
 
 lvmvar_test2 :: PureFn (U256 -> U256 -> U256)
-lvmvar_test2 = $lfn $ yulmonad'pp
+lvmvar_test2 = $lfn $ yullvm'pp
   \(Uv x) (Uv y) -> LVM.do
     x1 <- ytake x
     x2 <- ytake x
@@ -83,7 +83,7 @@ lvmvar_test2 = $lfn $ yulmonad'pp
     LVM.pure rvar
 
 lvmvar_test3 :: PureFn (U256)
-lvmvar_test3 = $lfn $ yulmonad'pp $
+lvmvar_test3 = $lfn $ yullvm'pp $
   LVM.do
     b <- embed (42 :: U256)
     let !(b1, b2) = dup2'l b
@@ -91,7 +91,7 @@ lvmvar_test3 = $lfn $ yulmonad'pp $
     LVM.pure bvar
 
 lvmvar_test4 :: StaticFn (U256 -> U256 -> U256)
-lvmvar_test4 = $lfn $ yulmonad'vv
+lvmvar_test4 = $lfn $ yullvm'vv
   \(Rv x) (Rv y) -> LVM.do
     x1 <- ytake x
     x2 <- ytake x
