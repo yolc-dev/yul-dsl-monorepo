@@ -4,8 +4,6 @@ module YulDSL.Haskell.Data.SHMap
   ) where
 -- base
 import GHC.TypeLits                       (KnownNat, type (+))
--- linear-base
-import Prelude.Linear                     (String, fromInteger, type (~))
 -- yul-dsl
 import YulDSL.Core
 --

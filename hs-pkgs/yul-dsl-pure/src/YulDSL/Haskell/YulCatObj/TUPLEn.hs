@@ -15,6 +15,8 @@ This module provides the pattern matching instances for yul morphisms to n-tuple
 module YulDSL.Haskell.YulCatObj.TUPLEn where
 -- base
 import Control.Monad            (replicateM)
+  -- TODO: - Fixed inability to re-export the ``Data.Tuple.MkSolo`` constructor (:ghc-ticket:`25182`)
+import Data.Tuple
 -- template-haskell
 import Language.Haskell.TH      qualified as TH
 -- yul-dsl
@@ -26,16 +28,30 @@ import Control.PatternMatchable
 -- Tuple1 is Solo and special.
 
 instance (YulO2 a r) =>
-         SingleCasePattern (YulCat eff r) (Solo a) (YulCat eff r a)
+         SingleCasePattern (YulCat eff r) (Solo a) (Solo (YulCat eff r a))
          YulCatObj Many where
-  is ma = ma >.> YulCoerceType
+  is ma = MkSolo (ma >.> YulCoerceType)
 instance (YulO2 a r, YulCat eff r ~ m) =>
-         PatternMatchable (YulCat eff r) (Solo a) (YulCat eff r a)
+         PatternMatchable (YulCat eff r) (Solo a) (Solo (YulCat eff r a))
          YulCatObj Many where
+  couldBe (MkSolo ma) = ma >.> YulCoerceType
+-- Make injective pattern free from MkSolo.
 instance YulO2 a r =>
          InjectivePattern (YulCat eff r) (Solo a) (YulCat eff r a)
          YulCatObj Many where
   be ma = ma >.> YulCoerceType
+
+-- instance (YulO2 a r) =>
+--          SingleCasePattern (YulCat eff r) (Solo a) (Solo (YulCat eff r a))
+--          YulCatObj Many where
+--   is ma = MkSolo (ma >.> YulCoerceType)
+-- instance (YulO2 a r, YulCat eff r ~ m) =>
+--          PatternMatchable (YulCat eff r) (Solo a) (Solo (YulCat eff r a))
+--          YulCatObj Many where
+-- instance YulO2 a r =>
+--          InjectivePattern (YulCat eff r) (Solo a) (Solo (YulCat eff r a))
+--          YulCatObj Many where
+--   be (MkSolo ma) = ma >.> YulCoerceType
 
 -- Tuple2 is the base case.
 
