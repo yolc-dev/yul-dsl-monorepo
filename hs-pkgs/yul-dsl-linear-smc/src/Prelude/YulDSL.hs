@@ -11,18 +11,13 @@ This module packages all the goodies prelude-worthy for programming "YulDSL" in 
 
 -}
 module Prelude.YulDSL
-  ( -- * Module linear-base
-    module Prelude.Linear
-    -- * YulDSL/Haskell/LinearSMC
-  , module YulDSL.Haskell.LibLinearSMC
+  ( -- * YulDSL/Haskell/LinearSMC
+    module YulDSL.Haskell.LibLinearSMC
   , module YulDSL.Haskell.Data.SHMap
+    -- TODO: - Fixed inability to re-export the ``Data.Tuple.MkSolo`` constructor (:ghc-ticket:`25182`)
+  , Solo (MkSolo)
   ) where
--- linear-base, replacing Eq/Ord with MPOrd
-import Prelude.Linear              hiding (Eq (..), Ord (..))
--- yul-dsl
-import YulDSL.Core
--- yul-dsl-pure
-import YulDSL.Haskell.LibPure
+import Data.Tuple                  (Solo (MkSolo))
 --
 import YulDSL.Haskell.LibLinearSMC
 --
