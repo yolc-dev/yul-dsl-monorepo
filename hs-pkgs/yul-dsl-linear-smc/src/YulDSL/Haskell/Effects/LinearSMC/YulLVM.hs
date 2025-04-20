@@ -2,20 +2,35 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE UndecidableInstances   #-}
+{-|
+
+Copyright   : (c) 2024-2025 Miao, ZhiCheng
+License     : LGPL-3
+Maintainer  : hellwolf@yolc.dev
+Stability   : experimental
+
+= Description
+
+This module provides the linearly-versioned monad (LVM) for yul ports.
+
+-}
 module YulDSL.Haskell.Effects.LinearSMC.YulLVM
-  ( -- * Yul Monad
+  ( -- $YulLVM
     YulLVM, runYulLVM
   , ypure, yembed
   , Uv (Uv), Rv (Rv)
-  , withYulVarRegistry, ymkref, ytake, ytakev
-    -- * Yul Monadic Diagrams
+  , ymkref
+  , ytakeUvNP, ytakeAvNP, ytakeUvN, ytakeAvN
+  , ytakev, ytake
+  , ywithuv, ywithav
+    -- $YulLVMDiagrams
   , YulCat'LVM (MkYulCat'LVM), YulCat'LPM (MkYulCat'LPM)
   , yullvm'pp, yullvm'pv, yullvm'vv
-    -- * Other LVM Primitives
+    -- = LVM Primitives
   , module Control.LinearlyVersionedMonad.Combinators
   , module Control.LinearlyVersionedMonad.LVMVar
   -- FIXME to be deleted
-  , yullvm'v, yullvm'p, withinPureY
+  , yullvm'v, yullvm'p
   ) where
 -- base
 import GHC.TypeLits                                  (KnownNat)
@@ -38,7 +53,8 @@ import YulDSL.Haskell.Effects.LinearSMC.YulPort
 
 
 ------------------------------------------------------------------------------------------------------------------------
--- YulLVM: A Linearly Versioned Monad for YulDSL
+-- $YulLVM
+-- = YulLVM: A Linearly Versioned Monad for Yul Ports
 ------------------------------------------------------------------------------------------------------------------------
 
 -- | YulLVM is a linear versioned monad with 'YulLVMCtx' as its context data.
@@ -68,7 +84,7 @@ runYulLVM u m = let ctx = mkYulLVMCtx u
           in (Dict, MkYulLVMCtx ud (Just rgstr), ())
         -- consume the var registry
         -- consumeRgstr :: YulLVM vd vd r ()
-        consumeRgstr = withYulVarRegistry \rgstr -> LVM.do
+        consumeRgstr = with_yulvar_registry \rgstr -> LVM.do
           consumeLVMVarRegistry rgstr
           LVM.pure (Nothing, ())
 
@@ -129,50 +145,148 @@ instance (KnownNat v, YulO2 a r) => LinearlyVersionRestrictable v (YulLVMCtx r) 
   type instance LinearlyVersionRestricted (YulLVMCtx r) (P'V v r a) v = P'V v r a
   restrictVersion = LVM.pure
 
+-- The internal api to handle yulvar registry in a continuation.
+with_yulvar_registry :: forall r v b.
+  KnownNat v =>
+  (YulVarRegistry r ⊸ YulLVM v v r (Maybe (YulVarRegistry r), b)) ⊸
+  YulLVM v v r b
+with_yulvar_registry f = MkLVM \(MkYulLVMCtx ud mbRgstr) ->
+  let ctx' = MkYulLVMCtx ud Nothing
+      !(dict, ctx'', (mbRgstr', b)) = case mbRgstr of
+        Just rgstr -> unLVM (f rgstr) ctx'
+        Nothing    -> lseq (error "with_yulvar_registry: registry should exist" :: ()) (UnsafeLinear.coerce (f, ctx'))
+      ud' = case ctx'' of
+        (MkYulLVMCtx ud'' Nothing) -> ud''
+        err                        -> lseq (error "with_yulvar_registry: nonsense" :: ()) (UnsafeLinear.coerce err)
+  in (dict, MkYulLVMCtx ud' mbRgstr', b)
+
 ------------------------------------------------------------------------------------------------------------------------
 -- LVMVar API
 ------------------------------------------------------------------------------------------------------------------------
 
-withYulVarRegistry :: forall r v b.
-  KnownNat v =>
-  (YulVarRegistry r ⊸ YulLVM v v r (Maybe (YulVarRegistry r), b)) ⊸
-  YulLVM v v r b
-withYulVarRegistry f = MkLVM \(MkYulLVMCtx ud mbRgstr) ->
-  let ctx' = MkYulLVMCtx ud Nothing
-      !(dict, ctx'', (mbRgstr', b)) = case mbRgstr of
-        Just rgstr -> unLVM (f rgstr) ctx'
-        Nothing    -> lseq (error "withYulVarRegistry: registry should exist" :: ()) (UnsafeLinear.coerce (f, ctx'))
-      ud' = case ctx'' of
-        (MkYulLVMCtx ud'' Nothing) -> ud''
-        err                        -> lseq (error "withYulVarRegistry: nonsense" :: ()) (UnsafeLinear.coerce err)
-  in (dict, MkYulLVMCtx ud' mbRgstr', b)
+--
+-- Uv, Rv, MakeableYulRef
+--
 
-type YulUvVar r a = UvLVMVarRef (YulLVMCtx r) (P'P r a)
-data Uv r a where Uv :: forall a r. YulUvVar r a -> Uv r a
+type UvYulVarRef r a = UvLVMVarRef (YulLVMCtx r) (P'P r a)
+data Uv r a where Uv :: forall r a. UvYulVarRef r a -> Uv r a
 type role Uv nominal nominal
 
-type YulRvVar v r a = RvLVMVarRef (YulLVMCtx r) v (P'V v r a)
-data Rv v r a where Rv :: forall a v r. YulRvVar v r a -> Rv v r a
+type RvYulVarRef v r a = RvLVMVarRef (YulLVMCtx r) v (P'V v r a)
+data Rv v r a where Rv :: forall v r a. RvYulVarRef v r a -> Rv v r a
 type role Rv nominal nominal nominal
 
-type family ReferencedYulVar ref = port | port -> ref where
-  ReferencedYulVar (YulUvVar r a)   = P'P r a
-  ReferencedYulVar (YulRvVar v r a) = P'V v r a
-
-type ReferenciableYulVar v r ref = ReferenciableLVMVar v ref (YulLVMCtx r) (ReferencedYulVar ref)
-
-class MakeableYulRef v r port ref | v port -> ref, ref -> port where
+class MakeableYulVarRef v r port ref | v port -> ref, ref -> port where
   ymkref :: forall. (KnownNat v, YulO1 r) => port ⊸ YulLVM v v r (Ur ref)
 
-instance YulO1 a => MakeableYulRef v r (P'P r a) (Uv r a) where
-  ymkref x = withYulVarRegistry \rgstr ->
+instance YulO1 a => MakeableYulVarRef v r (P'P r a) (Uv r a) where
+  ymkref x = with_yulvar_registry \rgstr ->
     let !(Ur var, rgstr') = registerUvLVMVar x rgstr
     in LVM.pure (Just rgstr', Ur (Uv var))
 
-instance YulO1 a => MakeableYulRef v r (P'V v r a) (Rv v r a) where
-  ymkref x = withYulVarRegistry \rgstr ->
+instance YulO1 a => MakeableYulVarRef v r (P'V v r a) (Rv v r a) where
+  ymkref x = with_yulvar_registry \rgstr ->
     let !(Ur var, rgstr') = registerRvLVMVar x rgstr
     in LVM.pure (Just rgstr', Ur (Rv var))
+
+--
+-- ReferenciableYulVar, ReferencedYulVar
+--
+
+type family ReferencedYulVar ref = port | port -> ref where
+  ReferencedYulVar (UvYulVarRef r a)   = P'P r a
+  ReferencedYulVar (RvYulVarRef v r a) = P'V v r a
+
+type ReferenciableYulVar v r ref = ReferenciableLVMVar v ref (YulLVMCtx r) (ReferencedYulVar ref)
+
+--
+-- VersionedYulVarRef, Ver
+--
+
+data AnyYulVarRef v r a where
+  AUv :: forall v r a. UvYulVarRef   r a -> AnyYulVarRef v r a
+  ARv :: forall v r a. RvYulVarRef v r a -> AnyYulVarRef v r a
+
+-- TODO: to make this version work some day
+-- type AnyYulVarRef v r = forall ref. ReferenciableLVMVar v ref (YulLVMCtx r) (ReferencedYulVar ref) => ref
+
+--
+-- ytakeUvNP, ytakeAvNP, ytakev, ytake
+--
+
+class YTakeableVarRefNP v xs r where
+  ytakeUvNP :: forall m1 m2.
+    ( KnownNat v
+    , Uv r ~ m1
+    , P'P r ~ m2
+    ) =>
+    NP (MapList m1 xs) ->
+    YulLVM v v r (NP (MapList m2 xs))
+
+  ytakeAvNP :: forall m1 m2.
+    ( KnownNat v
+    , AnyYulVarRef v r ~ m1
+    , P'V v r ~ m2
+    ) =>
+    NP (MapList m1 xs) ->
+    YulLVM v v r (NP (MapList m2 xs))
+
+instance YTakeableVarRefNP v '[] r where
+  ytakeUvNP Nil = LVM.pure Nil
+  ytakeAvNP Nil = LVM.pure Nil
+
+instance (YulO2 x r, YTakeableVarRefNP v xs r) => YTakeableVarRefNP v (x:xs) r where
+  ytakeUvNP np = LVM.do
+    (x', xsref') <- with_yulvar_registry \rgstr -> LVM.do
+      let !(Uv xref, xsref) = splitNonEmptyNP np
+      (x, rgstr') <- takeLVMVarRef xref rgstr
+      LVM.pure (Just rgstr', (x, xsref))
+    xs <- ytakeUvNP @v @xs xsref'
+    LVM.pure (x' :* xs)
+
+  ytakeAvNP np = LVM.do
+    (x', xsref') <- with_yulvar_registry \rgstr -> LVM.do
+      let !(axref, xsref) = splitNonEmptyNP np
+      (x, rgstr') <- case axref of
+        AUv xref -> takevLVMVarRef xref rgstr
+        ARv xref -> takevLVMVarRef xref rgstr
+      LVM.pure (Just rgstr', (x, xsref))
+    xs <- ytakeAvNP @v @xs xsref'
+    LVM.pure (x' :* xs)
+
+ytakeUvN :: forall v xs r m1 m2.
+  ( KnownNat v
+  , Uv r ~ m1
+  , P'P r ~ m2
+  , ConvertibleNPtoTupleN (NP (MapList m1 xs))
+  , ConvertibleNPtoTupleN (NP (MapList m2 xs))
+  , YTakeableVarRefNP v xs r
+  ) =>
+  NPtoTupleN (NP (MapList m1 xs)) ->
+  YulLVM v v r (NPtoTupleN (NP (MapList m2 xs)))
+ytakeUvN tpl = ytakeUvNP @v @xs (fromTupleNtoNP tpl) LVM.>>= LVM.pure . fromNPtoTupleN
+
+ytakeAvN :: forall v xs r m1 m2.
+  ( KnownNat v
+  , AnyYulVarRef v r ~ m1
+  , P'V v r ~ m2
+  , ConvertibleNPtoTupleN (NP (MapList m1 xs))
+  , ConvertibleNPtoTupleN (NP (MapList m2 xs))
+  , YTakeableVarRefNP v xs r
+  ) =>
+  NPtoTupleN (NP (MapList m1 xs)) ->
+  YulLVM v v r (NPtoTupleN (NP (MapList m2 xs)))
+ytakeAvN tpl = ytakeAvNP @v @xs (fromTupleNtoNP tpl) LVM.>>= LVM.pure . fromNPtoTupleN
+
+ytakev :: forall ref v a r.
+  ( ReferenciableYulVar v r ref
+  , LinearlyVersionRestricted (YulLVMCtx r) (ReferencedYulVar ref) v ~ P'V v r a
+  ) =>
+  ref ->
+  YulLVM v v r (P'V v r a)
+ytakev ref = with_yulvar_registry \rgstr -> LVM.do
+  (x, rgstr') <- takevLVMVarRef ref rgstr
+  LVM.pure (Just rgstr', x)
 
 ytake :: forall ref v r ioe a.
   ( ReferenciableYulVar v r ref
@@ -180,22 +294,52 @@ ytake :: forall ref v r ioe a.
   ) =>
   ref ->
   YulLVM v v r (ReferencedYulVar ref)
-ytake ref = withYulVarRegistry \rgstr -> LVM.do
+ytake ref = with_yulvar_registry \rgstr -> LVM.do
   (x, rgstr') <- takeLVMVarRef ref rgstr
   LVM.pure (Just rgstr', x)
 
-ytakev :: forall ref v r a.
-  ( ReferenciableYulVar v r ref
-  , LinearlyVersionRestricted (YulLVMCtx r) (ReferencedYulVar ref) v ~ P'V v r a
+ywithuv :: forall f x xs b r m1 m2 v.
+  ( KnownNat v
+  , YulO4 x (NP xs) b r
+  -- m1, m2
+  , Uv r ~ m1
+  , YulCat Pure (NP (x:xs)) ~ m2
+  -- f, x:xs, b
+  , EquivalentNPOfFunction f (x:xs) (Solo b)
+  , ConvertibleNPtoTupleN (NP (MapList m1 (x:xs)))
+  , ConvertibleNPtoTupleN (NP (MapList (P'P r) (x:xs)))
+  , UncurriableNP f (x:xs) (Solo b) m2 m2 m2 m2 Many
+  , LinearDistributiveNP (P'P r) (x:xs)
+  , YTakeableVarRefNP v (x:xs) r
   ) =>
-  ref ->
-  YulLVM v v r (P'V v r a)
-ytakev ref = withYulVarRegistry \rgstr -> LVM.do
-  (x, rgstr') <- takevLVMVarRef ref rgstr
-  LVM.pure (Just rgstr', x)
+  NPtoTupleN (NP (MapList m1 (x:xs))) ⊸
+  PureY f ->
+  YulLVM v v r (Uv r b)
+ywithuv tpl f = LVM.do
+  tpl' <- ytakeUvN @v @(x:xs) tpl
+  let !(MkSolo b) = with'l @f tpl' f
+  Ur bref <- ymkref b
+  LVM.pure bref
+
+ywithav :: forall f x xs b r m1 m2 v.
+  ( YulO4 x (NP xs) b r
+  -- m1, m2
+  , AnyYulVarRef v r ~ m1
+  , YulCat Pure (NP (x:xs)) ~ m2
+  -- f, x:xs, b
+  , EquivalentNPOfFunction f (x:xs) b
+  , ConvertibleNPtoTupleN (NP (MapList m1 (x:xs)))
+  , LinearDistributiveNP m1 (x:xs)
+  , UncurriableNP f (x:xs) b m2 m2 m2 m2 Many
+  ) =>
+  NPtoTupleN (NP (MapList m1 (x:xs))) ⊸
+  PureY f ->
+  YulLVM v v r (Rv v r (P'V v r b))
+ywithav = undefined
 
 ------------------------------------------------------------------------------------------------------------------------
--- yullvm'{pp, pv, vv}
+-- $YulLVMDiagrams
+-- = YulLVM Monadic Diagrams
 ------------------------------------------------------------------------------------------------------------------------
 
 --
@@ -216,7 +360,7 @@ yuncurry_xs :: forall m1 m1b m2_ m2b_ m2' m2b' g x xs b r a ie v1 vn.
   , UncurriableNP g xs b m1 m1b (m2_ a) (m2b_ a) One
   --
   , KnownNat v1, KnownNat vn
-  , MakeableYulRef v1 r (m2' x) (m1 x) -- m1 |- m2' ∧ m2' |- m1
+  , MakeableYulVarRef v1 r (m2' x) (m1 x) -- m1 |- m2' ∧ m2' |- m1
   , YulLVM v1 vn r ~ m1b -- m1b
   , P'x ie r ~ m2' -- m2'
   , m1b ~ m2b' -- m1b |- m2b'
@@ -290,7 +434,7 @@ instance forall x xs b g r a v.
          , CurriableNP g xs (Uv r b) (Uv r) (YulLVM v v r) (YulCat'LPP r a) One
            --
          , KnownNat v
-         , ReferenciableYulVar v r (YulUvVar r b)
+         , ReferenciableYulVar v r (UvYulVarRef r b)
          ) =>
          CurriableNP (x -> g) (x:xs) (Uv r b)
          (Uv r) (YulLVM v v r) (YulCat'LPP r a) One where
@@ -354,7 +498,7 @@ instance forall x xs b g r a v1 vn.
          , CurriableNP g xs (Rv vn r b) (Uv r) (YulLVM v1 vn r) (YulCat'LPP r a) One
            --
          , KnownNat v1, KnownNat vn
-         , ReferenciableYulVar v1 r (YulUvVar r b)
+         , ReferenciableYulVar v1 r (UvYulVarRef r b)
          ) =>
          CurriableNP (x -> g) (x:xs) (Rv vn r b)
          (Uv r) (YulLVM v1 vn r) (YulCat'LPP r a) One where
@@ -419,13 +563,12 @@ instance forall x xs b g r a v1 vn.
          , CurriableNP g xs (Rv vn r b) (Rv v1 r) (YulLVM v1 vn r) (YulCat'LVV v1 v1 r a) One
            --
          , KnownNat v1, KnownNat vn
-         , ReferenciableYulVar v1 r (YulRvVar v1 r b)
+         , ReferenciableYulVar v1 r (RvYulVarRef v1 r b)
          ) =>
          CurriableNP (x -> g) (x:xs) (Rv vn r b)
          (Rv v1 r) (YulLVM v1 vn r) (YulCat'LVV v1 v1 r a) One where
   curryNP fNP (Rv xref) = curryNP @g @xs @(Rv vn r b) @(Rv v1 r) @(YulLVM v1 vn r) @(YulCat'LVV v1 v1 r a) @One
     (\(MkYulCat'LVV fxs) -> ytake xref LVM.>>= \x -> fNP (MkYulCat'LVV (\a -> consNP x (fxs a))))
-
 
 
 
@@ -553,34 +696,3 @@ yullvm'v :: forall xs b r vd m1 m1b m2 m2b f' b'.
 yullvm'v f =
   let !(MkYulCat'LVM f') = uncurryNP @f' @xs @b' @m1 @m1b @m2 @m2b @One f (MkYulCat'LVV id)
   in \xs -> mkUnit'l xs & \(xs', u) -> runYulLVM u (f' xs')
-
-------------------------------------------------------------------------------------------------------------------------
--- Run YulPorts Within a Pure Yul Function
-------------------------------------------------------------------------------------------------------------------------
-
-withinPureY :: forall f x xs b r ioe m1 m2.
-  ( YulO4 x (NP xs) b r
-  -- m1, m2
-  , P'x ioe r ~ m1
-  , YulCat Pure (NP (x:xs)) ~ m2
-  -- f, x:xs, b
-  , EquivalentNPOfFunction f (x:xs) b
-  , ConvertibleNPtoTupleN (NP (MapList m1 (x:xs)))
-  , LinearDistributiveNP m1 (x:xs)
-  , UncurriableNP f (x:xs) b m2 m2 m2 m2 Many
-  ) =>
-  NPtoTupleN (NP (MapList m1 (x:xs))) ⊸
-  PureY f ->
-  P'x ioe r b
-withinPureY tplxxs f = encodeP'x cat' sxxs
-  where !(x, xs) = splitNonEmptyNP (fromTupleNtoNP tplxxs)
-        !(x', u) = mkUnit'l x
-        sxxs = linearDistributeNP (x' :* xs) u :: m1 (NP (x:xs))
-        cat = uncurryNP @f @(x:xs) @b @m2 @m2 @m2 @m2 f YulId
-        cat' = YulUnsafeCoerceEffect cat
-
--- cond :: P'V va r BOOL ⊸ (Bool ⊸ YulLVM va vb r (P'V vb r a))
--- cond c f = _
---   -- LVM.do
---   -- u <- yembed ()
---   -- match (YulId :: YulCat eff p p)

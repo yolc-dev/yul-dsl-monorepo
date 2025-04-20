@@ -75,12 +75,7 @@ lvmvar_test1 = $lfn $ yullvm'p
 
 lvmvar_test2 :: PureFn (U256 -> U256 -> U256)
 lvmvar_test2 = $lfn $ yullvm'pp
-  \(Uv x) (Uv y) -> LVM.do
-    x1 <- ytake x
-    x2 <- ytake x
-    y1 <- ytake y
-    Ur rvar <- ymkref (x1 + x2 * y1)
-    LVM.pure rvar
+  \(Uv x) (Uv y) -> ywithuv @(U256 -> U256 -> Solo U256) (Uv x, Uv y) \x' y' -> be (x' * y' + y')
 
 lvmvar_test3 :: PureFn (U256)
 lvmvar_test3 = $lfn $ yullvm'pp $
