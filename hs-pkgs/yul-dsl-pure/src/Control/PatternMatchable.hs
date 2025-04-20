@@ -90,11 +90,11 @@ class PatternMatchable m pat cs k p | m -> k p, m pat -> cs where
   couldBe = be
 
 -- | A special case for PatternMatchable where a single case @cs@ exists without being in the context of @m@.
-class PatternMatchable m pat cs k p => SingleCasePattern m pat cs k p | m -> k p, m pat -> cs where
+class SingleCasePattern m pat cs k p | m -> k p, m pat -> cs where
   -- | Return @cs@ outside of the context of @m@ as the single case of @m pat@. This can be used as a view pattern.
   is :: forall. k pat => m pat %p -> cs
 
 -- | An injective pattern that has a functional dependency of @cs -> m pat@.
-class PatternMatchable m pat cs k p => InjectivePattern m pat cs k p | m -> k p, cs -> m pat where
+class InjectivePattern m pat cs k p | m -> k p, cs -> m pat, m pat -> cs where
   -- | Make the case @cs@ for @m pat@.
   be :: forall. k pat => cs %p -> m pat
