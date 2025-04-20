@@ -31,7 +31,7 @@ transfer = $lfn $ yullvm'p \to_p amount_p -> LVM.do
   (to_p, receiverBalanceRef_p) <- pass1 to_p (shmapRef balanceMap)
 
   -- calculate new balances
-  let !(newSenderBalance, newReceiverBalance) = is $ withinPureY @(U256 -> U256 -> U256 -> (U256, U256))
+  let !(newSenderBalance, newReceiverBalance) = with'l @(U256 -> U256 -> U256 -> (U256, U256))
         ( ver'l amount_p
         , call balanceOf (ver'l from_p)
         , call balanceOf (ver'l to_p)

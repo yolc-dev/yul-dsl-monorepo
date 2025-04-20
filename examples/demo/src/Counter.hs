@@ -40,7 +40,8 @@ incCounter = $lfn $ yullvm'p
     counterRef <- counterMap `shmapRef` acc
     (counterRef, newValue) <- pass1 counterRef \counterRef -> LVM.do
       currentValue <- sget counterRef
-      ypure $ withinPureY @(U256 -> U256 -> U256)
-              (currentValue, ver'l inc_p)
-              (\a b -> a + b)
+      let !(MkSolo newValue) = with'l @(U256 -> U256 -> Solo U256)
+                               (currentValue, ver'l inc_p)
+                               (\a b -> be (a + b))
+      ypure newValue
     sput counterRef newValue

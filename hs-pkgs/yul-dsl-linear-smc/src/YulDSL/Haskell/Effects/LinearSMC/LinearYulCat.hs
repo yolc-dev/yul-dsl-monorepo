@@ -111,6 +111,17 @@ instance EncodableYulPortDiagram PureInputPureOutput PurePort PurePort
 instance va + vd ~ vb => EncodableYulPortDiagram (VersionedInputOutput vd) (VersionedPort va) (VersionedPort vb)
 instance EncodableYulPortDiagram (PureInputVersionedOutput v) PurePort (VersionedPort v)
 
+unsafe_uncurry_nil :: forall a b r ie oe m1.
+  YulO3 a b r =>
+  P'x oe r b ⊸
+  (m1 a ⊸ P'x ie r (NP '[])) ->
+  (m1 a ⊸ P'x oe r b)
+unsafe_uncurry_nil b h a =
+  h a                   -- :: P'x ie v1 (NP '[])
+  & coerceType'l @_ @() -- :: P'x ie v1 ()
+  & unsafeCoerceYulPort -- :: P'x ie vn ()
+  & \u -> ignore'l u b
+
 ------------------------------------------------------------------------------------------------------------------------
 -- (P'P ⊸ P'P ⊸ ... P'P) <=> YulCat'LPP
 ------------------------------------------------------------------------------------------------------------------------
@@ -123,7 +134,7 @@ instance forall b r a.
          ) =>
          UncurriableNP b '[] b
          (P'P r) (P'P r) (YulCat'LPP r a) (YulCat'LPP r a) One where
-  uncurryNP b (MkYulCat'LPP h) = MkYulCat'LPP (unsafeUncurryNil'lx b h)
+  uncurryNP b (MkYulCat'LPP h) = MkYulCat'LPP (unsafe_uncurry_nil b h)
 
 instance forall x xs b g r a.
          ( YulO5 x (NP xs) b r a
@@ -173,7 +184,7 @@ instance forall b vd r a.
          , LiftFunction b (P'P r) (P'V vd r) One ~ P'V vd r b
          , LiftFunction b (YulCat'LPP r a) (YulCat'LPV vd r a) One ~ YulCat'LPV vd r a b
          ) => UncurriableNP b '[] b (P'P r) (P'V vd r) (YulCat'LPP r a) (YulCat'LPV vd r a) One where
-  uncurryNP b (MkYulCat'LPP h) = MkYulCat'LPV (unsafeUncurryNil'lx b h)
+  uncurryNP b (MkYulCat'LPP h) = MkYulCat'LPV (unsafe_uncurry_nil b h)
 
 instance forall x xs b g vd r a.
          ( YulO5 x (NP xs) b r a
@@ -222,7 +233,7 @@ instance forall b v1 vn r a.
          , LiftFunction b (YulCat'LVV v1 v1 r a) (YulCat'LVV v1 vn r a) One ~ YulCat'LVV v1 vn r a b
          ) =>
          UncurriableNP b '[] b (P'V v1 r) (P'V vn r) (YulCat'LVV v1 v1 r a) (YulCat'LVV v1 vn r a) One where
-  uncurryNP b (MkYulCat'LVV h) = MkYulCat'LVV (unsafeUncurryNil'lx b h)
+  uncurryNP b (MkYulCat'LVV h) = MkYulCat'LVV (unsafe_uncurry_nil b h)
 
 instance forall g x xs b v1 vn r a.
          ( YulO5 x (NP xs) b r a

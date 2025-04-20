@@ -1,14 +1,27 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE TemplateHaskell     #-}
+{-|
+
+Copyright   : (c) 2024-2025 Miao, ZhiCheng
+License     : LGPL-3
+Maintainer  : hellwolf@yolc.dev
+Stability   : experimental
+
+= Description
+
+This module provides the definition of yul ports and their operations.
+
+-}
 module YulDSL.Haskell.Effects.LinearSMC.YulPort
   ( -- $YulPortDefs
     PortEffect (PurePort, VersionedPort)
   , P'x (MkP'x), unP'x, P'V, P'P, encodeP'x, decodeP'x
-  , Versionable'L (ver'l)
+  , VersionableYulPort (ver'l)
   , unsafeCoerceYulPort, unsafeCoerceYulPortDiagram
-  , unsafeUncurryNil'lx, uncurryNP'lx
     -- $GeneralOps
   , discard'l, ignore'l, mkUnit'l, emb'l, const'l, dup2'l, merge'l, split'l
+  , with'l
+  , uncurryNP'lx
     -- $TypeOps
   , coerceType'l, reduceType'l, extendType'l
     -- $YulPortUniter
@@ -32,13 +45,18 @@ import Control.Category.Constrained.YulDSL ()
 ------------------------------------------------------------------------------------------------------------------------
 -- $YulPortDefs
 -- = Yul Port Definitions
+--
+-- The linear-smc library provides so-called port API @P k r a@, where @k@ is a smc category and @a@ is an object in
+-- that category. It can encode a morphism in @k@ from @a ↝ b@ to its port diagram @P k r a ⊸ P k r b@, and decode it back.
+--
+-- Yul port applies the yul category and kinds of linear yul effects on top of the port API.
 ------------------------------------------------------------------------------------------------------------------------
 
--- | Various types of port effects for the yul port API.
+-- | Various kinds of effects for the yul ports.
 data PortEffect = PurePort          -- ^ Pure port that does not need to be versioned
                 | VersionedPort Nat -- ^ Linearly versioned port
 
--- | An intermediate linear effect kind for encodeP and decodeP to work with.
+-- | An intermediate linear effect kind for encoding and decoding yul ports.
 data LinearEffectX
 type instance IsEffectNonPure LinearEffectX = True
 type instance MayAffectWorld  LinearEffectX = True
@@ -48,6 +66,7 @@ newtype P'x (eff :: PortEffect) r a = MkP'x (P (YulCat LinearEffectX) r a)
 -- ^ Role annotation to make sure @eff@ is nominal, so only unsafe coercing is allowed.
 type role P'x nominal nominal nominal
 
+-- | Peel off the P'x wrapper for the underlying port. It is a standalone declaration to have the linear arrow.
 unP'x :: forall (eff :: PortEffect) r a. P'x eff r a ⊸ P (YulCat LinearEffectX) r a
 unP'x (MkP'x x) = x
 
@@ -57,17 +76,28 @@ type P'P = P'x PurePort
 -- | Yul port with linearly versioned data, aka. versioned yul ports.
 type P'V v = P'x (VersionedPort v)
 
+-- | Encode a yul morphism of intermediate linear effect kind to its yul port diagram.
 encodeP'x :: forall (ioe :: PortEffect) a b.
   YulO2 a b =>
   YulCat LinearEffectX a b ->
   (forall r. YulO1 r => P'x ioe r a ⊸ P'x ioe r b)
 encodeP'x c = MkP'x . encode c . unP'x
 
+-- | Decode a yul port diagram back to its yul morphism.
 decodeP'x :: forall (ioe :: PortEffect) a b.
   YulO2 a b =>
   (forall r. YulO1 r => P'x ioe r a ⊸ P'x ioe r b) ->
   YulCat LinearEffectX a b
 decodeP'x f = decode (\a -> unP'x (f (MkP'x a)))
+
+-- | Yul port that can be versioned to its compatible version.
+class VersionableYulPort ioe v where
+  -- | Version a yul port to a compatible versioned port.
+  ver'l :: forall a r. YulO2 a r => P'x ioe r a ⊸ P'V v r a
+-- ^ A versioned port is stuck with it version.
+instance VersionableYulPort (VersionedPort v) v where ver'l = id
+-- ^ A pure port can be versioned to any other version.
+instance VersionableYulPort PurePort v where ver'l = unsafeCoerceYulPort
 
 -- | Unsafe coerce yul port' effects.
 unsafeCoerceYulPort :: forall (eff1 :: PortEffect) (eff2 :: PortEffect) r a.
@@ -79,30 +109,58 @@ unsafeCoerceYulPortDiagram :: forall (eff1 :: PortEffect) (eff2 :: PortEffect) (
   (P'x eff1 r a ⊸ P'x eff2 r b) ⊸ (P'x eff3 r a ⊸ P'x eff3 r b)
 unsafeCoerceYulPortDiagram f x = unsafeCoerceYulPort (f (unsafeCoerceYulPort x))
 
--- Versionable ports
+------------------------------------------------------------------------------------------------------------------------
+-- $GeneralOps
+-- = General Yul Port Operations
+--
+-- Note: Yul ports are defined above as "P'*", and a "yul port diagram" is a linear function from input yul port to a
+-- output yul port.
+------------------------------------------------------------------------------------------------------------------------
 
-class Versionable'L ie v where
-  ver'l :: forall a r. YulO2 a r => P'x ie r a ⊸ P'V v r a
+discard'l :: forall a eff r.
+  YulO2 r a =>
+  P'x eff r a ⊸ P'x eff r ()
+discard'l = MkP'x . discard . unP'x
 
-instance Versionable'L (VersionedPort v) v where
-  ver'l = id
+ignore'l :: forall a eff r.
+  YulO2 r a =>
+  P'x eff r () ⊸ P'x eff r a ⊸ P'x eff r a
+ignore'l u a = MkP'x $ ignore (unP'x u) (unP'x a)
 
-instance Versionable'L PurePort v where
-  ver'l = unsafeCoerceYulPort
+mkUnit'l :: forall a eff r.
+  YulO2 r a =>
+  P'x eff r a ⊸ (P'x eff r a, P'x eff r ())
+mkUnit'l a = mkUnit (unP'x a) & \ (a', u) -> (MkP'x a', MkP'x u)
 
--- uncurryNP'lx
+-- | Embed a free value to a yul port diagram that discards any input yul ports.
+emb'l :: forall a b eff r.
+  YulO3 r a b =>
+  a -> (P'x eff r b ⊸ P'x eff r a)
+emb'l a = MkP'x . encode (yulEmb a) . unP'x
 
-unsafeUncurryNil'lx :: forall a b r ie oe m1.
-  YulO3 a b r =>
-  P'x oe r b ⊸
-  (m1 a ⊸ P'x ie r (NP '[])) ⊸
-  (m1 a ⊸ P'x oe r b)
-unsafeUncurryNil'lx b h a =
-  h a                   -- :: P'x ie v1 (NP '[])
-  & coerceType'l @_ @() -- :: P'x ie v1 ()
-  & unsafeCoerceYulPort -- :: P'x ie vn ()
-  & \u -> ignore'l u b
+-- | Create a constant yul port diagram that discards any input yul ports.
+const'l :: forall a b eff r.
+  YulO3 r a b =>
+  P'x eff r a ⊸ (P'x eff r b ⊸ P'x eff r a)
+const'l a b = MkP'x $ ignore (discard (unP'x b)) (unP'x a)
 
+-- | Duplicate the input yul port twice as a tuple.
+dup2'l :: forall a eff r.
+  YulO2 a r =>
+  P'x eff r a ⊸ (P'x eff r a, P'x eff r a)
+dup2'l a = let !(a1, a2) = (split . copy . unP'x) a in (MkP'x a1, MkP'x a2)
+
+merge'l :: forall a b eff r.
+  YulO3 r a b =>
+  (P'x eff r a, P'x eff r b) ⊸ P'x eff r (a, b)
+merge'l (a, b) = MkP'x $ merge (unP'x a, unP'x b)
+
+split'l :: forall a b eff r.
+  YulO3 r a b =>
+  P'x eff r (a, b) ⊸ (P'x eff r a, P'x eff r b)
+split'l ab = let !(a, b) = split (unP'x ab) in (MkP'x a, MkP'x b)
+
+-- TODO: move to LinearYulCat as its internal function.
 uncurryNP'lx :: forall m1 m1b m2_ m2b_ m2' m2b' g x xs b r a ie.
   ( YulO4 x (NP xs) r a
   , UncurriableNP g xs b m1 m1b (m2_ a) (m2b_ a) One
@@ -124,48 +182,32 @@ uncurryNP'lx f h mk un a =
              (mk (\a' -> ignore'l (discard'l a') xs))
      in (un g) a2
 
-------------------------------------------------------------------------------------------------------------------------
--- $GeneralOps
--- = General YulPort Operations
---
--- Note: Yul ports are defined above as "P'*", and a "yul port diagram" is a linear function from input yul port to a
--- output yul port.
-------------------------------------------------------------------------------------------------------------------------
-
-discard'l :: forall a eff r. YulO2 r a
-  => P'x eff r a ⊸ P'x eff r ()
-discard'l = MkP'x . discard . unP'x
-
-ignore'l :: forall a eff r. YulO2 r a
-  => P'x eff r () ⊸ P'x eff r a ⊸ P'x eff r a
-ignore'l u a = MkP'x $ ignore (unP'x u) (unP'x a)
-
-mkUnit'l :: forall a eff r. YulO2 r a
-  => P'x eff r a ⊸ (P'x eff r a, P'x eff r ())
-mkUnit'l a = mkUnit (unP'x a) & \ (a', u) -> (MkP'x a', MkP'x u)
-
--- | Embed a free value to a yul port diagram that discards any input yul ports.
-emb'l :: forall a b eff r. YulO3 r a b
-  => a -> (P'x eff r b ⊸ P'x eff r a)
-emb'l a = MkP'x . encode (yulEmb a) . unP'x
-
--- | Create a constant yul port diagram that discards any input yul ports.
-const'l :: forall a b eff r. YulO3 r a b
-  => P'x eff r a ⊸ (P'x eff r b ⊸ P'x eff r a)
-const'l a b = MkP'x $ ignore (discard (unP'x b)) (unP'x a)
-
--- | Duplicate the input yul port twice as a tuple.
-dup2'l :: forall a eff r. YulO2 a r
-  => P'x eff r a ⊸ (P'x eff r a, P'x eff r a)
-dup2'l a = let !(a1, a2) = (split . copy . unP'x) a in (MkP'x a1, MkP'x a2)
-
-merge'l :: forall a b eff r. YulO3 r a b
-  => (P'x eff r a, P'x eff r b) ⊸ P'x eff r (a, b)
-merge'l (a, b) = MkP'x $ merge (unP'x a, unP'x b)
-
-split'l :: forall a b eff r. YulO3 r a b
-  => P'x eff r (a, b) ⊸ (P'x eff r a, P'x eff r b)
-split'l ab = let !(a, b) = split (unP'x ab) in (MkP'x a, MkP'x b)
+-- | Process TupleN of yul ports with a pure yul function.
+with'l :: forall f x xs btpl bs r ioe m1 m2.
+  ( YulO4 x (NP xs) btpl r
+  -- m1, m2
+  , P'x ioe r ~ m1
+  , YulCat Pure (NP (x:xs)) ~ m2
+  -- f
+  , EquivalentNPOfFunction f (x:xs) btpl
+  -- x:xs
+  , ConvertibleNPtoTupleN (NP (MapList m1 (x:xs)))
+  , LinearDistributiveNP m1 (x:xs)
+  , UncurriableNP f (x:xs) btpl m2 m2 m2 m2 Many
+  -- btpl, bs
+  , TupleNtoNP btpl ~ NP bs
+  , ConvertibleNPtoTupleN (NP (MapList m1 bs))
+  , SingleCasePattern m1 btpl (NPtoTupleN (NP (MapList m1 bs))) YulCatObj One
+  ) =>
+  NPtoTupleN (NP (MapList m1 (x:xs))) ⊸
+  PureY f ->
+  NPtoTupleN (NP (MapList m1 bs))
+with'l xxs f = is (encodeP'x cat' sxxs)
+  where !(x, xs) = splitNonEmptyNP (fromTupleNtoNP xxs)
+        !(x', u) = mkUnit'l x
+        sxxs = linearDistributeNP (x' :* xs) u
+        cat = uncurryNP @f @(x:xs) @btpl @m2 @m2 @m2 @m2 f YulId
+        cat' = YulUnsafeCoerceEffect cat
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $TypeOps
@@ -261,15 +303,18 @@ instance (YulO1 r, ValidINTx s n) => Multiplicative (P'x eff r (INTx s n)) where
 -- Tuple1 is Solo and special.
 
 instance YulO2 a r =>
-         SingleCasePattern (P'x eff r) (Solo a) (P'x eff r a)
+         SingleCasePattern (P'x eff r) (Solo a) (Solo (P'x eff r a))
          YulCatObj One where
-  is = coerceType'l
+  is x = MkSolo (coerceType'l x)
 instance YulO2 a r =>
-         PatternMatchable (P'x eff r) (Solo a) (P'x eff r a)
+         PatternMatchable (P'x eff r) (Solo a) (Solo (P'x eff r a))
          YulCatObj One where
+  couldBe (MkSolo x) = coerceType'l x
+-- Make injective pattern free from MkSolo.
 instance YulO2 a r =>
          InjectivePattern (P'x eff r) (Solo a) (P'x eff r a)
          YulCatObj One where
+  -- be (MkSolo x) = coerceType'l x
   be = coerceType'l
 
 -- Tuple2 is the base case.
@@ -332,10 +377,11 @@ do
                                    $(tupleNFromVarsTWith (BasePrelude.pure m `TH.appT`) (a : as))
                                    YulCatObj One where
           is mtpl_ =
-            let mxxs_ = (coerceType'l . reduceType'l) mtpl_
-                !(mx1_, mxs_) = split'l mxxs_
-                mxs_' = extendType'l mxs_ :: $(BasePrelude.pure m) $(tupleNFromVarsT as)
-                $(TH.bangP (TH.tupP (BasePrelude.fmap TH.varP xs))) = is mxs_'
+            -- NOTE! lots of let expression to workaround a GHC faulty warning related to unused variables.
+            let mxxs_ = (coerceType'l . reduceType'l) mtpl_ in
+            let !(mx1_, mxs_) = split'l mxxs_ in
+            let mxs_' = extendType'l mxs_ :: $(BasePrelude.pure m) $(tupleNFromVarsT as) in
+            let $(TH.bangP (TH.tupP (BasePrelude.fmap TH.varP xs))) = is mxs_'
             in $(TH.tupE (TH.varE 'mx1_ : BasePrelude.fmap TH.varE xs))
 
         instance $(tupleNFromVarsTWith (TH.conT ''YulO1 `TH.appT`) (r : a : as)) =>

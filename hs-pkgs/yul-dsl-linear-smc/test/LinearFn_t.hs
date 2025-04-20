@@ -80,8 +80,9 @@ bar3 = $lfn $ yullvm'p
 
 test_withinPureY :: StaticFn (U256 -> U256 -> U256)
 test_withinPureY = $lfn $ yulports'vv
-  \x1_l x2_l -> withinPureY @(U256 -> U256 -> U256) (x1_l, x2_l)
-                \x1 x2 -> x1 + x1 * x2
+  \x1'v x2'v -> getSolo $ with'l @(U256 -> U256 -> Solo U256)
+                (x1'v, x2'v)
+                \x1 x2 -> be (x1 + x1 * x2)
 
 --------------------------------------------------------------------------------
 -- tuples
