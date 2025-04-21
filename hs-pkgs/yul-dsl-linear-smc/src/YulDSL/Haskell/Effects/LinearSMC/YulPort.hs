@@ -20,7 +20,7 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
   , unsafeCoerceYulPort, unsafeCoerceYulPortDiagram
     -- $GeneralOps
   , discard'l, ignore'l, mkUnit'l, emb'l, const'l, dup2'l, merge'l, split'l
-  , with'l
+  , with'l, withNP'l, withN'l
   , uncurryNP'lx
     -- $TypeOps
   , coerceType'l, reduceType'l, extendType'l
@@ -44,7 +44,7 @@ import Control.Category.Constrained.YulDSL ()
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $YulPortDefs
--- = Yul Port Definitions
+-- * Yul Port Definitions
 --
 -- The linear-smc library provides so-called port API @P k r a@, where @k@ is a smc category and @a@ is an object in
 -- that category. It can encode a morphism in @k@ from @a ↝ b@ to its port diagram @P k r a ⊸ P k r b@, and decode it back.
@@ -111,7 +111,7 @@ unsafeCoerceYulPortDiagram f x = unsafeCoerceYulPort (f (unsafeCoerceYulPort x))
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $GeneralOps
--- = General Yul Port Operations
+-- * General Yul Port Operations
 --
 -- Note: Yul ports are defined above as "P'*", and a "yul port diagram" is a linear function from input yul port to a
 -- output yul port.
@@ -182,8 +182,8 @@ uncurryNP'lx f h mk un a =
              (mk (\a' -> ignore'l (discard'l a') xs))
      in (un g) a2
 
--- | Process TupleN of yul ports with a pure yul function.
-with'l :: forall f x xs btpl bs r ioe m1 m2.
+-- | Process a TupleN of yul ports with a pure yul function.
+with'l :: forall f x xs b bs btpl r ioe m1 m2.
   ( YulO4 x (NP xs) btpl r
   -- m1, m2
   , P'x ioe r ~ m1
@@ -194,24 +194,78 @@ with'l :: forall f x xs btpl bs r ioe m1 m2.
   , ConvertibleNPtoTupleN (NP (MapList m1 (x:xs)))
   , LinearDistributiveNP m1 (x:xs)
   , UncurriableNP f (x:xs) btpl m2 m2 m2 m2 Many
-  -- btpl, bs
-  , TupleNtoNP btpl ~ NP bs
-  , ConvertibleNPtoTupleN (NP (MapList m1 bs))
-  , SingleCasePattern m1 btpl (NPtoTupleN (NP (MapList m1 bs))) YulCatObj One
+  -- b:bs
+  , ConvertibleNPtoTupleN (NP (MapList m1 (b:bs)))
+  , SingleCasePattern m1 btpl (NPtoTupleN (NP (MapList m1 (b:bs)))) YulCatObj One
+  -- btpl
+  , TupleNtoNP btpl ~ NP (b:bs)
   ) =>
   NPtoTupleN (NP (MapList m1 (x:xs))) ⊸
   PureY f ->
-  NPtoTupleN (NP (MapList m1 bs))
-with'l xxs f = is (encodeP'x cat' sxxs)
-  where !(x, xs) = splitNonEmptyNP (fromTupleNtoNP xxs)
-        !(x', u) = mkUnit'l x
-        sxxs = linearDistributeNP (x' :* xs) u
-        cat = uncurryNP @f @(x:xs) @btpl @m2 @m2 @m2 @m2 f YulId
-        cat' = YulUnsafeCoerceEffect cat
+  NPtoTupleN (NP (MapList m1 (b:bs)))
+with'l tpl f =
+  let !(x, xs) = splitNonEmptyNP (fromTupleNtoNP tpl)
+      !(x', u) = mkUnit'l x
+      sxxs = linearDistributeNP (x' :* xs) u
+      cat = uncurryNP @f @(x:xs) @btpl @m2 @m2 @m2 @m2 f YulId
+  in is (encodeP'x (YulUnsafeCoerceEffect cat) sxxs)
+
+type ConstraintForWithNP x xs b bs r ioe m1 m2 =
+  ( YulO5 x (NP xs) b (NP bs) r
+    -- m1, m2
+  , P'x ioe r ~ m1
+  , YulCat Pure (NP (x:xs)) ~ m2
+  -- x:xs
+  , LinearDistributiveNP m1 (x:xs)
+  , TraversableNP m2 (x:xs)
+  -- bs
+  , LinearTraversableNP m1 (b:bs)
+  )
+
+-- | Process a NP of yul ports with a pure yul function.
+withNP'l :: forall f x xs b bs r ioe m1 m2.
+  ( ConstraintForWithNP x xs b bs r ioe m1 m2
+  -- f
+  , EquivalentNPOfFunction f (x:xs) (NP (b:bs))
+  ) =>
+  NP (MapList m1 (x:xs)) ⊸
+  (NP (MapList m2 (x:xs)) -> m2 (NP (b:bs))) ->
+  NP (MapList m1 (b:bs))
+withNP'l xxs f =
+  let !(x, xs) = splitNonEmptyNP xxs
+      !(x', u) = mkUnit'l x
+      txxs = sequenceNP (YulId :: m2 (NP (x:xs)))
+      sxxs = linearDistributeNP (x' :* xs) u
+      sbbs = encodeP'x (YulUnsafeCoerceEffect (f txxs)) sxxs
+      !(b :* bs, snil) = linearSequenceNP sbbs
+  in ignore'l snil b :* bs
+
+-- | It does the same as 'with\'l', but implemented using 'withNP\'l'.
+withN'l :: forall f x xs b bs r ioe m1 m2 f' btpl.
+  ( ConstraintForWithNP x xs b bs r ioe m1 m2
+  -- f
+  , EquivalentNPOfFunction f (x:xs) btpl
+  , UncurriableNP f (x:xs) btpl m2 m2 m2 m2 Many
+  -- f'
+  , EquivalentNPOfFunction f' (x:xs) (NP (b:bs))
+  -- x:xs
+  , DistributiveNP m2 (x:xs)
+  , ConvertibleNPtoTupleN (NP (MapList m1 (x:xs)))
+  -- b:bs
+  , ConvertibleNPtoTupleN (NP (MapList m1 (b:bs)))
+  -- btpl
+  , NP (b:bs) ~ ABITypeDerivedOf btpl
+  , YulO1 btpl
+  ) =>
+  NPtoTupleN (NP (MapList m1 (x:xs))) ⊸
+  PureY f ->
+  NPtoTupleN (NP (MapList m1 (b:bs)))
+withN'l tpl f = fromNPtoTupleN (withNP'l @f' @x @xs @b @bs (fromTupleNtoNP tpl) f')
+  where f' txxs = uncurryNP @f @(x:xs) @btpl @m2 @m2 @m2 @m2 @Many f (distributeNP txxs) >.> YulReduceType
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $TypeOps
--- = Yul Port Type Operations
+-- * Yul Port Type Operations
 ------------------------------------------------------------------------------------------------------------------------
 
 -- | Coerce input yul port to an ABI coercible output yul port.
@@ -230,23 +284,11 @@ extendType'l :: forall a eff r.
   P'x eff r (ABITypeDerivedOf a) ⊸ P'x eff r a
 extendType'l = encodeP'x YulExtendType
 
---
--- NP type
---
-
-instance YulO3 x (NP xs) r => ConstructibleNP (P'x eff r) x xs One where
-  consNP x xs = coerceType'l (merge'l (x, xs))
-  unconsNP = split'l . coerceType'l
-
-instance YulO1 r => LinearTraversableNP (P'x eff r) '[] where
-  linearSequenceNP snil = (Nil, coerceType'l snil)
-instance YulO1 r => LinearDistributiveNP (P'x eff r) '[] where
-  linearDistributeNP Nil = coerceType'l
-instance (YulO3 x (NP xs) r , LinearTraversableNP (P'x eff r) xs) => LinearTraversableNP (P'x eff r) (x:xs)
-instance (YulO3 x (NP xs) r , LinearDistributiveNP (P'x eff r) xs) => LinearDistributiveNP (P'x eff r) (x:xs)
-
 --------------------------------------------------------------------------------
 -- $YulPortUniter
+-- * Yul Port Uniter
+--
+-- A convenient device to manage unital yul ports.
 --------------------------------------------------------------------------------
 
 -- | A machinery to work with yul port units.
@@ -297,6 +339,22 @@ instance (YulO1 r, ValidINTx s n) => Multiplicative (P'x eff r (INTx s n)) where
   a * b = encodeP'x (YulJmpB (MkYulBuiltIn @"__checked_mul_t_")) (merge'l (a, b))
 
 --
+-- NP
+--
+
+
+instance YulO3 x (NP xs) r => ConstructibleNP (P'x eff r) x xs One where
+  consNP x xs = coerceType'l (merge'l (x, xs))
+  unconsNP = split'l . coerceType'l
+
+instance YulO1 r => LinearTraversableNP (P'x eff r) '[] where
+  linearSequenceNP snil = (Nil, coerceType'l snil)
+instance YulO1 r => LinearDistributiveNP (P'x eff r) '[] where
+  linearDistributeNP Nil = coerceType'l
+instance (YulO3 x (NP xs) r , LinearTraversableNP (P'x eff r) xs) => LinearTraversableNP (P'x eff r) (x:xs)
+instance (YulO3 x (NP xs) r , LinearDistributiveNP (P'x eff r) xs) => LinearDistributiveNP (P'x eff r) (x:xs)
+
+--
 -- TupleN
 --
 
@@ -314,7 +372,6 @@ instance YulO2 a r =>
 instance YulO2 a r =>
          InjectivePattern (P'x eff r) (Solo a) (P'x eff r a)
          YulCatObj One where
-  -- be (MkSolo x) = coerceType'l x
   be = coerceType'l
 
 -- Tuple2 is the base case.

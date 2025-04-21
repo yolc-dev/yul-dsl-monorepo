@@ -1,11 +1,11 @@
 module YulDSL.Haskell.LibLinearSMC
-  ( -- Re-export linear-base prelude (TODO: be more selective here)
+  ( -- * Re-export linear-base prelude (TODO: be more selective here)
     module Prelude.Linear
-    -- Re-export library for pure yul functions
+    -- * Re-export library for pure yul functions
   , module YulDSL.Haskell.LibPure
-    -- Re-export library for building linear-smc yul effects
+    -- * Re-export library for building linear-smc yul effects
   , module YulDSL.Haskell.Effects.LinearSMC
-    -- Additional linear-smc utilities
+    -- * Additional linear-smc utilities
   , keccak256'l
   , ycaller
   , getSolo
