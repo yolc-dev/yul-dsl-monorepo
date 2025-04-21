@@ -50,7 +50,7 @@ type family MapNP (f :: Type -> Type) np where
 type NonEmptyNP x xs = NP (x : xs)
 
 -- | Split a non-empty NP into its head and tail safely.
-splitNonEmptyNP :: forall x xs. NonEmptyNP x xs %1 -> (x, NP xs)
+splitNonEmptyNP :: forall x xs p. NonEmptyNP x xs %p -> (x, NP xs)
 splitNonEmptyNP (x :* xs) = (x, xs)
 
 -- | Evaluate the components of NP from left to right within the context of @s@, then produce a new NP with its element
