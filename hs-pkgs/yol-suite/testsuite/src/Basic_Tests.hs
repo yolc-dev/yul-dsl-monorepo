@@ -75,15 +75,16 @@ lvmvar_test1 = $lfn $ yullvm'p
 
 lvmvar_test2 :: PureFn (U256 -> U256 -> U256)
 lvmvar_test2 = $lfn $ yullvm'pp
-  \(Uv x_) (Uv y_) ->
-    ywithUv @(U256 -> U256 -> Solo U256) (Uv x_, Uv y_) \x y -> be (x * y + y)
+  \(Uv x_) (Uv y_) -> LVM.do
+    (MkSolo r) <- ywithUv @(U256 -> U256 -> Solo U256) (Uv x_, Uv y_) \x y -> be (x * y + y)
+    LVM.pure r
 
 lvmvar_test3 :: PureFn (U256)
 lvmvar_test3 = $lfn $ yullvm'pp $
   LVM.do
     b <- embed (42 :: U256)
     let !(b1, b2) = dup'l b
-    Ur bvar <- ymkref @0 @_ @(P'P _ U256) (b1 + b2)
+    Ur bvar <- ymkref (b1 + b2)
     LVM.pure bvar
 
 lvmvar_test4 :: StaticFn (U256 -> U256 -> U256)
