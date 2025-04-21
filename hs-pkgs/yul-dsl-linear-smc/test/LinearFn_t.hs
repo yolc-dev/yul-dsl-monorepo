@@ -103,7 +103,7 @@ test_withNP = $lfn $ yulports'vv
 
 tuple2_result :: StaticFn (U256 -> U256 -> (U256, U256))
 tuple2_result = $lfn $ yulports'vv
-  \x1 x2 -> be (dup2'l (x1 + x2))
+  \x1 x2 -> be (dup'l (x1 + x2))
 
 tuple2_input :: StaticFn ((U256, U256) -> U256)
 tuple2_input = $lfn $ yulports'vv

@@ -19,7 +19,7 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
   , VersionableYulPort (ver'l)
   , unsafeCoerceYulPort, unsafeCoerceYulPortDiagram
     -- $GeneralOps
-  , discard'l, ignore'l, mkUnit'l, emb'l, const'l, dup2'l, merge'l, split'l
+  , discard'l, ignore'l, mkUnit'l, emb'l, const'l, dup'l, merge'l, split'l
   , with'l, withNP'l, withN'l
   , uncurryNP'lx
     -- $TypeOps
@@ -117,16 +117,19 @@ unsafeCoerceYulPortDiagram f x = unsafeCoerceYulPort (f (unsafeCoerceYulPort x))
 -- output yul port.
 ------------------------------------------------------------------------------------------------------------------------
 
+-- | Discard a yul port.
 discard'l :: forall a eff r.
   YulO2 r a =>
   P'x eff r a ⊸ P'x eff r ()
 discard'l = MkP'x . discard . unP'x
 
+-- | Ignore a unit yul port by returning an actual yul port.
 ignore'l :: forall a eff r.
   YulO2 r a =>
   P'x eff r () ⊸ P'x eff r a ⊸ P'x eff r a
 ignore'l u a = MkP'x $ ignore (unP'x u) (unP'x a)
 
+-- | Create a unit yul port with the help of another yul port.
 mkUnit'l :: forall a eff r.
   YulO2 r a =>
   P'x eff r a ⊸ (P'x eff r a, P'x eff r ())
@@ -144,23 +147,25 @@ const'l :: forall a b eff r.
   P'x eff r a ⊸ (P'x eff r b ⊸ P'x eff r a)
 const'l a b = MkP'x $ ignore (discard (unP'x b)) (unP'x a)
 
--- | Duplicate the input yul port twice as a tuple.
-dup2'l :: forall a eff r.
+-- | Duplicate the input yul port.
+dup'l :: forall a eff r.
   YulO2 a r =>
   P'x eff r a ⊸ (P'x eff r a, P'x eff r a)
-dup2'l a = let !(a1, a2) = (split . copy . unP'x) a in (MkP'x a1, MkP'x a2)
+dup'l a = let !(a1, a2) = (split . copy . unP'x) a in (MkP'x a1, MkP'x a2)
 
+-- | Merge two yul ports into one yul port of their product.
 merge'l :: forall a b eff r.
   YulO3 r a b =>
   (P'x eff r a, P'x eff r b) ⊸ P'x eff r (a, b)
 merge'l (a, b) = MkP'x $ merge (unP'x a, unP'x b)
 
+-- | Split a yul port of product into two separated ports.
 split'l :: forall a b eff r.
   YulO3 r a b =>
   P'x eff r (a, b) ⊸ (P'x eff r a, P'x eff r b)
 split'l ab = let !(a, b) = split (unP'x ab) in (MkP'x a, MkP'x b)
 
--- TODO: move to LinearYulCat as its internal function.
+-- FIXME: move to LinearYulCat as its internal function.
 uncurryNP'lx :: forall m1 m1b m2_ m2b_ m2' m2b' g x xs b r a ie.
   ( YulO4 x (NP xs) r a
   , UncurriableNP g xs b m1 m1b (m2_ a) (m2b_ a) One
@@ -175,30 +180,43 @@ uncurryNP'lx :: forall m1 m1b m2_ m2b_ m2' m2b' g x xs b r a ie.
   (m2b_ a b ⊸ (m2' a ⊸ m2b' b)) ->           -- ^ un: m2b_ a b ⊸ (m2' a ⊸ m2b' b)
   (m2' a ⊸ m2b' b)
 uncurryNP'lx f h mk un a =
-  let !(a1, a2) = dup2'l a
+  let !(a1, a2) = dup'l a
       !(x, xs) = unconsNP (h a1)
   in let g = uncurryNP @g @xs @b @m1 @m1b @(m2_ a) @(m2b_ a) @One
              (f x)
              (mk (\a' -> ignore'l (discard'l a') xs))
      in (un g) a2
 
--- | Process a TupleN of yul ports with a pure yul function.
-with'l :: forall f x xs b bs btpl r ioe m1 m2.
-  ( YulO4 x (NP xs) btpl r
-  -- m1, m2
+--
+-- Family of "with" functions
+--
+
+-- | Common constraint set for the family of "with'l" functions.
+type ConstraintForWith x xs b bs r ioe m1 m2 =
+  ( YulO5 x (NP xs) b (NP bs) r
+    -- m1, m2
   , P'x ioe r ~ m1
   , YulCat Pure (NP (x:xs)) ~ m2
-  -- f
+  -- x:xs
+  , LinearDistributiveNP m1 (x:xs)
+  -- bs
+  , LinearTraversableNP m1 (b:bs)
+  )
+
+-- | Process a TupleN of yul ports with a pure yul function.
+with'l :: forall f x xs b bs r ioe m1 m2 btpl.
+  ( ConstraintForWith x xs b bs r ioe m1 m2
+   -- f
   , EquivalentNPOfFunction f (x:xs) btpl
+  , UncurriableNP f (x:xs) btpl m2 m2 m2 m2 Many
   -- x:xs
   , ConvertibleNPtoTupleN (NP (MapList m1 (x:xs)))
-  , LinearDistributiveNP m1 (x:xs)
-  , UncurriableNP f (x:xs) btpl m2 m2 m2 m2 Many
   -- b:bs
   , ConvertibleNPtoTupleN (NP (MapList m1 (b:bs)))
-  , SingleCasePattern m1 btpl (NPtoTupleN (NP (MapList m1 (b:bs)))) YulCatObj One
   -- btpl
-  , TupleNtoNP btpl ~ NP (b:bs)
+  , NP (b:bs) ~ TupleNtoNP btpl
+  , YulO1 btpl
+  , SingleCasePattern m1 btpl (NPtoTupleN (NP (MapList m1 (b:bs)))) YulCatObj One
   ) =>
   NPtoTupleN (NP (MapList m1 (x:xs))) ⊸
   PureY f ->
@@ -210,23 +228,13 @@ with'l tpl f =
       cat = uncurryNP @f @(x:xs) @btpl @m2 @m2 @m2 @m2 f YulId
   in is (encodeP'x (YulUnsafeCoerceEffect cat) sxxs)
 
-type ConstraintForWithNP x xs b bs r ioe m1 m2 =
-  ( YulO5 x (NP xs) b (NP bs) r
-    -- m1, m2
-  , P'x ioe r ~ m1
-  , YulCat Pure (NP (x:xs)) ~ m2
-  -- x:xs
-  , LinearDistributiveNP m1 (x:xs)
-  , TraversableNP m2 (x:xs)
-  -- bs
-  , LinearTraversableNP m1 (b:bs)
-  )
-
 -- | Process a NP of yul ports with a pure yul function.
 withNP'l :: forall f x xs b bs r ioe m1 m2.
-  ( ConstraintForWithNP x xs b bs r ioe m1 m2
+  ( ConstraintForWith x xs b bs r ioe m1 m2
   -- f
   , EquivalentNPOfFunction f (x:xs) (NP (b:bs))
+  -- x:xs
+  , TraversableNP m2 (x:xs)
   ) =>
   NP (MapList m1 (x:xs)) ⊸
   (NP (MapList m2 (x:xs)) -> m2 (NP (b:bs))) ->
@@ -242,15 +250,16 @@ withNP'l xxs f =
 
 -- | It does the same as 'with\'l', but implemented using 'withNP\'l'.
 withN'l :: forall f x xs b bs r ioe m1 m2 f' btpl.
-  ( ConstraintForWithNP x xs b bs r ioe m1 m2
+  ( ConstraintForWith x xs b bs r ioe m1 m2
   -- f
   , EquivalentNPOfFunction f (x:xs) btpl
   , UncurriableNP f (x:xs) btpl m2 m2 m2 m2 Many
   -- f'
   , EquivalentNPOfFunction f' (x:xs) (NP (b:bs))
   -- x:xs
-  , DistributiveNP m2 (x:xs)
   , ConvertibleNPtoTupleN (NP (MapList m1 (x:xs)))
+  , DistributiveNP m2 (x:xs)
+  , TraversableNP m2 (x:xs)
   -- b:bs
   , ConvertibleNPtoTupleN (NP (MapList m1 (b:bs)))
   -- btpl
@@ -296,7 +305,7 @@ newtype YulPortUniter r = MkYulPortUniter (P'P r ())
 
 -- | Create a new yul port unit from the uniter.
 yulPortUniterMkUnit :: forall eff r. YulO1 r => YulPortUniter r ⊸ (YulPortUniter r, P'x eff r ())
-yulPortUniterMkUnit (MkYulPortUniter u) = let !(u1, u2) = dup2'l u in (MkYulPortUniter u1, unsafeCoerceYulPort u2)
+yulPortUniterMkUnit (MkYulPortUniter u) = let !(u1, u2) = dup'l u in (MkYulPortUniter u1, unsafeCoerceYulPort u2)
 
 -- | Gulp an input yul port by the uniter.
 yulPortUniterGulp :: forall eff r a. YulO2 r a => YulPortUniter r ⊸ P'x eff r a ⊸ YulPortUniter r

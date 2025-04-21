@@ -57,7 +57,7 @@ mint = $lfn $ yullvm'p \to_p amount_p -> LVM.do
     shmapPut balanceMap to_p (balanceBefore + ver'l amount_p)
 
   -- call unsafe external contract onTokenMinted
-  let !(to_p1, to_p2) = dup2'l (ver'l to_p)
+  let !(to_p1, to_p2) = dup'l (ver'l to_p)
   externalCall onTokenMinted to_p1 to_p2 (ver'l amount_p)
 
 --

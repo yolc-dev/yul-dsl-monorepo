@@ -129,7 +129,7 @@ instance YulO3 r a b => ContextualSeqable (YulLVMCtx r) (P'x eff1 r a) (P'x eff2
     in (MkYulLVMCtx ud'' mbRgstr, b')
 
 instance YulO2 r a => ContextualDupable (YulLVMCtx r) (P'x eff r a) where
-  contextualDup ctx x = (ctx, dup2'l x)
+  contextualDup ctx x = (ctx, dup'l x)
 
 instance YulO2 r a => ContextualEmbeddable (YulLVMCtx r) (P'x eff r) a where
   contextualEmbed (MkYulLVMCtx ud mbRgstr) x'p =
@@ -371,7 +371,7 @@ yuncurry_xs :: forall m1 m1b m2_ m2b_ m2' m2b' g x xs b r a ie v1 vn.
   (m2b_ a b ⊸ (m2' a ⊸ m2b' b)) ->           -- ^ un: m2b_ a b ⊸ (m2' a ⊸ m2b' b)
   (m2' a ⊸ m2b' b)
 yuncurry_xs f h mk un a =
-  let !(a1, a2) = dup2'l a
+  let !(a1, a2) = dup'l a
       !(x, xs) = unconsNP (h a1)
   in ymkref x LVM.>>= \(Ur xref) ->
     let g = uncurryNP @g @xs @b @m1 @m1b @(m2_ a) @(m2b_ a) @One

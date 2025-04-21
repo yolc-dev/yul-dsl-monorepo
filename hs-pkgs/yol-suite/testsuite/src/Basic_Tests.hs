@@ -35,7 +35,7 @@ rangeSum'l = $lfn $ yullvm'p
 -- FIXME: this does't even work
 -- callExternalFoo0 :: OmniFn (ADDR -> U256)
 -- callExternalFoo0 = $lfn $ yullvm'v
---  \to -> dup2'l to & \(to1, to2) -> externalCall external_foo0 to1 (discard'l to2)
+--  \to -> dup'l to & \(to1, to2) -> externalCall external_foo0 to1 (discard'l to2)
 
 callExternalFoo1 :: OmniFn (ADDR -> U256 -> U256)
 callExternalFoo1 = $lfn $ yullvm'v
@@ -64,13 +64,13 @@ varSharing = $fn \a b c ->
 
 varSharingL :: StaticFn (U256 -> U256 -> U256 -> U256)
 varSharingL = $lfn $ yullvm'p \a b c ->
-  let z = a + b * c in dup2'l z & \(z1, z2) -> ypure (ver'l (z1 * z2))
+  let z = a + b * c in dup'l z & \(z1, z2) -> ypure (ver'l (z1 * z2))
 
 lvmvar_test1 :: StaticFn (U256 -> U256)
 lvmvar_test1 = $lfn $ yullvm'p
   \x -> LVM.do
-    let !(x1, x2') = dup2'l (ver'l x)
-        !(x2, x3)  = dup2'l x2'
+    let !(x1, x2') = dup'l (ver'l x)
+        !(x2, x3)  = dup'l x2'
     ypure (x1 + x2 * x3)
 
 lvmvar_test2 :: PureFn (U256 -> U256 -> U256)
@@ -82,7 +82,7 @@ lvmvar_test3 :: PureFn (U256)
 lvmvar_test3 = $lfn $ yullvm'pp $
   LVM.do
     b <- embed (42 :: U256)
-    let !(b1, b2) = dup2'l b
+    let !(b1, b2) = dup'l b
     Ur bvar <- ymkref @0 @_ @(P'P _ U256) (b1 + b2)
     LVM.pure bvar
 
