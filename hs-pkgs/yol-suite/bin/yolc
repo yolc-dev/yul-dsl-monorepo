@@ -8,6 +8,9 @@
 # !!WARNING: This is a prototype script, it will be rewritten in THSH.
 #######################################################################
 
+# treat pipefailures failures
+set -o pipefail
+
 #-----------------------------------------------------------------------------------------------------------------------
 # Main Program, Utilities & Global Variables
 #-----------------------------------------------------------------------------------------------------------------------
@@ -42,14 +45,9 @@ yol_module_spec: package_path{:module_name}{[symbol...,]}, where
 EOF
 }
 
-die() {
-  echo "$@" >&2
-  exit 1
-}
+die() { echo "$@" >&2; exit 1; }
 
-debug() {
-  echo "$@" >&2
-}
+debug() { if is_verbose; then echo "$@" >&2; fi }
 
 do_runyol() {
   local CABAL=(cabal)
@@ -63,10 +61,9 @@ do_runyol() {
   fi
 
   if "${CABAL[@]}" "$@" build runyol 1>&2; then
-    is_verbose && {
-      debug "+ exec: $runbin"
-    }
-    $runbin
+    debug "+ exec: $runbin"
+    "$runbin" || die
+    debug "- exec: $runbin"
   fi
 }
 
@@ -75,7 +72,7 @@ maybe_update_file() {
   if [ "$file" != /dev/stdout ]; then
     cat > "${file}.new"
     if ! diff "${file}" "${file}.new" &>/dev/null; then
-      is_verbose && debug "${file} changed"
+      debug "${file} changed"
       mv "${file}.new" "${file}"
     else
       rm -f "${file}.new"
@@ -138,7 +135,7 @@ main() {
   local run_cabal_path=(cabal -v0 --builddir="$out_dir/cabal-path" path --output-format=json)
   cabal_package_db=$("${run_cabal_path[@]}" | jq -r '."store-dir" + "/" + .compiler.id + "-inplace/package.db"')
 
-  is_verbose && {
+  {
     debug "YolSuite src dir : $yolsuite_src_dir"
     debug "Yolc package db  : $yolc_package_db"
     debug "Output dir       : $out_dir"
@@ -166,7 +163,7 @@ build_yol_module() {
 
   local mod_spec
   mod_spec=$1
-  is_verbose && debug "=== Building yol module: $mod_spec"
+  debug "=== Building yol module: $mod_spec"
 
   # parse pkg_path, cabal_path, pkg_name
   local rest pkg_path cabal_path pkg_name
@@ -210,14 +207,13 @@ build_yol_module() {
   mkdir -p "$yol_dir"
   mkdir -p "$yol_dir/contracts"
 
-  is_verbose && {
+  {
     debug "Package path   : $pkg_path"
     debug "Cabal file     : $cabal_path"
     debug "Yol path       : $yol_dir"
-    [ -n "$cmpl_syms" ] && \
     debug "Package name   : $pkg_name"
     debug "Module name    : $mod_name"
-    debug "Target symbols : $cmpl_syms"
+    [ -n "$cmpl_syms" ] && debug "Target symbols : $cmpl_syms"
   }
 
   #
@@ -255,7 +251,7 @@ EOF
     } < "$yolsuite_src_dir"/templates/RunYol.hs
   } | maybe_update_file "$yol_dir"/RunYol.hs
 
-  is_verbose && {
+  if is_verbose; then
     debug
     debug "=== BEGIN cabal.project"
     cat "$yol_dir"/cabal.project >&2
@@ -270,20 +266,20 @@ EOF
     debug "=== BEGIN RunYol.hs"
     cat "$yol_dir"/RunYol.hs >&2
     debug "=== END RunYol.hs"
-  }
+  fi
 
   # run yol
-  do_runyol --project-dir="$yol_dir" | maybe_update_file "${yol_output_file:-/dev/stdout}" || {
+  if ! do_runyol --project-dir="$yol_dir" | maybe_update_file "${yol_output_file:-/dev/stdout}"; then
     [ -f "${yol_output_file}" ] && rm "${yol_output_file}"
     die "=== Failed to build yol module: $mod_spec"
-  }
+  fi
 
   # print output if needed
-  is_verbose || [ -n "$show_output_always" ] && [  -f "${yol_output_file}" ] && cat "${yol_output_file}"
+  if is_verbose || [ -n "$show_output_always" ]; then
+    [ -f "${yol_output_file}" ] && cat "${yol_output_file}"
+  fi
 
-  is_verbose && {
-    debug "=== Done with yol module: $mod_spec"
-  }
+  debug "=== Done with yol module: $mod_spec"
 }
 
 main "$@"
