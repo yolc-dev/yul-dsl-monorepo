@@ -60,14 +60,14 @@ library
     Control.Category.Constrained.YulDSL
     -- YulDSL/Haskell's LinearSMC Effect
     YulDSL.Haskell.Effects.LinearSMC.YulPort
-    YulDSL.Haskell.Effects.LinearSMC.YulLVM
     YulDSL.Haskell.Effects.LinearSMC.LinearYulCat
+    YulDSL.Haskell.Effects.LinearSMC.YulLVM
     YulDSL.Haskell.Effects.LinearSMC.LinearFn
     YulDSL.Haskell.Effects.LinearSMC.Storage
     YulDSL.Haskell.Effects.LinearSMC
     -- YulDSL/Haskell's Utils
-    YulDSL.Haskell.Data.SHMap
     YulDSL.Haskell.LibLinearSMC
+    YulDSL.Haskell.Data.SHMap
     -- Prelude
     Prelude.YulDSL
   reexported-modules:

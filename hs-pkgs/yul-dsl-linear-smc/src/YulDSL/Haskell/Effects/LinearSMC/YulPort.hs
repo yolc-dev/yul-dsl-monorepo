@@ -15,20 +15,23 @@ This module provides the definition of yul ports and their operations.
 module YulDSL.Haskell.Effects.LinearSMC.YulPort
   ( -- $YulPortDefs
     PortEffect (PurePort, VersionedPort)
-  , P'x (MkP'x), unP'x, P'V, P'P, encodeP'x, decodeP'x
+  , P'x (MkP'x), unP'x, P'V, P'P
   , VersionableYulPort (ver'l)
+  , encodeP'x, decodeP'x
   , unsafeCoerceYulPort, unsafeCoerceYulPortDiagram
-    -- $GeneralOps
-  , discard'l, ignore'l, mkUnit'l, emb'l, const'l, dup'l, merge'l, split'l
-  , with'l, withNP'l, withN'l
-  , uncurryNP'lx
     -- $TypeOps
   , coerceType'l, reduceType'l, extendType'l
-    -- $YulPortUniter
-  , YulPortUniter (MkYulPortUniter), yulPortUniterMkUnit, yulPortUniterGulp
+    -- $GeneralOps
+  , discard'l, ignore'l, mkUnit'l, emb'l, const'l, dup'l, merge'l, split'l
+    -- $WithPureFunctions
+  , with'l, withNP'l, withN'l
+  , uncurryNP'lx -- FIXME remove
+    -- $VersionThread
+  , VersionThread, vtstart, vtstop, vtmkunit, vtgulp, vtseq
   ) where
 -- base
 import Control.Monad                       (replicateM)
+import GHC.TypeLits                        (KnownNat, type (<=))
 import Prelude                             qualified as BasePrelude
 -- template-haskell
 import Language.Haskell.TH                 qualified as TH
@@ -76,6 +79,15 @@ type P'P = P'x PurePort
 -- | Yul port with linearly versioned data, aka. versioned yul ports.
 type P'V v = P'x (VersionedPort v)
 
+-- | Yul port that can be versioned to its compatible version.
+class VersionableYulPort ioe v where
+  -- | Version a yul port to a compatible versioned port.
+  ver'l :: forall a r. YulO2 a r => P'x ioe r a ⊸ P'V v r a
+-- ^ A versioned port is stuck with it version.
+instance VersionableYulPort (VersionedPort v) v where ver'l = id
+-- ^ A pure port can be versioned to any other version.
+instance VersionableYulPort PurePort v where ver'l = unsafeCoerceYulPort
+
 -- | Encode a yul morphism of intermediate linear effect kind to its yul port diagram.
 encodeP'x :: forall (ioe :: PortEffect) a b.
   YulO2 a b =>
@@ -90,15 +102,6 @@ decodeP'x :: forall (ioe :: PortEffect) a b.
   YulCat LinearEffectX a b
 decodeP'x f = decode (\a -> unP'x (f (MkP'x a)))
 
--- | Yul port that can be versioned to its compatible version.
-class VersionableYulPort ioe v where
-  -- | Version a yul port to a compatible versioned port.
-  ver'l :: forall a r. YulO2 a r => P'x ioe r a ⊸ P'V v r a
--- ^ A versioned port is stuck with it version.
-instance VersionableYulPort (VersionedPort v) v where ver'l = id
--- ^ A pure port can be versioned to any other version.
-instance VersionableYulPort PurePort v where ver'l = unsafeCoerceYulPort
-
 -- | Unsafe coerce yul port' effects.
 unsafeCoerceYulPort :: forall (eff1 :: PortEffect) (eff2 :: PortEffect) r a.
   P'x eff1 r a ⊸ P'x eff2 r a
@@ -108,6 +111,27 @@ unsafeCoerceYulPort = MkP'x . unP'x
 unsafeCoerceYulPortDiagram :: forall (eff1 :: PortEffect) (eff2 :: PortEffect) (eff3 :: PortEffect) r a b.
   (P'x eff1 r a ⊸ P'x eff2 r b) ⊸ (P'x eff3 r a ⊸ P'x eff3 r b)
 unsafeCoerceYulPortDiagram f x = unsafeCoerceYulPort (f (unsafeCoerceYulPort x))
+
+------------------------------------------------------------------------------------------------------------------------
+-- $TypeOps
+-- * Yul Port Type Operations
+------------------------------------------------------------------------------------------------------------------------
+
+-- | Coerce input yul port to an ABI coercible output yul port.
+coerceType'l :: forall a b eff r.
+  (YulO3 a b r, ABITypeCoercible a b) =>
+  P'x eff r a ⊸ P'x eff r b
+coerceType'l = encodeP'x YulCoerceType
+
+reduceType'l :: forall a eff r.
+  (YulO3 a (ABITypeDerivedOf a) r) =>
+  P'x eff r a ⊸ P'x eff r (ABITypeDerivedOf a)
+reduceType'l = encodeP'x YulReduceType
+
+extendType'l :: forall a eff r.
+  (YulO3 a (ABITypeDerivedOf a) r) =>
+  P'x eff r (ABITypeDerivedOf a) ⊸ P'x eff r a
+extendType'l = encodeP'x YulExtendType
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $GeneralOps
@@ -184,12 +208,18 @@ uncurryNP'lx f h mk un a =
       !(x, xs) = unconsNP (h a1)
   in let g = uncurryNP @g @xs @b @m1 @m1b @(m2_ a) @(m2b_ a) @One
              (f x)
-             (mk (\a' -> ignore'l (discard'l a') xs))
+             (mk (const'l xs))
      in (un g) a2
 
+------------------------------------------------------------------------------------------------------------------------
+-- $WithPureFunctions
+-- * Process With Pure Yul Functions
 --
--- Family of "with" functions
---
+-- Using yul port APIs involves threading (linearly, metaphorically speaking) of the ports. Manually doing such
+-- threading can quickly becomes a toll on the users. The family of "with" functions are provided to capture some ports
+-- in a continuation of pure yul function, which provides a greater syntactical freedom to the users without sacrificing
+-- any safety, then eventually returns a set of new yul ports.
+------------------------------------------------------------------------------------------------------------------------
 
 -- | Common constraint set for the family of "with'l" functions.
 type ConstraintForWith x xs b bs r ioe m1 m2 =
@@ -273,43 +303,43 @@ withN'l tpl f = fromNPtoTupleN (withNP'l @f' @x @xs @b @bs (fromTupleNtoNP tpl) 
   where f' txxs = uncurryNP @f @(x:xs) @btpl @m2 @m2 @m2 @m2 @Many f (distributeNP txxs) >.> YulReduceType
 
 ------------------------------------------------------------------------------------------------------------------------
--- $TypeOps
--- * Yul Port Type Operations
+-- $VersionThread
+-- * Yul Port Version Thread
+--
+-- A convenient device to threading yul ports.
 ------------------------------------------------------------------------------------------------------------------------
 
--- | Coerce input yul port to an ABI coercible output yul port.
-coerceType'l :: forall a b eff r.
-  (YulO3 a b r, ABITypeCoercible a b) =>
-  P'x eff r a ⊸ P'x eff r b
-coerceType'l = encodeP'x YulCoerceType
-
-reduceType'l :: forall a eff r.
-  (YulO3 a (ABITypeDerivedOf a) r) =>
-  P'x eff r a ⊸ P'x eff r (ABITypeDerivedOf a)
-reduceType'l = encodeP'x YulReduceType
-
-extendType'l :: forall a eff r.
-  (YulO3 a (ABITypeDerivedOf a) r) =>
-  P'x eff r (ABITypeDerivedOf a) ⊸ P'x eff r a
-extendType'l = encodeP'x YulExtendType
-
---------------------------------------------------------------------------------
--- $YulPortUniter
--- * Yul Port Uniter
---
--- A convenient device to manage unital yul ports.
---------------------------------------------------------------------------------
-
 -- | A machinery to work with yul port units.
-newtype YulPortUniter r = MkYulPortUniter (P'P r ())
+newtype VersionThread r = MkVersionThread (P'P r ())
 
--- | Create a new yul port unit from the uniter.
-yulPortUniterMkUnit :: forall eff r. YulO1 r => YulPortUniter r ⊸ (YulPortUniter r, P'x eff r ())
-yulPortUniterMkUnit (MkYulPortUniter u) = let !(u1, u2) = dup'l u in (MkYulPortUniter u1, unsafeCoerceYulPort u2)
+vtstart :: forall ie a r. YulO2 a r => P'x ie r a ⊸ VersionThread r
+vtstart a = MkVersionThread (unsafeCoerceYulPort (discard'l a))
 
--- | Gulp an input yul port by the uniter.
-yulPortUniterGulp :: forall eff r a. YulO2 r a => YulPortUniter r ⊸ P'x eff r a ⊸ YulPortUniter r
-yulPortUniterGulp (MkYulPortUniter u) x = MkYulPortUniter (ignore'l u (unsafeCoerceYulPort (discard'l x)))
+vtstop :: VersionThread r ⊸ P'P r ()
+vtstop (MkVersionThread u) = u
+
+-- | Create a new yul port unit from the version thread, which can be used to thread other ports.
+vtmkunit :: forall eff r. YulO1 r => VersionThread r ⊸ (VersionThread r, P'x eff r ())
+vtmkunit (MkVersionThread u) = let !(u1, u2) = dup'l u in (MkVersionThread u1, unsafeCoerceYulPort u2)
+
+-- | Gulp an input yul port into a version thread.
+vtgulp :: forall eff r a. YulO2 r a => VersionThread r ⊸ P'x eff r a ⊸ VersionThread r
+vtgulp (MkVersionThread u) x = MkVersionThread (ignore'l u (unsafeCoerceYulPort (discard'l x)))
+
+-- | Thread the yul port @a@ before the yul port @b, where "@a <= b@"
+--
+-- Note:
+--
+-- * Its name is inspired by the family of "seq": seq, pseq, lseq, etc.
+--
+-- * Threading is important when dealing with ports generated from side effects.
+vtseq :: forall a b va vb r.
+  (KnownNat va, KnownNat vb, va <= vb, YulO3 a b r) =>
+  (VersionThread r, P'V va r a) ⊸ P'V vb r b ⊸ (VersionThread r, P'V vb r b)
+vtseq (vt, a) b =
+  let vt' = vtgulp vt a
+      !(vt'', u) = vtmkunit vt'
+  in (vt'', ignore'l u b)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Instances

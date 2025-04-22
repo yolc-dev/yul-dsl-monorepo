@@ -36,7 +36,7 @@ module YulDSL.Haskell.Effects.LinearSMC.YulLVM
   , yullvm'v, yullvm'p
   ) where
 -- base
-import GHC.TypeLits                                  (KnownNat)
+import GHC.TypeLits                                  (KnownNat, type (<=))
 -- linear-base
 import Prelude.Linear
 import Unsafe.Linear                                 qualified as UnsafeLinear
@@ -71,22 +71,21 @@ runYulLVM :: forall b vd r ie.
   P'x ie r () ⊸ YulLVM 0 vd r (P'V vd r b) ⊸ P'V vd r b
 runYulLVM u m = let ctx = mk_yullvm_ctx u
                     !(ctx', b) = runLVM ctx mWrapper
-                in rm_yullvm_ctx ctx' b
+                    u' = rm_yullvm_ctx ctx'
+                in const'l b u'
   where -- wrap given monad with var registry init/consume block
         mWrapper = LVM.do
-          initRgstr
+          initRgstr :: YulLVM 0 0 r ()
           b <- m
           consumeRgstr
           LVM.pure b
         -- initialize the var registry
-        initRgstr :: YulLVM 0 0 r ()
-        initRgstr = MkLVM \(MkYulLVMCtx ud mbRgstr) ->
+        initRgstr = MkLVM \(MkYulLVMCtx vt mbRgstr) ->
           let rgstr = case mbRgstr of
                 Nothing -> initLVMVarRegistry
-                err     -> lseq (error "initRgstr: registry should be empty" :: ()) (UnsafeLinear.coerce err)
-          in (Dict, MkYulLVMCtx ud (Just rgstr), ())
+                err     -> lseq (error "nonsense" :: ()) (UnsafeLinear.coerce err)
+          in (Dict, MkYulLVMCtx vt (Just rgstr), ())
         -- consume the var registry
-        -- consumeRgstr :: YulLVM vd vd r ()
         consumeRgstr = with_yulvar_registry \rgstr -> LVM.do
           consumeLVMVarRegistry rgstr
           LVM.pure (Nothing, ())
@@ -110,15 +109,15 @@ with_yulvar_registry :: forall r v b.
   KnownNat v =>
   (YulVarRegistry r ⊸ YulLVM v v r (Maybe (YulVarRegistry r), b)) ⊸
   YulLVM v v r b
-with_yulvar_registry f = MkLVM \(MkYulLVMCtx ud mbRgstr) ->
-  let ctx' = MkYulLVMCtx ud Nothing
+with_yulvar_registry f = MkLVM \(MkYulLVMCtx vt mbRgstr) ->
+  let ctx' = MkYulLVMCtx vt Nothing {- passing the registry through the continuation directly -}
       !(dict, ctx'', (mbRgstr', b)) = case mbRgstr of
         Just rgstr -> unLVM (f rgstr) ctx'
-        Nothing    -> lseq (error "with_yulvar_registry: registry should exist" :: ()) (UnsafeLinear.coerce (f, ctx'))
-      ud' = case ctx'' of
-        (MkYulLVMCtx ud'' Nothing) -> ud''
-        err                        -> lseq (error "with_yulvar_registry: nonsense" :: ()) (UnsafeLinear.coerce err)
-  in (dict, MkYulLVMCtx ud' mbRgstr', b)
+        Nothing    -> lseq (error "registry was destroyed" :: ()) (UnsafeLinear.coerce (f, ctx'))
+      vt' = case ctx'' of
+        (MkYulLVMCtx vt'' Nothing) -> vt''
+        err                        -> lseq (error "nonsense" :: ()) (UnsafeLinear.coerce err)
+  in (dict, MkYulLVMCtx vt' mbRgstr', b)
 
 --
 -- YulLVM Context
@@ -127,37 +126,54 @@ with_yulvar_registry f = MkLVM \(MkYulLVMCtx ud mbRgstr) ->
 -- | Context needed for the LVM to be a 'YulLVM'.
 data YulLVMCtx r where
   -- ^ All arrows are linear so that no yul ports can escape.
-  MkYulLVMCtx :: YulPortUniter r ⊸ Maybe (YulVarRegistry r) ⊸ YulLVMCtx r
+  MkYulLVMCtx ::
+    VersionThread r          ⊸ -- ^ A version thread for the yul ports.
+    Maybe (YulVarRegistry r) ⊸ -- ^ An operating (Just) or consumed (Nothing) YulVar registry.
+    YulLVMCtx r
 
-mk_yullvm_ctx ::  P'x ie r () ⊸ YulLVMCtx r
-mk_yullvm_ctx u = MkYulLVMCtx (MkYulPortUniter (unsafeCoerceYulPort u)) Nothing
+mk_yullvm_ctx :: forall ioe r. YulO1 r => P'x ioe r () ⊸ YulLVMCtx r
+mk_yullvm_ctx u = MkYulLVMCtx (vtstart u) Nothing
 
-rm_yullvm_ctx :: YulO2 b r => YulLVMCtx r ⊸ P'x oe r b ⊸ P'x oe r b
-rm_yullvm_ctx (MkYulLVMCtx (MkYulPortUniter u) mbRgstr) =
+rm_yullvm_ctx :: forall ioe r. YulO1 r => YulLVMCtx r ⊸ P'x ioe r ()
+rm_yullvm_ctx (MkYulLVMCtx vt mbRgstr) =
   case mbRgstr of
     Nothing -> ()
     err     -> lseq (error "rm_yullvm_ctx: registry not consumed" :: ()) (UnsafeLinear.coerce err)
-  `lseq` ignore'l (unsafeCoerceYulPort u)
+  `lseq` unsafeCoerceYulPort (vtstop vt)
 
 instance YulO2 r a => ContextualConsumable (YulLVMCtx r) (P'x eff r a) where
 
-  contextualConsume (MkYulLVMCtx ud rgstr) x = MkYulLVMCtx (yulPortUniterGulp ud x) rgstr
+  contextualConsume (MkYulLVMCtx vt rgstr) x = MkYulLVMCtx (vtgulp vt x) rgstr
 
-instance YulO3 r a b => ContextualSeqable (YulLVMCtx r) (P'x eff1 r a) (P'x eff2 r b) where
-  contextualSeq (MkYulLVMCtx ud mbRgstr) a b =
-    let ud' = yulPortUniterGulp ud a
-        !(ud'', u') = yulPortUniterMkUnit ud'
-        b' = ignore'l u' b
-    in (MkYulLVMCtx ud'' mbRgstr, b')
+-- { Fine-grained Seqables
+
+instance (YulO3 r a b) => ContextualSeqable (YulLVMCtx r) (P'P r a) (P'P r b) where
+  contextualSeq ctx a b = (ctx, const'l b a)
+
+instance (YulO3 r a b) => ContextualSeqable (YulLVMCtx r) (P'P r a) (P'V vb r b) where
+  contextualSeq ctx a b = (ctx, const'l b (unsafeCoerceYulPort a))
+
+instance (YulO3 r a b) => ContextualSeqable (YulLVMCtx r) (P'V va r a) (P'P r b) where
+  contextualSeq ctx a b = (ctx, const'l b (unsafeCoerceYulPort a))
+
+-- When both ports are versioned, it is important to thread them in the right sequence to avoid out-of-order side
+-- effects.
+instance (KnownNat va, KnownNat vb, va <= vb, YulO3 r a b) =>
+         ContextualSeqable (YulLVMCtx r) (P'V va r a) (P'V vb r b) where
+  contextualSeq (MkYulLVMCtx vt mbRgstr) a b =
+    let !(vt', b') = vtseq (vt, a) b
+    in (MkYulLVMCtx vt' mbRgstr, b')
+
+-- }
 
 instance YulO2 r a => ContextualDupable (YulLVMCtx r) (P'x eff r a) where
   contextualDup ctx x = (ctx, dup'l x)
 
 instance YulO2 r a => ContextualEmbeddable (YulLVMCtx r) (P'x eff r) a where
-  contextualEmbed (MkYulLVMCtx ud mbRgstr) x'p =
-    let !(ud', u') = yulPortUniterMkUnit ud
+  contextualEmbed (MkYulLVMCtx vt mbRgstr) x'p =
+    let !(vt', u') = vtmkunit vt
         x'v = emb'l x'p u'
-    in (MkYulLVMCtx ud' mbRgstr, x'v)
+    in (MkYulLVMCtx vt' mbRgstr, x'v)
 
 instance (KnownNat v, YulO2 a r) => LinearlyVersionRestrictable v (YulLVMCtx r) (P'P r a) where
   type instance LinearlyVersionRestricted (YulLVMCtx r) (P'P r a) v = P'V v r a
@@ -437,7 +453,7 @@ yuncurry_xs f h mk un a =
   in ymkref x LVM.>>= \(Ur xref) ->
     let g = uncurryNP @g @xs @b @m1 @m1b @(m2_ a) @(m2b_ a) @One
             (f xref)
-            (mk (\a' -> ignore'l (discard'l a') xs))
+            (mk (const'l xs))
     in (un g) a2
 
 --
