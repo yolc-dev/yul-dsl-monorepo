@@ -25,9 +25,8 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
   , discard'l, ignore'l, mkUnit'l, emb'l, const'l, dup'l, merge'l, split'l
     -- $WithPureFunctions
   , with'l, withNP'l, withN'l
-  , uncurryNP'lx -- FIXME remove
     -- $VersionThread
-  , VersionThread, vtstart, vtstop, vtmkunit, vtgulp, vtseq
+  , VersionThread, vtstart, vtstop, vtret, vtmkunit, vtgulp, vtseq
   ) where
 -- base
 import Control.Monad                       (replicateM)
@@ -189,28 +188,6 @@ split'l :: forall a b eff r.
   P'x eff r (a, b) ⊸ (P'x eff r a, P'x eff r b)
 split'l ab = let !(a, b) = split (unP'x ab) in (MkP'x a, MkP'x b)
 
--- FIXME: move to LinearYulCat as its internal function.
-uncurryNP'lx :: forall m1 m1b m2_ m2b_ m2' m2b' g x xs b r a ie.
-  ( YulO4 x (NP xs) r a
-  , UncurriableNP g xs b m1 m1b (m2_ a) (m2b_ a) One
-  --
-  , P'x ie r ~ m1
-  , m1 ~ m2'
-  , m1b ~ m2b'
-  ) =>
-  (m1 x ⊸ LiftFunction g m1 m1b One) ->      -- ^ f: m1 x ⊸ m1 (xs ⊸...) ⊸ m1b b; the function to be uncurried
-  (m2' a ⊸ m2' (NP (x : xs))) ->             -- ^ h: m2' (a ⊸ NP xxs)
-  ((m2' a ⊸ m2' (NP xs)) ⊸ m2_ a (NP xs)) -> -- ^ mk: m2' (a ⊸ NP xs) ⊸ m2_ a (NP xs)
-  (m2b_ a b ⊸ (m2' a ⊸ m2b' b)) ->           -- ^ un: m2b_ a b ⊸ (m2' a ⊸ m2b' b)
-  (m2' a ⊸ m2b' b)
-uncurryNP'lx f h mk un a =
-  let !(a1, a2) = dup'l a
-      !(x, xs) = unconsNP (h a1)
-  in let g = uncurryNP @g @xs @b @m1 @m1b @(m2_ a) @(m2b_ a) @One
-             (f x)
-             (mk (const'l xs))
-     in (un g) a2
-
 ------------------------------------------------------------------------------------------------------------------------
 -- $WithPureFunctions
 -- * Process With Pure Yul Functions
@@ -312,11 +289,17 @@ withN'l tpl f = fromNPtoTupleN (withNP'l @f' @x @xs @b @bs (fromTupleNtoNP tpl) 
 -- | A machinery to work with yul port units.
 newtype VersionThread r = MkVersionThread (P'P r ())
 
+-- | Start a version thread from a catalytic input port.
 vtstart :: forall ie a r. YulO2 a r => P'x ie r a ⊸ VersionThread r
 vtstart a = MkVersionThread (unsafeCoerceYulPort (discard'l a))
 
-vtstop :: VersionThread r ⊸ P'P r ()
+-- | Stop the version thread and return a waste port to be collected.
+vtstop :: forall r. VersionThread r ⊸ P'P r ()
 vtstop (MkVersionThread u) = u
+
+-- | Stop the version thread and replace the waste port with a port to be returned.
+vtret :: forall a oe r. YulO2 a r => VersionThread r ⊸ P'x oe r a ⊸ P'x oe r a
+vtret vt a = const'l a (unsafeCoerceYulPort (vtstop vt))
 
 -- | Create a new yul port unit from the version thread, which can be used to thread other ports.
 vtmkunit :: forall eff r. YulO1 r => VersionThread r ⊸ (VersionThread r, P'x eff r ())

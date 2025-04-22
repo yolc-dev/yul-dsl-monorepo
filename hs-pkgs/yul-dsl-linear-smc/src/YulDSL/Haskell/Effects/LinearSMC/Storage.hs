@@ -46,14 +46,14 @@ class ( KnownNat v, KnownNat (v + 1)
 instance ( KnownNat v, KnownNat (v + 1)
          , YulO1 b, ABIWordValue b, VersionableYulPort ie v
          ) => SReferenceable ie v r B32 b where
-  sget s = ypure (encodeP'x YulSGet (ver'l s))
+  sget s = LVM.pure (encodeP'x YulSGet (ver'l s))
   sput s x = encodeP'x YulSPut (merge'l (ver'l s, x))
              & \u -> MkLVM (unsafeAxiom, , unsafeCoerceYulPort u)
 
 instance ( KnownNat v, KnownNat (v + 1)
          , YulO1 a, ABIWordValue a, VersionableYulPort ie v
          ) => SReferenceable ie v r (REF a) a where
-  sget s = ypure (encodeP'x YulSGet (reduceType'l (ver'l s)))
+  sget s = LVM.pure (encodeP'x YulSGet (reduceType'l (ver'l s)))
   sput s x = encodeP'x YulSPut (merge'l (reduceType'l (ver'l s), x))
               & \u -> MkLVM (unsafeAxiom, , unsafeCoerceYulPort u)
 

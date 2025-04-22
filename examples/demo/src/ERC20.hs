@@ -14,51 +14,78 @@ balanceMap :: SHMap ADDR U256
 balanceMap = shmap "Yolc.Demo.ERC20.Storage.AccountBalance"
 
 -- | ERC20 balance of the account.
+-- (TODO: refactor using LVMVar ongoing)
 balanceOf :: StaticFn (ADDR -> U256)
-balanceOf = $lfn $ yullvm'p
-  -- NOTE on naming convention,  "*_p" means port that are still pure;
-  -- use ver'l to tag version to them.
-  \owner_p -> balanceMap `shmapGet` owner_p
+balanceOf = $lfn $ yullvm'pv
+  \(Uv owner'uv) -> LVM.do
+    owner_p <- ytake1 owner'uv
+    balance <- balanceMap `shmapGet` owner_p
+    Ur balanceRef <- ymkref balance
+    LVM.pure balanceRef
 
 -- | ERC20 transfer function.
+-- (TODO: refactor using LVMVar ongoing; it will be just few lines!)
 transfer :: OmniFn (ADDR -> U256 -> BOOL)
-transfer = $lfn $ yullvm'p \to_p amount_p -> LVM.do
-  from_p <- ycaller
+transfer = $lfn $ yullvm'pv
+  \(Uv to'uv) (Uv amount'uv) -> LVM.do
+    Ur (Uv from'uv) <- LVM.do
+      from_p <- ycaller
+      ymkref from_p
 
-  -- get sender balance
-  (from_p, senderBalanceRef_p) <- pass1 from_p (shmapRef balanceMap)
-  -- get receiver balance
-  (to_p, receiverBalanceRef_p) <- pass1 to_p (shmapRef balanceMap)
+    -- get sender balance storage reference
+    senderBalanceRef_p <- LVM.do
+      from_p <- ytake1 from'uv
+      shmapRef balanceMap from_p
 
-  -- calculate new balances
-  let !(newSenderBalance, newReceiverBalance) = with'l @(U256 -> U256 -> U256 -> (U256, U256))
-        ( ver'l amount_p
-        , call balanceOf (ver'l from_p)
-        , call balanceOf (ver'l to_p)
-        ) \amount senderBalance receiverBalance ->
-            be (senderBalance - amount, receiverBalance + amount)
+    -- get receiver balance storage reference
+    receiverBalanceRef_p <- LVM.do
+      to_p <- ytake1 to'uv
+      shmapRef balanceMap to_p
 
-  sputs $
-    senderBalanceRef_p   := newSenderBalance   :|
-    receiverBalanceRef_p := newReceiverBalance :[]
+    -- calculate new balances
+    LVM.do
+      amount <- ytakev1 amount'uv
+      from <- ytakev1 from'uv
+      to <- ytakev1 to'uv
+      let !(newSenderBalance, newReceiverBalance) = with'l @(U256 -> U256 -> U256 -> (U256, U256))
+            ( amount
+            , call balanceOf from
+            , call balanceOf to
+            ) \amount senderBalance receiverBalance ->
+                be (senderBalance - amount, receiverBalance + amount)
 
-  -- always return true as a silly urban-legendary ERC20 convention
-  embed true
+      sputs $
+        senderBalanceRef_p   := newSenderBalance   :|
+        receiverBalanceRef_p := newReceiverBalance :[]
+
+    -- always return true as a silly urban-legendary ERC20 convention
+    yembed true
 
 -- | Mint new tokens
+-- (TODO: refactor using LVMVar ongoing; it will be just few lines!)
 mint :: OmniFn (ADDR -> U256 -> ())
-mint = $lfn $ yullvm'p \to_p amount_p -> LVM.do
-  -- fetch balance of the account
-  (to_p, balanceBefore) <- pass1 to_p \to_p -> ycall balanceOf (ver'l to_p)
+mint = $lfn $ yullvm'pv
+  \(Uv to'uv) (Uv amount'uv) -> LVM.do
+    -- fetch balance of the account
+    balanceBefore <- LVM.do
+      to <- ytakev1 to'uv
+      ycall balanceOf to
 
-  -- use linear port values safely
-  (to_p, amount_p) <- passN_ (to_p, amount_p) \(to_p, amount_p) ->
     -- update balance
-    shmapPut balanceMap to_p (balanceBefore + ver'l amount_p)
+    LVM.do
+      to_p <- ytake1 to'uv
+      amount <- ytakev1 amount'uv
+      let !(MkSolo newAmount) = with'l @(U256 -> U256 -> Solo U256) (balanceBefore, amount) (\x y -> be (x + y))
+      shmapPut balanceMap to_p newAmount
 
-  -- call unsafe external contract onTokenMinted
-  let !(to_p1, to_p2) = dup'l (ver'l to_p)
-  externalCall onTokenMinted to_p1 to_p2 (ver'l amount_p)
+    -- call unsafe external contract onTokenMinted
+    LVM.do
+      to_p1 <- ytake1 to'uv
+      to_p2 <- ytake1 to'uv
+      amount <- ytakev1 amount'uv
+      externalCall onTokenMinted to_p1 (ver'l to_p2) amount
+
+    yembed ()
 
 --
 -- TODO: this should/could be generated from a solidity interface definition file:

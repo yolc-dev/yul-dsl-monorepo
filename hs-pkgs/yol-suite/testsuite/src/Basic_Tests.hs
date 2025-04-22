@@ -12,8 +12,11 @@ embUnit'p = $fn $ \a -> a >.> yulEmb ()
 embTrue'p :: PureFn BOOL
 embTrue'p = $fn $ yulEmb true
 
-embTrue'l :: StaticFn BOOL
-embTrue'l = $lfn $ yullvm'p (embed true)
+embTrue'l :: PureFn BOOL
+embTrue'l = $lfn $ yullvm'pp LVM.do
+  ret <- embed true
+  Ur retref <- ymkref ret
+  LVM.pure retref
 
 revertIfTrue :: PureFn (BOOL -> U256 -> U256)
 revertIfTrue = $fn
@@ -27,65 +30,86 @@ rangeSum'p = $fn \from step until ->
             then call rangeSum'p j step until
             else 0
 
-rangeSum'l :: StaticFn (U256 -> U256 -> U256 -> U256)
-rangeSum'l = $lfn $ yullvm'p
-  \from'p step'p until'p -> ypure $ ver'l $ call rangeSum'p from'p step'p until'p
+rangeSum'l :: PureFn (U256 -> U256 -> U256 -> U256)
+rangeSum'l = $lfn $ yulports'pp
+  \from'p step'p until'p -> call rangeSum'p from'p step'p until'p
 
   -- FIXME: yikes, this is ugly and we need to improve.
--- FIXME: this does't even work
+-- FIXME: this does't even work; codegen error in extcall.
 -- callExternalFoo0 :: OmniFn (ADDR -> U256)
--- callExternalFoo0 = $lfn $ yullvm'v
---  \to -> dup'l to & \(to1, to2) -> externalCall external_foo0 to1 (discard'l to2)
+-- callExternalFoo0 = $lfn $ yullvm'pv
+--  \(Uv to'uv) -> LVM.do
+--    to <- ytakev1 to'uv
+--    u <- embed ()
+--    ret <- externalCall external_foo0 to u
+--    Ur retref <- ymkref ret
+--    LVM.pure retref
 
 callExternalFoo1 :: OmniFn (ADDR -> U256 -> U256)
-callExternalFoo1 = $lfn $ yullvm'v
-  \to val1 -> externalCall external_foo1 to val1
+callExternalFoo1 = $lfn $ yullvm'pv
+  \(Uv to'uv) (Uv val1'uv) -> LVM.do
+    to'p <- ytake1 to'uv
+    val1'p <- ytake1 val1'uv
+    ret <- externalCall external_foo1 (ver'l to'p) (ver'l val1'p)
+    Ur retref <- ymkref ret
+    LVM.pure retref
 
 callExternalFoo2 :: OmniFn (ADDR -> U256 -> U256 -> U256)
-callExternalFoo2 = $lfn $ yullvm'v
-  \to val1 val2 -> externalCall external_foo2 to val1 val2
+callExternalFoo2 = $lfn $ yullvm'vv
+  \(Rv to'rv) (Rv val1'rv) (Rv val2'rv) -> LVM.do
+    to <- ytake1 to'rv
+    val1 <- ytake1 val1'rv
+    val2 <- ytake1 val2'rv
+    ret <- externalCall external_foo2 to val1 val2
+    Ur retref <- ymkref ret
+    LVM.pure retref
 
-sgetTest :: StaticFn (ADDR -> ())
-sgetTest = $lfn $ yullvm'v
-  \ acc -> LVM.do
-    key <- yembed (42 :: U32)
-    ref <- ypure (extendType'l @(REF U256) (keccak256'l (merge'l (key, acc))))
-    toss1 ref
+sgetTest :: StaticFn (ADDR -> U256)
+sgetTest = $lfn $ yullvm'pv
+  \(Uv acc'uv) -> LVM.do
+    acc'p <- ytakev1 acc'uv
+    key <- embed (42 :: U32)
+    ret <- sget (extendType'l @(REF U256) (keccak256'l (merge'l (key, acc'p))))
+    Ur retref <- ymkref ret
+    LVM.pure retref
 
-shmapGetTest :: StaticFn (ADDR -> ())
-shmapGetTest = $lfn $ yullvm'v
-  \acc -> LVM.do
-    ref <- (shmapRef @ADDR @U256) (shmap "YolcStorageTest" :: SHMap ADDR U256) acc
-    toss1 ref
+shmapGetTest :: StaticFn (ADDR -> U256)
+shmapGetTest = $lfn $ yullvm'pv
+  \(Uv acc'uv) -> LVM.do
+    acc'p <- ytakev1 acc'uv
+    sslot <- (shmapRef @ADDR @U256) (shmap "shmapGetTest" :: SHMap ADDR U256) acc'p
+    ret <- sget sslot
+    Ur refref <- ymkref ret
+    LVM.pure refref
 
 varSharing :: PureFn (U256 -> U256 -> U256 -> U256)
 varSharing = $fn \a b c ->
   let z = a + b * c in z * z
 
-varSharingL :: StaticFn (U256 -> U256 -> U256 -> U256)
-varSharingL = $lfn $ yullvm'p \a b c ->
-  let z = a + b * c in dup'l z & \(z1, z2) -> ypure (ver'l (z1 * z2))
+varSharingL :: PureFn (U256 -> U256 -> U256 -> U256)
+varSharingL = $lfn $ yulports'pp
+  \a b c ->
+  let z = a + b * c in dup'l z & uncurry (*) -- (z1, z2) -> z1 * z2
 
-lvmvar_test1 :: StaticFn (U256 -> U256)
-lvmvar_test1 = $lfn $ yullvm'p
-  \x -> LVM.do
-    let !(x1, x2') = dup'l (ver'l x)
-        !(x2, x3)  = dup'l x2'
-    ypure (x1 + x2 * x3)
-
-lvmvar_test2 :: PureFn (U256 -> U256 -> U256)
-lvmvar_test2 = $lfn $ yullvm'pp
+lvmvar_test1 :: PureFn (U256 -> U256 -> U256)
+lvmvar_test1 = $lfn $ yullvm'pp
   \(Uv x_) (Uv y_) -> LVM.do
     (MkSolo r) <- ywithUv @(U256 -> U256 -> Solo U256) (Uv x_, Uv y_) \x y -> be (x * y + y)
     LVM.pure r
 
-lvmvar_test3 :: PureFn (U256)
-lvmvar_test3 = $lfn $ yullvm'pp $
-  LVM.do
-    b <- embed (42 :: U256)
-    let !(b1, b2) = dup'l b
-    Ur bvar <- ymkref (b1 + b2)
-    LVM.pure bvar
+lvmvar_test2 :: PureFn (U256)
+lvmvar_test2 = $lfn $ yullvm'pp LVM.do
+  b <- embed (42 :: U256)
+  let !(b1, b2) = dup'l b
+  Ur bvar <- ymkref (b1 + b2)
+  LVM.pure bvar
+
+lvmvar_test3 :: StaticFn (U256)
+lvmvar_test3 = $lfn $ yullvm'pv LVM.do
+  b <- embed (42 :: U256)
+  let !(b1, b2) = dup'l b
+  Ur bvar <- ymkref (b1 + b2)
+  LVM.pure bvar
 
 lvmvar_test4 :: StaticFn (U256 -> U256 -> U256)
 lvmvar_test4 = $lfn $ yullvm'vv
@@ -100,10 +124,11 @@ object = mkYulObject "BasicTests" yulNoop
   [ pureFn   "embUnit$p" embUnit'p
   , pureFn   "embTrue$p" embTrue'p
   , pureFn   "revertIfTrue" revertIfTrue
-  , staticFn "embTrue$l" embTrue'l
+  , pureFn "embTrue$l" embTrue'l
   , pureFn   "rangeSum$p" rangeSum'p
-  , staticFn "rangeSum$l" rangeSum'l
--- , omniFn   "callExternalFoo0" callExternalFoo0
+  , pureFn "rangeSum$l" rangeSum'l
+
+--  , omniFn   "callExternalFoo0" callExternalFoo0
   , omniFn   "callExternalFoo1" callExternalFoo1
   , omniFn   "callExternalFoo2" callExternalFoo2
 
@@ -111,11 +136,11 @@ object = mkYulObject "BasicTests" yulNoop
   , staticFn "shmapGetTest" shmapGetTest
 
   , pureFn "varSharing" varSharing
-  , staticFn "varSharingL" varSharingL
+  , pureFn "varSharingL" varSharingL
 
-  , staticFn "lvmvar_test1" lvmvar_test1
+  , pureFn "lvmvar_test1" lvmvar_test1
   , pureFn   "lvmvar_test2" lvmvar_test2
-  , pureFn   "lvmvar_test3" lvmvar_test3
+  , staticFn   "lvmvar_test3" lvmvar_test3
   , staticFn "lvmvar_test4" lvmvar_test4
   ]
 

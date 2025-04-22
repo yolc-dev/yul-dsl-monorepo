@@ -182,9 +182,10 @@ class KnownNat vd => YulLVMCallableFunctionNil fn vd | fn -> vd where
     ) =>
     fn -> YulLVM va (va + vd) r (P'V (va + vd) r b)
   ycall0 f = LVM.do
-    u <- yembed ()
-    let f' = withKnownNamedYulCat f unsafeCoerceNamedYulCat :: NamedYulCat (VersionedInputOutput vd) (NP '[]) b
-    encodeWith'l (YulJmpU f') (LVM.unsafeCoerceLVM . LVM.pure) (coerceType'l u)
+    u <- embed ()
+    let f' = withKnownNamedYulCat f unsafeCoerceNamedYulCat
+    encodeWith'l @(VersionedInputOutput vd) @(VersionedPort va)
+      (YulJmpU f') (LVM.unsafeCoerceLVM . LVM.pure) (coerceType'l u)
 
 instance YulLVMCallableFunctionNil (PureFn f) 0
 instance YulLVMCallableFunctionNil (StaticFn f) 0
@@ -206,9 +207,9 @@ class YulLVMCallableFunctionN fn f xs b r va vd | fn -> vd where
     YulLVM va (va + vd) r (P'V (va + vd) r b)
 
 instance KnownNat va => YulLVMCallableFunctionN (PureFn b) b '[] b r va 0 where
-  ycallN (MkPureFn f) () = yembed () LVM.>>= \u ->
-    let f' = unsafeCoerceNamedYulCat f :: NamedYulCat (VersionedInputOutput 0) (NP '[]) b
-    in encodeWith'l (YulJmpU f') ypure (coerceType'l u)
+  ycallN (MkPureFn f) () = embed () LVM.>>= \u ->
+    encodeWith'l @(VersionedInputOutput 0) @(VersionedPort va)
+    (YulJmpU (unsafeCoerceNamedYulCat f)) LVM.pure (coerceType'l u)
 
 instance forall f x xs b r va.
          ( KnownNat va
@@ -216,10 +217,10 @@ instance forall f x xs b r va.
          , LinearDistributiveNP (P'V va r) (x:xs)
          ) =>
          YulLVMCallableFunctionN (PureFn f) f (x:xs) b r va 0 where
-  ycallN (MkPureFn f) tpl = yembed () LVM.>>= \u ->
+  ycallN (MkPureFn f) tpl = embed () LVM.>>= \u ->
     let f' = unsafeCoerceNamedYulCat f :: NamedYulCat (VersionedInputOutput 0) (NP (x:xs)) b
         xxs = linearDistributeNP (fromTupleNtoNP tpl) u :: P'V va r (NP (x:xs))
-    in encodeWith'l (YulJmpU f') ypure xxs
+    in encodeWith'l (YulJmpU f') LVM.pure xxs
 
 instance YulLVMCallableFunctionN (PureFn f) f xs b r va 0 =>
          YulLVMCallableFunctionN (StaticFn f) f xs b r va 0 where
@@ -227,9 +228,9 @@ instance YulLVMCallableFunctionN (PureFn f) f xs b r va 0 =>
 
 instance ( KnownNat va, KnownNat (va + 1), va <= va + 1
          ) => YulLVMCallableFunctionN (OmniFn b) b '[] b r va 1 where
-  ycallN (MkOmniFn f) () = yembed () LVM.>>= \u ->
-    let f' = unsafeCoerceNamedYulCat f :: NamedYulCat (VersionedInputOutput 1) (NP '[]) b
-    in encodeWith'l (YulJmpU f') (LVM.unsafeCoerceLVM . LVM.pure) (coerceType'l u)
+  ycallN (MkOmniFn f) () = embed () LVM.>>= \u ->
+    encodeWith'l @(VersionedInputOutput 1) @(VersionedPort va)
+    (YulJmpU (unsafeCoerceNamedYulCat f)) (LVM.unsafeCoerceLVM . LVM.pure) (coerceType'l u)
 
 instance forall f x xs b r va.
          ( KnownNat va, KnownNat (va + 1), va <= va + 1
@@ -238,7 +239,7 @@ instance forall f x xs b r va.
          , ConvertibleNPtoTupleN (NP (MapList (P'V va r) (x:xs)))
          ) =>
          YulLVMCallableFunctionN (OmniFn f) f (x:xs) b r va 1 where
-  ycallN (MkOmniFn f) tpl = yembed () LVM.>>= \u ->
+  ycallN (MkOmniFn f) tpl = embed () LVM.>>= \u ->
     let f' = unsafeCoerceNamedYulCat f :: NamedYulCat (VersionedInputOutput 1) (NP (x:xs)) b
         xxs = linearDistributeNP (fromTupleNtoNP tpl) u :: P'V va r (NP (x:xs))
     in encodeWith'l (YulJmpU f') (LVM.unsafeCoerceLVM . LVM.pure) xxs
