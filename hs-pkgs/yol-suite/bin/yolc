@@ -60,11 +60,11 @@ do_runyol() {
     "${CABAL[@]}" "$@" clean 1>&2;
   fi
 
-  if "${CABAL[@]}" "$@" build runyol 1>&2; then
+  "${CABAL[@]}" "$@" build runyol 1>&2 && {
     debug "+ exec: $runbin"
     "$runbin" || die
     debug "- exec: $runbin"
-  fi
+  }
 }
 
 maybe_update_file() {
