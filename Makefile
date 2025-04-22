@@ -62,7 +62,7 @@ LINEAR_SMC_PATH_FILE = 3rd-parties/linear-smc-$(LINEAR_SMC_VERSION).patch
 
 ALL_YULDSL_MODULES = simple-sop eth-abi yul-dsl yul-dsl-pure yul-dsl-linear-smc yol-suite
 
-DEV_TARGETS = build-dist test-all test-yol-suite test-demo-foundry lint
+DEV_TARGETS = build-all test-all test-yol-suite test-demo-foundry lint
 
 all: lint build test
 
@@ -72,8 +72,11 @@ lint:
 
 build: build-dist build-docs
 
-build-dist:
+build-all: build-dist
 	$(CABAL_BUILD) all
+
+build-dist:
+	$(CABAL_BUILD) $(ALL_YULDSL_MODULES)
 
 	@cd $(CABAL_DEFAULT_BUILD_DIR); find build -path '*/t' -prune -o -type f -print \
 		| xargs tar c \
