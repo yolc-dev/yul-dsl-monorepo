@@ -18,6 +18,7 @@ TODO
 - [ ] Support Function object, hence closed cartesion; instead of the off-the-band NamedYuCat
       construct.
 - [ ] Haddock doc cleanup and prettifying.
+- [ ] Use more GHC warning options https://github.com/Kleidukos/print-api/blob/main/print-api.cabal#L39-L43.
 
 ## TODOs for 0.1.0.0
 
