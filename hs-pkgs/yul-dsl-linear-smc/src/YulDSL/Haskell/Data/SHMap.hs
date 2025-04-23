@@ -24,7 +24,7 @@ shmapRef :: forall a b ie r v.
   ) =>
   SHMap a b ->
   P'x ie r a ⊸
-  YulLVM v v r (P'x ie r (REF b))
+  YLVM v v r (P'x ie r (REF b))
 shmapRef (SHMap key) a = LVM.do
   key' <- embed key
   LVM.pure (extendType'l (keccak256'l (merge'l (key', a))))
@@ -36,7 +36,7 @@ shmapGet :: forall a b ie r v.
   ) =>
   SHMap a b ->
   P'x ie r a ⊸
-  YulLVM v v r (P'V v r b)
+  YLVM v v r (P'V v r b)
 shmapGet m a = shmapRef m a LVM.>>= sget
 
 -- | Get a value from the storage hash-map.
@@ -47,5 +47,5 @@ shmapPut :: forall a b ie r v.
   SHMap a b ->
   P'x ie r a ⊸
   P'V v r b ⊸
-  YulLVM v (v + 1) r (P'V (v + 1) r ())
+  YLVM v (v + 1) r (P'V (v + 1) r ())
 shmapPut m a b = shmapRef m a LVM.>>= \s -> sput s b

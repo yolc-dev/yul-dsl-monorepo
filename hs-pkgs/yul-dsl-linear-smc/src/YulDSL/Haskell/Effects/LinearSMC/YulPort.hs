@@ -22,11 +22,11 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
     -- $TypeOps
   , coerceType'l, reduceType'l, extendType'l
     -- $GeneralOps
-  , discard'l, ignore'l, mkUnit'l, emb'l, const'l, dup'l, merge'l, split'l
+  , discard'l, ignore'l, mkunit'l, emb'l, const'l, dup'l, merge'l, split'l
     -- $WithPureFunctions
   , with'l, withNP'l, withN'l
     -- $VersionThread
-  , VersionThread, vtstart, vtstop, vtret, vtmkunit, vtgulp, vtseq
+  , VersionThread, vtstart, vtstart_, vtstop, vtreturn, vtmkunit, vtgulp, vtseq
   ) where
 -- base
 import Control.Monad                       (replicateM)
@@ -153,10 +153,10 @@ ignore'l :: forall a eff r.
 ignore'l u a = MkP'x $ ignore (unP'x u) (unP'x a)
 
 -- | Create a unit yul port with the help of another yul port.
-mkUnit'l :: forall a eff r.
+mkunit'l :: forall a eff r.
   YulO2 r a =>
   P'x eff r a ⊸ (P'x eff r a, P'x eff r ())
-mkUnit'l a = mkUnit (unP'x a) & \ (a', u) -> (MkP'x a', MkP'x u)
+mkunit'l a = mkUnit (unP'x a) & \ (a', u) -> (MkP'x a', MkP'x u)
 
 -- | Embed a free value to a yul port diagram that discards any input yul ports.
 emb'l :: forall a b eff r.
@@ -230,7 +230,7 @@ with'l :: forall f x xs b bs r ioe m1 m2 btpl.
   NPtoTupleN (NP (MapList m1 (b:bs)))
 with'l tpl f =
   let !(x, xs) = splitNonEmptyNP (fromTupleNtoNP tpl)
-      !(x', u) = mkUnit'l x
+      !(x', u) = mkunit'l x
       sxxs = linearDistributeNP (x' :* xs) u
       cat = uncurryNP @f @(x:xs) @btpl @m2 @m2 @m2 @m2 f YulId
   in is (encodeP'x (YulUnsafeCoerceEffect cat) sxxs)
@@ -248,7 +248,7 @@ withNP'l :: forall f x xs b bs r ioe m1 m2.
   NP (MapList m1 (b:bs))
 withNP'l xxs f =
   let !(x, xs) = splitNonEmptyNP xxs
-      !(x', u) = mkUnit'l x
+      !(x', u) = mkunit'l x
       txxs = sequenceNP (YulId :: m2 (NP (x:xs)))
       sxxs = linearDistributeNP (x' :* xs) u
       sbbs = encodeP'x (YulUnsafeCoerceEffect (f txxs)) sxxs
@@ -288,18 +288,23 @@ withN'l tpl f = fromNPtoTupleN (withNP'l @f' @x @xs @b @bs (fromTupleNtoNP tpl) 
 
 -- | A machinery to work with yul port units.
 newtype VersionThread r = MkVersionThread (P'P r ())
+type role VersionThread nominal
 
--- | Start a version thread from a catalytic input port.
-vtstart :: forall ie a r. YulO2 a r => P'x ie r a ⊸ VersionThread r
-vtstart a = MkVersionThread (unsafeCoerceYulPort (discard'l a))
+-- | Start a version thread from a catalytic input port and replicate the input too.
+vtstart :: forall ie a r. YulO2 a r => P'x ie r a ⊸ (VersionThread r, P'x ie r a)
+vtstart a = let !(a1, a2) = dup'l a in (MkVersionThread (unsafeCoerceYulPort (discard'l a1)), a2)
+
+-- | Start a version thread from a catalytic input port and discard the input.
+vtstart_ :: forall ie a r. YulO2 a r => P'x ie r a ⊸ VersionThread r
+vtstart_ a = MkVersionThread (unsafeCoerceYulPort (discard'l a))
 
 -- | Stop the version thread and return a waste port to be collected.
 vtstop :: forall r. VersionThread r ⊸ P'P r ()
 vtstop (MkVersionThread u) = u
 
 -- | Stop the version thread and replace the waste port with a port to be returned.
-vtret :: forall a oe r. YulO2 a r => VersionThread r ⊸ P'x oe r a ⊸ P'x oe r a
-vtret vt a = const'l a (unsafeCoerceYulPort (vtstop vt))
+vtreturn :: forall a oe r. YulO2 a r => VersionThread r ⊸ P'x oe r a ⊸ P'x oe r a
+vtreturn vt a = const'l a (unsafeCoerceYulPort (vtstop vt))
 
 -- | Create a new yul port unit from the version thread, which can be used to thread other ports.
 vtmkunit :: forall eff r. YulO1 r => VersionThread r ⊸ (VersionThread r, P'x eff r ())

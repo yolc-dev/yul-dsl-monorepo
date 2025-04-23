@@ -33,15 +33,15 @@ import Control.LinearlyVersionedMonad.LVM       (LVM (MkLVM))
 import Control.LinearlyVersionedMonad.LVM       qualified as LVM
 import Data.LinearContext                       (contextualEmbed)
 --
-import YulDSL.Haskell.Effects.LinearSMC.YulLVM
+import YulDSL.Haskell.Effects.LinearSMC.YLVM
 import YulDSL.Haskell.Effects.LinearSMC.YulPort
 
 
 class ( KnownNat v, KnownNat (v + 1)
       , YulO2 a b, VersionableYulPort ie v
       ) => SReferenceable ie v r a b where
-  sget :: forall. YulO1 r => P'x ie r a ⊸ YulLVM v v r (P'V v r b)
-  sput :: forall. YulO1 r => P'x ie r a ⊸ P'V v r b ⊸ YulLVM v (v + 1) r (P'V (v + 1) r ())
+  sget :: forall. YulO1 r => P'x ie r a ⊸ YLVM v v r (P'V v r b)
+  sput :: forall. YulO1 r => P'x ie r a ⊸ P'V v r b ⊸ YLVM v (v + 1) r (P'V (v + 1) r ())
 
 instance ( KnownNat v, KnownNat (v + 1)
          , YulO1 b, ABIWordValue b, VersionableYulPort ie v
@@ -62,7 +62,7 @@ instance ( KnownNat v, KnownNat (v + 1)
 ------------------------------------------------------------------------------------------------------------------------
 
 class (KnownNat v, YulO1 r) => SGettableNP v r a b where
-  sgetNP :: forall. a ⊸ YulLVM v v r b
+  sgetNP :: forall. a ⊸ YLVM v v r b
 
 instance (KnownNat v, YulO1 r) => SGettableNP v r (NP '[]) (NP '[]) where
   sgetNP Nil = LVM.pure Nil
@@ -81,15 +81,15 @@ sgetN :: forall tpl_a tpl_b v r.
   ( KnownNat v
   , ConvertibleTupleNtoNP tpl_a, ConvertibleTupleNtoNP tpl_b
   , SGettableNP v r (TupleNtoNP tpl_a) (TupleNtoNP tpl_b)
-  ) => tpl_a ⊸ YulLVM v v r tpl_b
+  ) => tpl_a ⊸ YLVM v v r tpl_b
 sgetN tpl_a = let np_a = fromTupleNtoNP tpl_a
-                  np_b = sgetNP np_a :: YulLVM v v r (TupleNtoNP tpl_b)
+                  np_b = sgetNP np_a :: YLVM v v r (TupleNtoNP tpl_b)
               in np_b LVM.>>= LVM.pure . fromNPtoTupleN
 
 (<==) :: forall tpl_a tpl_b v r.
   ( ConvertibleTupleNtoNP tpl_a, ConvertibleTupleNtoNP tpl_b
   , SGettableNP v r (TupleNtoNP tpl_a) (TupleNtoNP tpl_b)
-  ) => tpl_a ⊸ YulLVM v v r tpl_b
+  ) => tpl_a ⊸ YLVM v v r tpl_b
 (<==) = sgetN
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -97,7 +97,7 @@ sgetN tpl_a = let np_a = fromTupleNtoNP tpl_a
 ------------------------------------------------------------------------------------------------------------------------
 
 class (KnownNat v, KnownNat (v + 1), YulO1 r) => SPuttableNP v r a where
-  sputNP :: forall. a ⊸ YulLVM v (v + 1) r (P'V (v + 1) r ())
+  sputNP :: forall. a ⊸ YLVM v (v + 1) r (P'V (v + 1) r ())
 
 instance (KnownNat v, KnownNat (v + 1), YulO1 r) => SPuttableNP v r (NP '[]) where
   sputNP Nil = MkLVM \ctx -> let !(ctx', u) = contextualEmbed ctx ()
@@ -108,15 +108,15 @@ instance ( KnownNat v, KnownNat (v + 1), YulO1 r
          , SReferenceable ie v r a b
          , SPuttableNP v r (NP xs)
          ) => SPuttableNP v r (NP ((P'x ie r a, P'V v r b):xs)) where
-  sputNP ((a, b) :* xs) = let x'  = sput a b :: YulLVM v (v + 1) r (P'V (v + 1) r ())
-                              x'' = LVM.unsafeCoerceLVM x' :: YulLVM v v r (P'V (v + 1) r ())
-                              xs' = sputNP xs :: YulLVM v (v + 1) r (P'V (v + 1) r ())
+  sputNP ((a, b) :* xs) = let x'  = sput a b :: YLVM v (v + 1) r (P'V (v + 1) r ())
+                              x'' = LVM.unsafeCoerceLVM x' :: YLVM v v r (P'V (v + 1) r ())
+                              xs' = sputNP xs :: YLVM v (v + 1) r (P'V (v + 1) r ())
                           in x'' LVM.>> xs'
 
 sputN :: forall tpl v r.
   ( ConvertibleTupleNtoNP tpl
   , SPuttableNP v r (TupleNtoNP tpl)
-  ) => tpl ⊸ YulLVM v (v + 1) r (P'V (v + 1) r ())
+  ) => tpl ⊸ YLVM v (v + 1) r (P'V (v + 1) r ())
 sputN tpl = sputNP (fromTupleNtoNP tpl)
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -125,15 +125,15 @@ sputN tpl = sputNP (fromTupleNtoNP tpl)
 
 data StorageAssignment v r = forall a b ie. SReferenceable ie v r a b => P'x ie r a := P'V v r b
 
-sassign :: forall v r. YulO1 r => StorageAssignment v r ⊸ YulLVM v (v + 1) r (P'V (v + 1) r ())
+sassign :: forall v r. YulO1 r => StorageAssignment v r ⊸ YLVM v (v + 1) r (P'V (v + 1) r ())
 sassign (to := x) = sput to x
 
 sputs :: forall v r.
   ( KnownNat v, KnownNat (v + 1), YulO1 r
-  ) => NonEmpty (StorageAssignment v r) ⊸ YulLVM v (v + 1) r (P'V (v + 1) r ())
+  ) => NonEmpty (StorageAssignment v r) ⊸ YLVM v (v + 1) r (P'V (v + 1) r ())
 sputs (sa :| []) = sassign sa
 sputs (sa :| (sa':sas)) =
-  let x  = sassign sa LVM.>>= LVM.pure . unsafeCoerceYulPort:: YulLVM v (v + 1) r (P'V v r ())
-      x' = LVM.unsafeCoerceLVM x :: YulLVM v v r (P'V v r ())
+  let x  = sassign sa LVM.>>= LVM.pure . unsafeCoerceYulPort:: YLVM v (v + 1) r (P'V v r ())
+      x' = LVM.unsafeCoerceLVM x :: YLVM v v r (P'V v r ())
       xs = sputs (sa' :| sas)
   in x' LVM.>> xs

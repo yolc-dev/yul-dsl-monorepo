@@ -13,16 +13,16 @@ This module re-exports all modules required for YulDSL/Haskell's LinearSMC suppo
 -}
 module YulDSL.Haskell.Effects.LinearSMC
   ( module YulDSL.Haskell.Effects.LinearSMC.YulPort
-  , module YulDSL.Haskell.Effects.LinearSMC.YulLVM
+  , module YulDSL.Haskell.Effects.LinearSMC.YLVM
   , module YulDSL.Haskell.Effects.LinearSMC.LinearYulCat
   , module YulDSL.Haskell.Effects.LinearSMC.LinearFn
-  -- * YulLVM Combinators
+  -- * YLVM Combinators
   , module YulDSL.Haskell.Effects.LinearSMC.Storage
   ) where
 
 import YulDSL.Haskell.Effects.LinearSMC.LinearFn
 import YulDSL.Haskell.Effects.LinearSMC.LinearYulCat
-import YulDSL.Haskell.Effects.LinearSMC.YulLVM
+import YulDSL.Haskell.Effects.LinearSMC.YLVM
 import YulDSL.Haskell.Effects.LinearSMC.YulPort
 --
 import YulDSL.Haskell.Effects.LinearSMC.Storage
