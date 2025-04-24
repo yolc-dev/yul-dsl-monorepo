@@ -23,7 +23,6 @@ common yol-module-options
     ghc-options:          -Wall
                           -Wcompat
                           -Wunused-packages
-                          -Wno-name-shadowing
                           -Wno-missing-signatures
     default-extensions:   UnicodeSyntax
                           ViewPatterns

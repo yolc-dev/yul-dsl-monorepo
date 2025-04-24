@@ -65,13 +65,13 @@ bar0 :: StaticFn (U256)
 bar0 = $lfn $ yullvm'pv LVM.do
   -- FIXME: ugly
   u :: P'P r () <- embed ()
-  ypure (call foo0 (ver'l u))
+  ymkref (call foo0 (ver'l u))
 
 bar1 :: StaticFn (U256 -> U256)
 bar1 = $lfn $ yullvm'pv
   \(Uv x1'uv) -> LVM.do
     x1 <- ytakev1 x1'uv
-    ypure (call foo1 x1)
+    ymkref (call foo1 x1)
 
 bar3 :: StaticFn (U256 -> U256 -> U256 -> U256)
 bar3 = $lfn $ yullvm'pv
@@ -79,7 +79,7 @@ bar3 = $lfn $ yullvm'pv
     x1 <- ytakev1 x1'uv
     x2 <- ytakev1 x2'uv
     x3 <- ytakev1 x3'uv
-    ypure (x1 + x2 + x3)
+    ymkref (x1 + x2 + x3)
 
 --------------------------------------------------------------------------------
 -- working with PureY
@@ -124,10 +124,8 @@ tuple2_input = $lfn $ yulports'vv
 
 fooSPut :: OmniFn (B32 -> U256 -> ())
 fooSPut = $lfn $ yullvm'pv
-  \(Uv s'uv) (Uv val'uv) -> LVM.do
-    s_p <- ytake1 s'uv
-    val <- ytakev1 val'uv
-    sput s_p val
+  \(Uv slot) (Uv val) -> LVM.do
+    sput slot val
     yembed ()
 
 callSPut :: OmniFn (B32 -> U256 -> ())

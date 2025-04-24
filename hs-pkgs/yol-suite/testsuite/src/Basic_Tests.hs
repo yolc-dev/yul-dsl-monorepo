@@ -21,10 +21,10 @@ revertIfTrue = $fn
 
 -- Test function recursion; but it will reach stack limit of EVM.
 rangeSum'p :: PureFn (U256 -> U256 -> U256 -> U256)
-rangeSum'p = $fn \from step until ->
+rangeSum'p = $fn \from step til ->
   let j = from + step
-  in from + if j <= until
-            then call rangeSum'p j step until
+  in from + if j <= til
+            then call rangeSum'p j step til
             else 0
 
 rangeSum'l :: PureFn (U256 -> U256 -> U256 -> U256)
@@ -47,7 +47,7 @@ callExternalFoo1 = $lfn $ yullvm'pv
   \(Uv to'uv) (Uv val1'uv) -> LVM.do
     to'p <- ytake1 to'uv
     val1'p <- ytake1 val1'uv
-    ypure LVM.=<< externalCall external_foo1 (ver'l to'p) (ver'l val1'p)
+    ymkref LVM.=<< externalCall external_foo1 (ver'l to'p) (ver'l val1'p)
 
 callExternalFoo2 :: OmniFn (ADDR -> U256 -> U256 -> U256)
 callExternalFoo2 = $lfn $ yullvm'vv
@@ -55,21 +55,20 @@ callExternalFoo2 = $lfn $ yullvm'vv
     to <- ytake1 to'rv
     val1 <- ytake1 val1'rv
     val2 <- ytake1 val2'rv
-    ypure LVM.=<< externalCall external_foo2 to val1 val2
+    ymkref LVM.=<< externalCall external_foo2 to val1 val2
 
 sgetTest :: StaticFn (ADDR -> U256)
 sgetTest = $lfn $ yullvm'pv
   \(Uv acc'uv) -> LVM.do
-    acc'p <- ytakev1 acc'uv
-    key <- embed (42 :: U32)
-    ypure LVM.=<< sget (extendType'l @(REF U256) (keccak256'l (merge'l (key, acc'p))))
+    acc_p <- ytakev1 acc'uv
+    key_p <- embed (42 :: U32)
+    ymkref (sget'l (extendType'l @(REF U256) (keccak256'l (merge'l (key_p, acc_p)))))
 
 shmapGetTest :: StaticFn (ADDR -> U256)
 shmapGetTest = $lfn $ yullvm'pv
-  \(Uv acc'uv) -> LVM.do
-    acc'p <- ytakev1 acc'uv
-    sslot <- (shmapRef @ADDR @U256) (shmap "shmapGetTest" :: SHMap ADDR U256) acc'p
-    ypure LVM.=<< sget sslot
+  \(Uv acc) -> LVM.do
+    Uv sslot <- shmapRef (shmap "shmapGetTest" :: SHMap ADDR U256) acc
+    sget sslot
 
 varSharing :: PureFn (U256 -> U256 -> U256 -> U256)
 varSharing = $fn \a b c ->
@@ -90,13 +89,13 @@ lvmvar_test2 :: PureFn (U256)
 lvmvar_test2 = $lfn $ yullvm'pp LVM.do
   b <- embed (42 :: U256)
   let !(b1, b2) = dup'l b
-  ypure (b1 + b2)
+  ymkref (b1 + b2)
 
 lvmvar_test3 :: StaticFn (U256)
 lvmvar_test3 = $lfn $ yullvm'pv LVM.do
   b <- embed (42 :: U256)
   let !(b1, b2) = dup'l b
-  ypure (b1 + b2)
+  ymkref (b1 + b2)
 
 lvmvar_test4 :: StaticFn (U256 -> U256 -> U256)
 lvmvar_test4 = $lfn $ yullvm'vv
@@ -104,7 +103,7 @@ lvmvar_test4 = $lfn $ yullvm'vv
     x1 <- ytake1 x
     x2 <- ytake1 x
     y1 <- ytake1 y
-    ypure (x1 + x2 * y1)
+    ymkref (x1 + x2 * y1)
 
 object = mkYulObject "BasicTests" yulNoop
   [ pureFn   "embUnit$p" embUnit'p

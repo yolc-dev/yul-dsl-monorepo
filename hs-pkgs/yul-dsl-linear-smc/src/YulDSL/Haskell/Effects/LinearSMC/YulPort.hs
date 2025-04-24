@@ -30,7 +30,7 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
   ) where
 -- base
 import Control.Monad                       (replicateM)
-import GHC.TypeLits                        (KnownNat, type (<=))
+import GHC.TypeLits                        (type (<=))
 import Prelude                             qualified as BasePrelude
 -- template-haskell
 import Language.Haskell.TH                 qualified as TH
@@ -322,9 +322,9 @@ vtgulp (MkVersionThread u) x = MkVersionThread (ignore'l u (unsafeCoerceYulPort 
 --
 -- * Threading is important when dealing with ports generated from side effects.
 vtseq :: forall a b va vb r.
-  (KnownNat va, KnownNat vb, va <= vb, YulO3 a b r) =>
-  (VersionThread r, P'V va r a) ⊸ P'V vb r b ⊸ (VersionThread r, P'V vb r b)
-vtseq (vt, a) b =
+  (va <= vb, YulO3 a b r) =>
+  VersionThread r ⊸ P'V va r a ⊸ P'V vb r b ⊸ (VersionThread r, P'V vb r b)
+vtseq vt a b =
   let vt' = vtgulp vt a
       !(vt'', u) = vtmkunit vt'
   in (vt'', ignore'l u b)
