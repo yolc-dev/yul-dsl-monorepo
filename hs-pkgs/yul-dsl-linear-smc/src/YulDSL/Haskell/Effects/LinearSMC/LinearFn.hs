@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
+{-# LANGUAGE DefaultSignatures      #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE TemplateHaskell        #-}
 {-# LANGUAGE UndecidableInstances   #-}
@@ -142,54 +143,60 @@ instance forall f x xs b va g r.
   call (MkStaticFn f) = call (MkPureFn (unsafeCoerceNamedYulCat f))
 
 --
--- ycall
+-- ycall, ycall0
 --
 
-class YLVMCallableFunctionNP fn vd | fn -> vd where
-  ycall :: forall xs x b va vb g r fncls.
+class YulO2 (NP xs) b => YCallableFunction fn xs b vd | fn -> xs b vd where
+  -- | Get function object from fn
+  ycall_get_funcobj:: fn -> YulCat (VersionedInputOutput vd) (NP xs) b
+  default ycall_get_funcobj :: forall fncls.
+    KnownNamedYulCat fn fncls (NP xs) b =>
+    fn -> YulCat (VersionedInputOutput vd) (NP xs) b
+  ycall_get_funcobj f = YulJmpU (withKnownNamedYulCat f unsafeCoerceNamedYulCat)
+
+instance (YulO2 (NP xs) b, EquivalentNPOfFunction f xs b) => YCallableFunction (PureFn f)   xs b 0
+instance (YulO2 (NP xs) b, EquivalentNPOfFunction f xs b) => YCallableFunction (StaticFn f) xs b 0
+instance (YulO2 (NP xs) b, EquivalentNPOfFunction f xs b) => YCallableFunction (OmniFn f)   xs b 1
+
+class YCallableFunction fn (x:xs) b vd => YCallableFunctionNonNil fn x xs b vd | fn -> x xs b vd where
+  ycall :: forall va vb g r.
     ( KnownNat va, KnownNat vb, va <= vb
-    , YulO4 x (NP xs) b r
+    , YulO3 r x (NP xs)
     , va + vd ~ vb
-    , KnownNamedYulCat fn fncls (NP (x:xs)) b
-    , CurriableNP g xs (P'V vb r b) (P'V va r) (YLVM va vb r) (YulCat'LVV va va r ()) One
+    , CurriableNP g xs (Rv vb r b) (Rv va r) (YLVM va vb r) (YulCat'LVV va va r ()) One
+    , MakeableYulVarRef vb r (P'V vb r) (Rv vb r)
     ) =>
     fn ->
-    P'V va r x ⊸
-    LiftFunction (CurryNP (NP xs) (P'V vb r b)) (P'V va r) (YLVM va vb r) One
-  ycall f x =
-    let f' = withKnownNamedYulCat f unsafeCoerceNamedYulCat :: NamedYulCat (VersionedInputOutput vd) (NP (x:xs)) b
-        !(x', u) = mkunit'l x
-    in curryNP @g @xs @(P'V vb r b) @(P'V va r) @(YLVM va vb r) @(YulCat'LVV va va r ()) @One
-       \(MkYulCat'LVV fxs) -> encodeWith'l
-                              (YulJmpU f')
-                              (LVM.unsafeCoerceLVM . LVM.pure)
-                              $ consNP x' (fxs u)
+    (Rv va r x ⊸ LiftFunction (CurryNP (NP xs) (Rv vb r b)) (Rv va r) (YLVM va vb r) One)
+  ycall f (Rv xvar) =
+    curryNP @g @xs @(Rv vb r b) @(Rv va r) @(YLVM va vb r) @(YulCat'LVV va va r ()) @One
+      \(MkYulCat'LVV fxs) -> LVM.do
+        x <- ytake1 xvar
+        let !(x', u) = mkunit'l x
+        encodeWith'l (ycall_get_funcobj f)
+          (\b -> LVM.unsafeCoerceLVM (LVM.pure ()) LVM.>> ymkref b)
+          (consNP x' (fxs u))
 
-instance YLVMCallableFunctionNP (PureFn f) 0
-instance YLVMCallableFunctionNP (StaticFn f) 0
-instance YLVMCallableFunctionNP (OmniFn f) 1
+instance YCallableFunction (PureFn f)   (x:xs) b 0 => YCallableFunctionNonNil (PureFn f)   x xs b 0
+instance YCallableFunction (StaticFn f) (x:xs) b 0 => YCallableFunctionNonNil (StaticFn f) x xs b 0
+instance YCallableFunction (OmniFn f)   (x:xs) b 1 => YCallableFunctionNonNil (OmniFn f)   x xs b 1
 
---
--- ycall0
---
-
-class KnownNat vd => YLVMCallableFunctionNil fn vd | fn -> vd where
-  ycall0 :: forall va r b fncls.
+class KnownNat vd => YCallableFunctionNil fn vd | fn -> vd where
+  ycall0 :: forall va r b.
     ( KnownNat va, KnownNat (va + vd), va <= va + vd
     , YulO2 b r
     , EquivalentNPOfFunction b '[] b
-    , KnownNamedYulCat fn fncls (NP '[]) b
+    , YCallableFunction fn '[] b vd
     ) =>
     fn -> YLVM va (va + vd) r (P'V (va + vd) r b)
   ycall0 f = LVM.do
     u <- embed ()
-    let f' = withKnownNamedYulCat f unsafeCoerceNamedYulCat
     encodeWith'l @(VersionedInputOutput vd) @(VersionedPort va)
-      (YulJmpU f') (LVM.unsafeCoerceLVM . LVM.pure) (coerceType'l u)
+      (ycall_get_funcobj f) (LVM.unsafeCoerceLVM . LVM.pure) (coerceType'l u)
 
-instance YLVMCallableFunctionNil (PureFn f) 0
-instance YLVMCallableFunctionNil (StaticFn f) 0
-instance YLVMCallableFunctionNil (OmniFn f) 1
+instance YCallableFunctionNil (PureFn f) 0
+instance YCallableFunctionNil (StaticFn f) 0
+instance YCallableFunctionNil (OmniFn f) 1
 
 --
 -- ycallN

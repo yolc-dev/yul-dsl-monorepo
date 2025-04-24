@@ -2,12 +2,12 @@
 {-# LANGUAGE TypeFamilyDependencies #-}
 module Control.LinearlyVersionedMonad.LVMVar
   ( -- * Linearly Version Restrictable Data
-    LinearlyVersionRestrictable (LinearlyVersionRestricted, restrictVersion)
+    LinearlyVersionRestrictable (VersionRestrictedData, restrictVersion)
     -- * LVMVar Registry
   , LVMVarRegistry, initLVMVarRegistry, consumeLVMVarRegistry
   , ReferenciableLVMVar (takeLVMVarRef, takevLVMVarRef)
   , UvLVMVarRef, registerUvLVMVar
-  , RvLVMVarRef, registerRvLVMVar
+  , RvLVMVarRef (VerUvLVMVarRef), registerRvLVMVar
   ) where
 -- base
 import Data.Kind                                  (Type)
@@ -30,8 +30,8 @@ import Data.LinearContext
 
 -- | Data that is linearly restrictable to any version.
 class KnownNat v =>  LinearlyVersionRestrictable v ctx a where
-  type family LinearlyVersionRestricted ctx a v = (a' :: Type) | a' -> ctx
-  restrictVersion :: forall. a ⊸ LVM.LVM ctx v v (LinearlyVersionRestricted ctx a v)
+  type family VersionRestrictedData v ctx a = (a' :: Type) | a' -> ctx
+  restrictVersion :: forall. a ⊸ LVM.LVM ctx v v (VersionRestrictedData v ctx a)
 
 class (KnownNat v, LinearlyVersionRestrictable v ctx a) => UsableLVMVar v var ctx a | var -> ctx a where
   copyLVMVar :: forall. var ⊸ LVM.LVM ctx v v (var, a)
@@ -128,9 +128,9 @@ class ( KnownNat v
       ReferenciableLVMVar v ref ctx a | v ref -> ctx a where
   takeLVMVarRef :: forall. ref ⊸ LVMVarRegistry ctx ⊸ LVM.LVM ctx v v (a, LVMVarRegistry ctx)
 
-  takevLVMVarRef :: forall a'.
-    LinearlyVersionRestricted ctx a v ~ a' =>
-    ref ⊸ LVMVarRegistry ctx ⊸ LVM.LVM ctx v v (a', LVMVarRegistry ctx)
+  takevLVMVarRef :: forall ar.
+    VersionRestrictedData v ctx a ~ ar =>
+    ref ⊸ LVMVarRegistry ctx ⊸ LVM.LVM ctx v v (ar, LVMVarRegistry ctx)
   takevLVMVarRef ref registry = LVM.do
     (a, registry') <- takeLVMVarRef ref registry
     a' <- restrictVersion a
@@ -140,7 +140,8 @@ class ( KnownNat v
 -- UvLVMVarRef
 --
 
-data UvLVMVarRef ctx a where UvLVMVarRef :: Int -> UvLVMVarRef ctx a
+data UvLVMVarRef ctx a where
+  MkUvLVMVarRef :: Int -> UvLVMVarRef ctx a
 type role UvLVMVarRef nominal nominal
 
 registerUvLVMVar :: forall ctx a.
@@ -154,13 +155,13 @@ registerUvLVMVar :: forall ctx a.
 registerUvLVMVar a (MkLVMVarRegistry uvs vrs) =
   let var = mkUvLVMVar a :: UvLVMVar ctx a
       !(L.Ur ridx, uvs') = L.length uvs
-  in (L.Ur (UvLVMVarRef ridx), MkLVMVarRegistry (MkAnyUvLVMVar var : uvs') vrs)
+  in (L.Ur (MkUvLVMVarRef ridx), MkLVMVarRegistry (MkAnyUvLVMVar var : uvs') vrs)
 
 instance ( KnownNat v
          , LinearlyVersionRestrictable v ctx a
          ) =>
          ReferenciableLVMVar v (UvLVMVarRef ctx a) ctx a where
-  takeLVMVarRef (UvLVMVarRef ridx) (MkLVMVarRegistry uvs vrs) =
+  takeLVMVarRef (MkUvLVMVarRef ridx) (MkLVMVarRegistry uvs vrs) =
     let !(L.Ur len, uvs') = L.length uvs
         !(ys, zzs) = L.splitAt (len - ridx - 1) uvs'
         !(var :: UvLVMVar ctx a, zs') = case L.uncons zzs of
@@ -174,7 +175,14 @@ instance ( KnownNat v
 -- RvLVMVarRef
 --
 
-data RvLVMVarRef ctx v a where RvLVMVarRef :: Int -> RvLVMVarRef ctx v a
+data RvLVMVarRef ctx v a where
+  MkRvLVMVarRef  :: forall v ctx a.  -- ^ Restricted version variable reference.
+    Int ->
+    RvLVMVarRef ctx v a
+  VerUvLVMVarRef :: forall v ctx ua. -- ^ 'UvLVMVarRef' that got restricted.
+    LinearlyVersionRestrictable v ctx ua =>
+    UvLVMVarRef ctx ua ->
+    RvLVMVarRef ctx v (VersionRestrictedData v ctx ua)
 type role RvLVMVarRef nominal nominal nominal
 
 registerRvLVMVar :: forall v ctx a.
@@ -189,13 +197,13 @@ registerRvLVMVar :: forall v ctx a.
 registerRvLVMVar a (MkLVMVarRegistry vurs vrs) =
   let !(var :: RvLVMVar ctx v a) = mkRvLVMVar a
       !(L.Ur ridx, xs') = L.length vrs
-  in (L.Ur (RvLVMVarRef ridx), MkLVMVarRegistry vurs (MkAnyRvLVMVar var : xs'))
+  in (L.Ur (MkRvLVMVarRef ridx), MkLVMVarRegistry vurs (MkAnyRvLVMVar var : xs'))
 
 instance ( KnownNat v
          , LinearlyVersionRestrictable v ctx a
          ) =>
          ReferenciableLVMVar v (RvLVMVarRef ctx v a) ctx a where
-  takeLVMVarRef (RvLVMVarRef ridx) (MkLVMVarRegistry vurs vrs) =
+  takeLVMVarRef (MkRvLVMVarRef ridx) (MkLVMVarRegistry vurs vrs) =
     let !(L.Ur len, vrs') = L.length vrs
         !(ys, zzs) = L.splitAt (len - ridx - 1) vrs'
         !(var :: RvLVMVar ctx v a, zs') = case L.uncons zzs of
@@ -204,3 +212,7 @@ instance ( KnownNat v
     in LVM.do
          (var', a) <- copyLVMVar var
          LVM.pure (a, MkLVMVarRegistry vurs (ys L.++ (MkAnyRvLVMVar var' : zs')))
+  takeLVMVarRef (VerUvLVMVarRef uv) rgstr = LVM.do
+    (ua, rgstr') <- takeLVMVarRef uv rgstr
+    ar <- restrictVersion ua
+    LVM.pure (ar, rgstr')

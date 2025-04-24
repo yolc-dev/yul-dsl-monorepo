@@ -58,23 +58,23 @@ call4 = $lfn $ yulports'vv
   \x1 x2 x3 x4 -> call foo4 x1 x2 x3 x4
 
 --------------------------------------------------------------------------------
--- declaring yullvm functions
+-- declaring ylvm functions
 --------------------------------------------------------------------------------
 
 bar0 :: StaticFn (U256)
-bar0 = $lfn $ yullvm'pv LVM.do
+bar0 = $lfn $ ylvm'pv LVM.do
   -- FIXME: ugly
   u :: P'P r () <- embed ()
   ymkref (call foo0 (ver'l u))
 
 bar1 :: StaticFn (U256 -> U256)
-bar1 = $lfn $ yullvm'pv
+bar1 = $lfn $ ylvm'pv
   \(Uv x1'uv) -> LVM.do
     x1 <- ytakev1 x1'uv
     ymkref (call foo1 x1)
 
 bar3 :: StaticFn (U256 -> U256 -> U256 -> U256)
-bar3 = $lfn $ yullvm'pv
+bar3 = $lfn $ ylvm'pv
   \(Uv x1'uv) (Uv x2'uv) (Uv x3'uv) -> LVM.do
     x1 <- ytakev1 x1'uv
     x2 <- ytakev1 x2'uv
@@ -123,18 +123,14 @@ tuple2_input = $lfn $ yulports'vv
 --------------------------------------------------------------------------------
 
 fooSPut :: OmniFn (B32 -> U256 -> ())
-fooSPut = $lfn $ yullvm'pv
+fooSPut = $lfn $ ylvm'pv
   \(Uv slot) (Uv val) -> LVM.do
     sput slot val
     yembed ()
 
 callSPut :: OmniFn (B32 -> U256 -> ())
-callSPut = $lfn $ yullvm'pv
-  \(Uv addr'uv) (Uv val'uv) -> LVM.do
-    addr <- ytakev1 addr'uv
-    val <- ytakev1 val'uv
-    ycall fooSPut addr val
-    yembed ()
+callSPut = $lfn $ ylvm'pv
+  \(Uv addr) (Uv val) -> ycall fooSPut (ver addr) (ver val)
 
 --------------------------------------------------------------------------------
 

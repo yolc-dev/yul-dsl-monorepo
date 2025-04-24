@@ -14,7 +14,7 @@ globalCounterLoc = $fn do
   yulEmb (keyRef "Yolc.Demo.Counter.Storage.Counter.Global")
 
 incGlobalCounter :: OmniFn (U256 -> ())
-incGlobalCounter = $lfn $ yullvm'pv
+incGlobalCounter = $lfn $ ylvm'pv
   \(Uv inc) -> LVM.do
     Rv counterRef <- LVM.do
       counterRef_p <- ycall0 globalCounterLoc
@@ -22,8 +22,8 @@ incGlobalCounter = $lfn $ yullvm'pv
 
     Rv currentValue <- sget counterRef
 
-    MkSolo (Rv newValue) <- ywithAny @(U256 -> U256 -> Solo U256)
-      (AnyRv currentValue, AnyUv inc)
+    MkSolo (Rv newValue) <- ywithrv_N @(U256 -> U256 -> Solo U256)
+      (Rv currentValue, ver inc)
       (\a b -> be (a + b))
 
     sput counterRef newValue
@@ -31,7 +31,7 @@ incGlobalCounter = $lfn $ yullvm'pv
     yembed ()
 
 getGlobalCounter :: StaticFn U256
-getGlobalCounter = $lfn $ yullvm'pv LVM.do
+getGlobalCounter = $lfn $ ylvm'pv LVM.do
   counterRef <- ycall0 globalCounterLoc
   ymkref (sget'l counterRef)
 
@@ -40,18 +40,18 @@ counterMap :: SHMap ADDR U256
 counterMap = shmap "Yolc.Demo.Counter.Storage.Counter.PerUser"
 
 getCounter :: StaticFn (ADDR -> U256)
-getCounter = $lfn $ yullvm'pv \(Uv acc) -> counterMap `shmapGet` acc
+getCounter = $lfn $ ylvm'pv \(Uv acc) -> counterMap `shmapGet` acc
 
 incCounter :: OmniFn (U256 -> ())
-incCounter = $lfn $ yullvm'pv
+incCounter = $lfn $ ylvm'pv
   \(Uv inc) -> LVM.do
     Uv acc <- ymkref LVM.=<< ycaller
 
     Uv counterRef <- shmapRef counterMap acc
     Rv currentValue <- sget counterRef
 
-    MkSolo (Rv newValue) <- ywithAny @(U256 -> U256 -> Solo U256)
-      (AnyRv currentValue, AnyUv inc)
+    MkSolo (Rv newValue) <- ywithrv_N @(U256 -> U256 -> Solo U256)
+      (Rv currentValue, ver inc)
       (\a b -> be (a + b))
 
     sput counterRef newValue

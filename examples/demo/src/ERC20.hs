@@ -15,62 +15,46 @@ balanceMap = shmap "Yolc.Demo.ERC20.Storage.AccountBalance"
 
 -- | ERC20 balance of the account.
 balanceOf :: StaticFn (ADDR -> U256)
-balanceOf = $lfn $ yullvm'pv \(Uv owner) -> balanceMap `shmapGet` owner
+balanceOf = $lfn $ ylvm'pv \(Uv owner) -> balanceMap `shmapGet` owner
 
 -- | ERC20 transfer function.
--- (TODO: refactor using LVMVar ongoing; it will be just few lines!)
 transfer :: OmniFn (ADDR -> U256 -> BOOL)
-transfer = $lfn $ yullvm'pv
+transfer = $lfn $ ylvm'pv
   \(Uv to) (Uv amount) -> LVM.do
     Uv from <- ymkref LVM.=<< ycaller
-
     -- get sender balance storage reference
     Uv senderBalanceRef <- shmapRef balanceMap from
-
     -- get receiver balance storage reference
     Uv receiverBalanceRef <- shmapRef balanceMap to
+    -- get current balances
+    Rv senderBalance <- ycall balanceOf (ver from)
+    Rv receiverBalance <- ycall balanceOf (ver to)
 
     -- calculate new balances
-    (newSenderBalance'rv, newReceiverBalance'rv) <- LVM.do
-      amount_v <- ytakev1 amount
-      from_v <- ytakev1 from
-      to_v <- ytakev1 to
-
-      let !(newSenderBalance, newReceiverBalance) = with'l @(U256 -> U256 -> U256 -> (U256, U256))
-            ( amount_v
-            , call balanceOf from_v
-            , call balanceOf to_v
-            ) \amount' senderBalance' receiverBalance' ->
-                be (senderBalance' - amount', receiverBalance' + amount')
-
-      Rv newSenderBalance'rv <- ymkref newSenderBalance
-      Rv newReceiverBalance'rv <- ymkref newReceiverBalance
-
-      LVM.pure (newSenderBalance'rv, newReceiverBalance'rv)
+    (Rv newSenderBalance, Rv newReceiverBalance) <- ywithrv_N @(U256 -> U256 -> U256 -> (U256, U256))
+      (ver amount, Rv senderBalance, Rv receiverBalance)
+      \amount' senderBalance' receiverBalance' ->
+        be (senderBalance' - amount', receiverBalance' + amount')
 
     -- update storages
     sputs $
-      senderBalanceRef   := newSenderBalance'rv   :|
-      receiverBalanceRef := newReceiverBalance'rv :[]
+      senderBalanceRef   := newSenderBalance   :|
+      receiverBalanceRef := newReceiverBalance :[]
 
     -- always return true as a silly urban-legendary ERC20 convention
     yembed true
 
 -- | Mint new tokens
--- (TODO: refactor using LVMVar ongoing; it will be just few lines!)
 mint :: OmniFn (ADDR -> U256 -> ())
-mint = $lfn $ yullvm'pv
+mint = $lfn $ ylvm'pv
   \(Uv to) (Uv amount) -> LVM.do
-    -- fetch balance of the account
-    Rv balanceBefore <- LVM.do
-      to_v <- ytakev1 to
-      ymkref LVM.=<< ycall balanceOf to_v
+    Rv balanceBefore <- ycall balanceOf (ver to)
 
     -- update balance
     LVM.do
-      (MkSolo (Rv newAmount)) <- ywithAny @(U256 -> U256 -> Solo U256)
-                                    (AnyRv balanceBefore, AnyUv amount)
-                                    (\x y -> be (x + y))
+      (MkSolo (Rv newAmount)) <- ywithrv_N @(U256 -> U256 -> Solo U256)
+                                 (Rv balanceBefore, ver amount)
+                                 (\x y -> be (x + y))
       shmapPut balanceMap to newAmount
 
     -- call unsafe external contract onTokenMinted
