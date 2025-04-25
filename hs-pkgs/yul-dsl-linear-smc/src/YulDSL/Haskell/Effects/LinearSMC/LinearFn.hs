@@ -1,6 +1,8 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
+{-# LANGUAGE AllowAmbiguousTypes    #-}
 {-# LANGUAGE DefaultSignatures      #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE PatternSynonyms        #-}
 {-# LANGUAGE TemplateHaskell        #-}
 {-# LANGUAGE UndecidableInstances   #-}
 {-|
@@ -14,13 +16,15 @@ Stability   : experimental
 module YulDSL.Haskell.Effects.LinearSMC.LinearFn
   ( -- $LinearEffects
     StaticFn, OmniFn
+  , ExternalOmniFn, externalOmniFn
+  , bindMethod, (@->)
     -- $ConstructibleLinearFn
   , lfn', lfn
     -- $CallableLinearFn
-  , ycall, ycall0, ycallN
-  , externalCall
+  , ycalluv, ycalluv_0, ycall, ycall_0, ycallN
   ) where
 -- base
+import Data.Proxy                                    (Proxy (Proxy))
 import GHC.TypeLits                                  (KnownNat, type (+), type (<=))
 -- template-haskell
 import Language.Haskell.TH                           qualified as TH
@@ -62,6 +66,35 @@ data OmniFn f where
 
 instance EquivalentNPOfFunction f xs b => KnownNamedYulCat (OmniFn f) OmniEffect (NP xs) b where
   withKnownNamedYulCat (MkOmniFn f) g = g f
+
+-- | External contract functions that can be called via its selector.
+data ExternalOmniFn f where
+  MkExternalOmniFn :: forall f xs b. EquivalentNPOfFunction f xs b => SELECTOR -> ExternalOmniFn f
+
+-- | Create a 'ExternalFn' value by providing its function name function form @f@.
+externalOmniFn :: forall f xs b.
+  ( EquivalentNPOfFunction f xs b
+  , YulO2 (NP xs) b
+  ) =>
+  String -> ExternalOmniFn f
+externalOmniFn fname = MkExternalOmniFn (mkTypedSelector @(NP xs) fname)
+
+data BoundMethod ref_contract f xs b where
+  MkBoundMethod :: forall ref_contract f xs b.
+    ( forall v r.
+      (KnownNat v, VersionableYulVarRef v r ADDR ref_contract) =>
+      Proxy (SNat v, r) -> (Rv v r ADDR, SELECTOR)
+    ) ->
+    BoundMethod ref_contract f xs b
+
+(@->), bindMethod :: forall ref_contract f xs b.
+  ( EquivalentNPOfFunction f xs b
+  ) =>
+  ref_contract ->
+  ExternalOmniFn f ->
+  BoundMethod ref_contract f xs b
+bindMethod c (MkExternalOmniFn sel) = MkBoundMethod \(_ :: Proxy (SNat v, r)) -> (ver c, sel)
+(@->) = bindMethod
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $ConstructibleLinearFn
@@ -111,6 +144,10 @@ lfn = [e| lfn' ("$lfn_" ++ $fnLocId) |]
 -- = Callable Linear Functions
 ------------------------------------------------------------------------------------------------------------------------
 
+--
+-- call'l FIXME
+--
+
 instance forall f x xs b g r.
          ( YulO4 x (NP xs) b r
          , EquivalentNPOfFunction f (x:xs) b
@@ -143,26 +180,85 @@ instance forall f x xs b va g r.
   call (MkStaticFn f) = call (MkPureFn (unsafeCoerceNamedYulCat f))
 
 --
--- ycall, ycall0
+-- ycall_get_funcobj
 --
 
-class YulO2 (NP xs) b => YCallableFunction fn xs b vd | fn -> xs b vd where
+class (KnownNat v, EquivalentNPOfFunction f xs b, YulO2 (NP xs) b) =>
+      EncodableFn fn eff v r f xs b | fn -> f where
   -- | Get function object from fn
-  ycall_get_funcobj:: fn -> YulCat (VersionedInputOutput vd) (NP xs) b
-  default ycall_get_funcobj :: forall fncls.
-    KnownNamedYulCat fn fncls (NP xs) b =>
-    fn -> YulCat (VersionedInputOutput vd) (NP xs) b
-  ycall_get_funcobj f = YulJmpU (withKnownNamedYulCat f unsafeCoerceNamedYulCat)
+  encodeFnWith'l:: forall c ie oe.
+    (YulO1 r, EncodableYulPortDiagram eff ie oe) =>
+    fn ->
+    (P'x oe r b ⊸ c) ->
+    YLVM v v r (P'x ie r (NP xs) ⊸ c)
+  default encodeFnWith'l :: forall c ie oe fncls.
+    ( YulO1 r, EncodableYulPortDiagram eff ie oe
+    , KnownNamedYulCat fn fncls (NP xs) b
+    ) =>
+    fn ->
+    (P'x oe r b ⊸ c) ->
+    YLVM v v r (P'x ie r (NP xs) ⊸ c)
+  encodeFnWith'l f cont = LVM.pure $
+    encodeWith'l @eff (YulJmpU (withKnownNamedYulCat f unsafeCoerceNamedYulCat)) cont
 
-instance (YulO2 (NP xs) b, EquivalentNPOfFunction f xs b) => YCallableFunction (PureFn f)   xs b 0
-instance (YulO2 (NP xs) b, EquivalentNPOfFunction f xs b) => YCallableFunction (StaticFn f) xs b 0
-instance (YulO2 (NP xs) b, EquivalentNPOfFunction f xs b) => YCallableFunction (OmniFn f)   xs b 1
+instance (KnownNat v, EquivalentNPOfFunction f xs b, YulO2 (NP xs) b) =>
+         EncodableFn (PureFn f)   PureInputPureOutput v r f xs b
 
-class YCallableFunction fn (x:xs) b vd => YCallableFunctionNonNil fn x xs b vd | fn -> x xs b vd where
-  ycall :: forall va vb g r.
-    ( KnownNat va, KnownNat vb, va <= vb
-    , YulO3 r x (NP xs)
-    , va + vd ~ vb
+instance (KnownNat v, EquivalentNPOfFunction f xs b, YulO2 (NP xs) b) =>
+         EncodableFn (PureFn f)   (VersionedInputOutput 0) v r f xs b
+
+instance (KnownNat v, EquivalentNPOfFunction f xs b, YulO2 (NP xs) b) =>
+         EncodableFn (StaticFn f) (PureInputVersionedOutput 0) v r f xs b
+
+instance (KnownNat v, EquivalentNPOfFunction f xs b, YulO2 (NP xs) b) =>
+         EncodableFn (StaticFn f) (VersionedInputOutput 0) v r f xs b
+
+instance (KnownNat v, EquivalentNPOfFunction f xs b, YulO2 (NP xs) b) =>
+         EncodableFn (OmniFn f)   (PureInputVersionedOutput vd) v r f xs b
+
+instance (KnownNat v, EquivalentNPOfFunction f xs b, YulO2 (NP xs) b) =>
+         EncodableFn (OmniFn f)   (VersionedInputOutput vd) v r f xs b
+
+--
+-- ycalluv, ycalluv_0
+--
+
+ycalluv :: forall f x xs b v g r.
+  ( KnownNat v, YulO4 x (NP xs) b r
+  , EncodableFn (PureFn f) PureInputPureOutput v r f (x:xs) b
+  , CurriableNP g xs (Uv r b) (Uv r) (YLVM v v r) (YulCat'LPP r ()) One
+  , MakeableYulVarRef v r (P'P r) (Uv r)
+  ) =>
+  PureFn f ->
+  (Uv r x ⊸ LiftFunction (CurryNP (NP xs) (Uv r b)) (Uv r) (YLVM v v r) One)
+ycalluv f (Uv xvar) =
+  curryNP @g @xs @(Uv r b) @(Uv r) @(YLVM v v r) @(YulCat'LPP r ()) @One
+  \(MkYulCat'LPP fxs) -> LVM.do
+    x <- ytake1 xvar
+    let !(x', u) = mkunit'l x
+    f' <- encodeFnWith'l @_ @PureInputPureOutput @v f ymkref
+    f' (consNP x' (fxs u))
+
+ycalluv_0 :: forall b v r.
+  ( KnownNat v, YulO2 b r
+  , EncodableFn (PureFn b) PureInputPureOutput v r b '[] b
+  , MakeableYulVarRef v r (P'P r) (Uv r)
+  ) =>
+  PureFn b ->
+  LiftFunction (Uv r b) (Uv r) (YLVM v v r) One
+ycalluv_0 f = LVM.do
+  u :: P'P r () <- embed ()
+  f' <- encodeFnWith'l @_ @PureInputPureOutput @v f ymkref
+  f' (coerceType'l u)
+
+--
+-- ycall, ycall_0
+--
+
+class EncodableFn fn (VersionedInputOutput vd) va r f (x:xs) b =>
+      YCallableFunctionNonNil fn f x xs b va vd r | fn -> x xs b vd where
+  ycall :: forall vb g.
+    ( KnownNat va, KnownNat vb, va + vd ~ vb, va <= vb, YulO3 r x (NP xs)
     , CurriableNP g xs (Rv vb r b) (Rv va r) (YLVM va vb r) (YulCat'LVV va va r ()) One
     , MakeableYulVarRef vb r (P'V vb r) (Rv vb r)
     ) =>
@@ -170,36 +266,62 @@ class YCallableFunction fn (x:xs) b vd => YCallableFunctionNonNil fn x xs b vd |
     (Rv va r x ⊸ LiftFunction (CurryNP (NP xs) (Rv vb r b)) (Rv va r) (YLVM va vb r) One)
   ycall f (Rv xvar) =
     curryNP @g @xs @(Rv vb r b) @(Rv va r) @(YLVM va vb r) @(YulCat'LVV va va r ()) @One
-      \(MkYulCat'LVV fxs) -> LVM.do
-        x <- ytake1 xvar
-        let !(x', u) = mkunit'l x
-        encodeWith'l (ycall_get_funcobj f)
-          (\b -> LVM.unsafeCoerceLVM (LVM.pure ()) LVM.>> ymkref b)
-          (consNP x' (fxs u))
+    \(MkYulCat'LVV fxs) -> LVM.do
+      x <- ytake1 xvar
+      let !(x', u) = mkunit'l x
+      f' <- encodeFnWith'l @_ @(VersionedInputOutput vd) @va
+            f (\b -> LVM.unsafeCoerceLVM (LVM.pure ()) LVM.>> ymkref b)
+      f' (consNP x' (fxs u))
 
-instance YCallableFunction (PureFn f)   (x:xs) b 0 => YCallableFunctionNonNil (PureFn f)   x xs b 0
-instance YCallableFunction (StaticFn f) (x:xs) b 0 => YCallableFunctionNonNil (StaticFn f) x xs b 0
-instance YCallableFunction (OmniFn f)   (x:xs) b 1 => YCallableFunctionNonNil (OmniFn f)   x xs b 1
+instance EncodableFn (PureFn f) (VersionedInputOutput 0) va r f (x:xs) b =>
+         YCallableFunctionNonNil (PureFn f) f x xs b va 0 r
+instance EncodableFn (StaticFn f) (VersionedInputOutput 0) va r f (x:xs) b =>
+         YCallableFunctionNonNil (StaticFn f) f x xs b va 0 r
+instance EncodableFn (OmniFn f) (VersionedInputOutput 1) va r f (x:xs) b =>
+         YCallableFunctionNonNil (OmniFn f) f x xs b va 1 r
 
-class KnownNat vd => YCallableFunctionNil fn vd | fn -> vd where
-  ycall0 :: forall va r b.
-    ( KnownNat va, KnownNat (va + vd), va <= va + vd
-    , YulO2 b r
+class EncodableFn fn (VersionedInputOutput vd) va r b '[] b => YCallableFunctionNil fn b va vd r | fn -> vd where
+  ycall_0 :: forall.
+    ( KnownNat va, KnownNat (va + vd), va <= va + vd, YulO2 b r
     , EquivalentNPOfFunction b '[] b
-    , YCallableFunction fn '[] b vd
+    , MakeableYulVarRef va r (P'V (va + vd) r) (Rv (va + vd) r)
     ) =>
-    fn -> YLVM va (va + vd) r (P'V (va + vd) r b)
-  ycall0 f = LVM.do
-    u <- embed ()
-    encodeWith'l @(VersionedInputOutput vd) @(VersionedPort va)
-      (ycall_get_funcobj f) (LVM.unsafeCoerceLVM . LVM.pure) (coerceType'l u)
+    fn -> YLVM va (va + vd) r (Rv (va + vd) r b)
+  ycall_0 f = LVM.do
+    u :: P'V va r () <- embed ()
+    f' <- encodeFnWith'l @_ @(VersionedInputOutput vd) @va f (LVM.unsafeCoerceLVM . ymkref)
+    f' (coerceType'l u)
 
-instance YCallableFunctionNil (PureFn f) 0
-instance YCallableFunctionNil (StaticFn f) 0
-instance YCallableFunctionNil (OmniFn f) 1
+instance EncodableFn (PureFn b) (VersionedInputOutput 0) va r b '[] b =>
+         YCallableFunctionNil (PureFn b) b va 0 r
+
+instance EncodableFn (StaticFn b) (VersionedInputOutput 0) va r b '[] b =>
+         YCallableFunctionNil (StaticFn b) b va 0 r
+
+instance EncodableFn (OmniFn b) (VersionedInputOutput 1) va b r '[] b =>
+         YCallableFunctionNil (OmniFn b) b va 1 r
 
 --
--- ycallN
+-- ExternalFn
+--
+
+instance ( KnownNat va, YulO2 (NP xs) b, EquivalentNPOfFunction f xs b
+         , VersionableYulVarRef va r ADDR ref_contract
+         ) =>
+         EncodableFn (BoundMethod ref_contract f xs b) (VersionedInputOutput 1) va r f xs b where
+  encodeFnWith'l (MkBoundMethod getMethod) cont = LVM.do
+    let !(Rv contractVar, sel) = getMethod (Proxy @(SNat va, r))
+    contract <- ytake1 contractVar
+    u <- embed ()
+    let !(gasLimit, value) = dup'l (emb'l 0 u)
+    LVM.pure $ \xs -> encodeWith'l @(VersionedInputOutput 1)
+                      (YulCall sel) cont (merge'l (be (unsafeCoerceYulPort contract, gasLimit, value), xs))
+
+instance EncodableFn (BoundMethod ref_contract f (x:xs) b) (VersionedInputOutput 1) va r f (x:xs) b =>
+         YCallableFunctionNonNil (BoundMethod ref_contract f (x:xs) b) f x xs b va 1 r
+
+--
+-- ycallN (FIXME)
 --
 
 class YLVMCallableFunctionN fn f xs b r va vd | fn -> vd where
@@ -250,39 +372,3 @@ instance forall f x xs b r va.
     let f' = unsafeCoerceNamedYulCat f :: NamedYulCat (VersionedInputOutput 1) (NP (x:xs)) b
         xxs = linearDistributeNP (fromTupleNtoNP tpl) u :: P'V va r (NP (x:xs))
     in encodeWith'l (YulJmpU f') (LVM.unsafeCoerceLVM . LVM.pure) xxs
-
-------------------------------------------------------------------------------------------------------------------------
--- calling external functions (Yul Monadic)
-------------------------------------------------------------------------------------------------------------------------
-
-externalCall :: forall f x xs b g b' r v1 addrEff.
-  ( KnownNat v1, KnownNat (v1 + 1), v1 <= v1 + 1
-  , YulO4 x (NP xs) b r
-  , P'V (v1 + 1) r b ~ b'
-  , EquivalentNPOfFunction f (x:xs) b
-  , EquivalentNPOfFunction g xs b'
-  , CurriableNP g xs b' (P'V v1 r) (YLVM v1 (v1 + 1) r) (YulCat'LVV v1 v1 r ()) One
-  ) =>
-  ExternalFn f ->
-  P'x addrEff r ADDR ⊸
-  (P'V v1 r x ⊸ LiftFunction (CurryNP (NP xs) b') (P'V v1 r) (YLVM v1 (v1 + 1) r) One)
-externalCall (MkExternalFn sel) addr x =
-  mkunit'l x
-  & \(x', u) ->
-      curryNP @g @xs @b' @(P'V v1 r) @(YLVM v1 (v1 + 1) r) @(YulCat'LVV v1 v1 r ()) @One
-      $ \(MkYulCat'LVV fxs) -> encodeWith'l
-                               @(VersionedInputOutput 1) @(VersionedPort v1) @(VersionedPort (v1 + 1))
-                               @_ @_ @_ {- r a b -}
-                               @(YLVM v1 (v1 + 1) r b')
-                               YulId
-                               (\b' -> LVM.unsafeCoerceLVM
-                                       (LVM.pure b' :: YLVM v1 v1 r (P'V (v1 + 1) r b))
-                                       :: YLVM v1 (v1 + 1) r (P'V (v1 + 1) r b))
-                               $ go (consNP x' (fxs u))
-  where go :: forall. P'x (VersionedPort v1) r (NP (x : xs)) ⊸ P'V v1 r b
-        go args = let !(args', u) = mkunit'l args
-                      !(gasLimit, value) = dup'l (emb'l 0 u)
-                  in encodeWith'l @(VersionedInputOutput 0) @(VersionedPort v1) @(VersionedPort v1)
-                     (YulCall sel)
-                     id
-                     (merge'l (be (unsafeCoerceYulPort addr, gasLimit, value), args'))

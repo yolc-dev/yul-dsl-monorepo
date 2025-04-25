@@ -69,9 +69,8 @@ bar0 = $lfn $ ylvm'pv LVM.do
 
 bar1 :: StaticFn (U256 -> U256)
 bar1 = $lfn $ ylvm'pv
-  \(Uv x1'uv) -> LVM.do
-    x1 <- ytakev1 x1'uv
-    ymkref (call foo1 x1)
+  \(Uv x1) -> LVM.do
+    ycall foo1 (ver x1)
 
 bar3 :: StaticFn (U256 -> U256 -> U256 -> U256)
 bar3 = $lfn $ ylvm'pv

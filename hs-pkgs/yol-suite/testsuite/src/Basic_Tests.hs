@@ -44,18 +44,11 @@ rangeSum'l = $lfn $ yulports'pp
 
 callExternalFoo1 :: OmniFn (ADDR -> U256 -> U256)
 callExternalFoo1 = $lfn $ ylvm'pv
-  \(Uv to'uv) (Uv val1'uv) -> LVM.do
-    to'p <- ytake1 to'uv
-    val1'p <- ytake1 val1'uv
-    ymkref LVM.=<< externalCall external_foo1 (ver'l to'p) (ver'l val1'p)
+  \(Uv to) (Uv val) -> ycall (to @-> external_foo1) (ver val)
 
 callExternalFoo2 :: OmniFn (ADDR -> U256 -> U256 -> U256)
 callExternalFoo2 = $lfn $ ylvm'vv
-  \(Rv to'rv) (Rv val1'rv) (Rv val2'rv) -> LVM.do
-    to <- ytake1 to'rv
-    val1 <- ytake1 val1'rv
-    val2 <- ytake1 val2'rv
-    ymkref LVM.=<< externalCall external_foo2 to val1 val2
+  \(Rv to) (Rv val1) (Rv val2) -> ycall (to @-> external_foo2) (Rv val1) (Rv val2)
 
 sgetTest :: StaticFn (ADDR -> U256)
 sgetTest = $lfn $ ylvm'pv
@@ -131,6 +124,6 @@ object = mkYulObject "BasicTests" yulNoop
 
 -- TODO generated interfaces
 
-external_foo0 = declareExternalFn @(() -> U256) "foo0"
-external_foo1 = declareExternalFn @(U256 -> U256) "foo1"
-external_foo2 = declareExternalFn @(U256 -> U256 -> U256) "foo2"
+external_foo0 = externalOmniFn @(() -> U256) "foo0"
+external_foo1 = externalOmniFn @(U256 -> U256) "foo1"
+external_foo2 = externalOmniFn @(U256 -> U256 -> U256) "foo2"

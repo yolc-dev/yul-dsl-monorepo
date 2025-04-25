@@ -32,7 +32,7 @@ transfer = $lfn $ ylvm'pv
 
     -- calculate new balances
     (Rv newSenderBalance, Rv newReceiverBalance) <- ywithrv_N @(U256 -> U256 -> U256 -> (U256, U256))
-      (ver amount, Rv senderBalance, Rv receiverBalance)
+      (ver amount, ver senderBalance, ver receiverBalance)
       \amount' senderBalance' receiverBalance' ->
         be (senderBalance' - amount', receiverBalance' + amount')
 
@@ -40,6 +40,9 @@ transfer = $lfn $ ylvm'pv
     sputs $
       senderBalanceRef   := newSenderBalance   :|
       receiverBalanceRef := newReceiverBalance :[]
+    -- sputs $
+    --   balanceMap .-> from   := newSenderBalance   :|
+    --   balanceMap .-> to     := newReceiverBalance :[]
 
     -- always return true as a silly urban-legendary ERC20 convention
     yembed true
@@ -49,24 +52,16 @@ mint :: OmniFn (ADDR -> U256 -> ())
 mint = $lfn $ ylvm'pv
   \(Uv to) (Uv amount) -> LVM.do
     Rv balanceBefore <- ycall balanceOf (ver to)
-
+    -- calculate new balance
+    (Rv newAmount) <- ywithrv_N1 @(U256 -> U256 -> U256)
+      (Rv balanceBefore, ver amount)
+      (\x y -> x + y)
     -- update balance
-    LVM.do
-      (MkSolo (Rv newAmount)) <- ywithrv_N @(U256 -> U256 -> Solo U256)
-                                 (Rv balanceBefore, ver amount)
-                                 (\x y -> be (x + y))
-      shmapPut balanceMap to newAmount
-
+    shmapPut balanceMap to newAmount
     -- call unsafe external contract onTokenMinted
-    LVM.do
-      to_p1 <- ytake1 to
-      to_p2 <- ytake1 to
-      amount_v <- ytakev1 amount
-      externalCall onTokenMinted to_p1 (ver'l to_p2) amount_v
-
-    yembed ()
+    ycall (to @-> onTokenMinted) (ver to) (ver amount)
 
 --
 -- TODO: this should/could be generated from a solidity interface definition file:
 -- | A hook to the token minted event for the mint receiver.
-onTokenMinted = declareExternalFn @(ADDR -> U256 -> ()) "onTokenMinted"
+onTokenMinted = externalOmniFn @(ADDR -> U256 -> ()) "onTokenMinted"

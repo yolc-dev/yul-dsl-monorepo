@@ -16,9 +16,7 @@ globalCounterLoc = $fn do
 incGlobalCounter :: OmniFn (U256 -> ())
 incGlobalCounter = $lfn $ ylvm'pv
   \(Uv inc) -> LVM.do
-    Rv counterRef <- LVM.do
-      counterRef_p <- ycall0 globalCounterLoc
-      ymkref counterRef_p
+    Uv counterRef <- ycalluv_0 globalCounterLoc
 
     Rv currentValue <- sget counterRef
 
@@ -32,8 +30,8 @@ incGlobalCounter = $lfn $ ylvm'pv
 
 getGlobalCounter :: StaticFn U256
 getGlobalCounter = $lfn $ ylvm'pv LVM.do
-  counterRef <- ycall0 globalCounterLoc
-  ymkref (sget'l counterRef)
+  Uv counterRef <- ycalluv_0 globalCounterLoc
+  sget counterRef
 
 -- | Storage map of user counters
 counterMap :: SHMap ADDR U256
@@ -45,6 +43,7 @@ getCounter = $lfn $ ylvm'pv \(Uv acc) -> counterMap `shmapGet` acc
 incCounter :: OmniFn (U256 -> ())
 incCounter = $lfn $ ylvm'pv
   \(Uv inc) -> LVM.do
+    -- TODO: Uv acc <- ycaller
     Uv acc <- ymkref LVM.=<< ycaller
 
     Uv counterRef <- shmapRef counterMap acc

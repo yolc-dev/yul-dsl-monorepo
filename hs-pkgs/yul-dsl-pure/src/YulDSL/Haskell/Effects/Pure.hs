@@ -23,9 +23,6 @@ module YulDSL.Haskell.Effects.Pure
   , fnLocId
     -- * Technical Notes
     -- $yulCatVal
-
-  -- FIXME: remove
-  , ExternalFn (MkExternalFn), declareExternalFn
   ) where
 -- template-haskell
 import Language.Haskell.TH qualified as TH
@@ -196,16 +193,3 @@ fnLocId = do
 -- One may also wrap it around an effect kind, e.g. @Pure (r ⤳ a)@ means a pure yul categorical value of @r ⤳ a@.
 --
 -- From category theory perspective, it is a hom-set @YulCat(-, a)@ that is contravariant of @a@.
-
-
--- | External contract functions that can be called via its selector.
-data ExternalFn f where
-  MkExternalFn :: forall f xs b. EquivalentNPOfFunction f xs b => SELECTOR -> ExternalFn f
-
--- | Create a 'ExternalFn' value by providing its function name function form @f@.
-declareExternalFn :: forall f xs b.
-                     ( EquivalentNPOfFunction f xs b
-                     , YulO2 (NP xs) b
-                     )
-                  => String -> ExternalFn f
-declareExternalFn fname = MkExternalFn (mkTypedSelector @(NP xs) fname)

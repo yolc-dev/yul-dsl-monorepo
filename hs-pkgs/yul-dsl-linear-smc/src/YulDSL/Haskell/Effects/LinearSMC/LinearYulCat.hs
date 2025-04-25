@@ -107,9 +107,14 @@ class EncodableYulPortDiagram eff ie oe | eff ie -> oe where
   encodeWith'l c f x = f (unsafeCoerceYulPort (encodeP'x (YulUnsafeCoerceEffect c) x))
 
 instance EncodableYulPortDiagram Pure PurePort PurePort
+
 instance EncodableYulPortDiagram PureInputPureOutput PurePort PurePort
+
+instance va + vd ~ vb => EncodableYulPortDiagram (PureInputVersionedOutput vd) (VersionedPort va) (VersionedPort vd)
+
+-- instance EncodableYulPortDiagram (VersionedInputOutput vd) PurePort (VersionedPort vd)
+
 instance va + vd ~ vb => EncodableYulPortDiagram (VersionedInputOutput vd) (VersionedPort va) (VersionedPort vb)
-instance EncodableYulPortDiagram (PureInputVersionedOutput v) PurePort (VersionedPort v)
 
 unsafe_uncurry_nil :: forall a b r ie oe m1.
   YulO3 a b r =>

@@ -63,7 +63,7 @@ shmapRef :: forall a b ie r v ref_a xref_.
   , MakeableYulVarRef v r (P'x ie r) xref_
   ) =>
   SHMap a b ->
-  ref_a ⊸
+  ref_a ->
   YLVM v v r (xref_ (REF b))
 shmapRef hmp avar = ytake1 avar LVM.>>= ymkref . shmapRef'l hmp
 
@@ -76,7 +76,7 @@ shmapGet :: forall a b ie r v ref_a.
   , SReferenceable v r (REF b) b
   ) =>
   SHMap a b ->
-  ref_a ⊸
+  ref_a ->
   YLVM v v r (Rv v r b)
 shmapGet hmp avar = ytakev1 avar LVM.>>= ymkref . shmapGet'l hmp
 
@@ -95,8 +95,8 @@ shmapPut :: forall a b iea ieb r v ref_a ref_b.
   , ABIWordValue b -- FIXME
   ) =>
   SHMap a b ->
-  ref_a ⊸
-  ref_b ⊸
+  ref_a ->
+  ref_b ->
   YLVM v (v + 1) r ()
 shmapPut hmp avar bvar = LVM.do
   a <- ytake1 avar
