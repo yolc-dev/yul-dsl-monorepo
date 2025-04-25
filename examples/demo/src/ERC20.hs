@@ -22,10 +22,7 @@ transfer :: OmniFn (ADDR -> U256 -> BOOL)
 transfer = $lfn $ ylvm'pv
   \(Uv to) (Uv amount) -> LVM.do
     Uv from <- ymkref LVM.=<< ycaller
-    -- get sender balance storage reference
-    Uv senderBalanceRef <- shmapRef balanceMap from
-    -- get receiver balance storage reference
-    Uv receiverBalanceRef <- shmapRef balanceMap to
+
     -- get current balances
     Rv senderBalance <- ycall balanceOf (ver from)
     Rv receiverBalance <- ycall balanceOf (ver to)
@@ -36,13 +33,9 @@ transfer = $lfn $ ylvm'pv
       \amount' senderBalance' receiverBalance' ->
         be (senderBalance' - amount', receiverBalance' + amount')
 
-    -- update storages
     sputs $
-      senderBalanceRef   := newSenderBalance   :|
-      receiverBalanceRef := newReceiverBalance :[]
-    -- sputs $
-    --   balanceMap .-> from   := newSenderBalance   :|
-    --   balanceMap .-> to     := newReceiverBalance :[]
+      balanceMap .-> from := newSenderBalance   :|
+      balanceMap .-> to   := newReceiverBalance :[]
 
     -- always return true as a silly urban-legendary ERC20 convention
     yembed true
@@ -57,9 +50,12 @@ mint = $lfn $ ylvm'pv
       (Rv balanceBefore, ver amount)
       (\x y -> x + y)
     -- update balance
-    shmapPut balanceMap to newAmount
+    sputs $ balanceMap .-> to := newAmount :|[]
     -- call unsafe external contract onTokenMinted
     ycall (to @-> onTokenMinted) (ver to) (ver amount)
+
+    -- return () always, for demo purpose
+    yembed ()
 
 --
 -- TODO: this should/could be generated from a solidity interface definition file:

@@ -1,7 +1,7 @@
 module YulDSL.Haskell.Data.SHMap
   ( SHMap (SHMap), shmap
   , shmapRef'l, shmapGet'l, shmapPut'l
-  , shmapRef, shmapGet, shmapPut
+  , shmapRef, (.->), shmapGet
   ) where
 -- base
 import GHC.TypeLits                       (KnownNat, type (+), type (<=))
@@ -55,7 +55,7 @@ shmapPut'l :: forall a b ie r v.
 shmapPut'l hmp vt a b = let bslot = shmapRef'l hmp a in sput'l vt (ver'l bslot) b
 
 -- | Get a storage reference from the storage hash-map.
-shmapRef :: forall a b ie r v ref_a xref_.
+(.->), shmapRef :: forall a b ie r v ref_a xref_.
   ( YulO4 a b (REF b) r
   , ReferenciableYulVar v r ref_a
   , DereferenceYulVarRef ref_a ~ P'x ie r a
@@ -66,6 +66,7 @@ shmapRef :: forall a b ie r v ref_a xref_.
   ref_a ->
   YLVM v v r (xref_ (REF b))
 shmapRef hmp avar = ytake1 avar LVM.>>= ymkref . shmapRef'l hmp
+(.->) = shmapRef
 
 -- | Get a value from the storage hash-map.
 shmapGet :: forall a b ie r v ref_a.
@@ -80,26 +81,26 @@ shmapGet :: forall a b ie r v ref_a.
   YLVM v v r (Rv v r b)
 shmapGet hmp avar = ytakev1 avar LVM.>>= ymkref . shmapGet'l hmp
 
--- | Get a value from the storage hash-map.
-shmapPut :: forall a b iea ieb r v ref_a ref_b.
-  ( KnownNat (v + 1), v <= v + 1, YulO3 r a b
-  , ReferenciableYulVar v r ref_a
-  , DereferenceYulVarRef ref_a ~ P'x iea r a
-  , VersionableYulPort iea v
-  -- ref_b
-  , ReferenciableYulVar v r ref_b
-  , DereferenceYulVarRef ref_b ~ P'x ieb r b
-  , LinearlyVersionRestrictedYulPort v r (P'x ieb r b) ~ P'V v r b
-  -- b
-  , SReferenceable v r (REF b) b
-  , ABIWordValue b -- FIXME
-  ) =>
-  SHMap a b ->
-  ref_a ->
-  ref_b ->
-  YLVM v (v + 1) r ()
-shmapPut hmp avar bvar = LVM.do
-  a <- ytake1 avar
-  b <- ytakev1 bvar
-  u <- yrunvt (\vt -> shmapPut'l hmp vt a b)
-  ygulp u
+-- -- | Get a value from the storage hash-map.
+-- shmapPut :: forall a b iea ieb r v ref_a ref_b.
+--   ( KnownNat (v + 1), v <= v + 1, YulO3 r a b
+--   , ReferenciableYulVar v r ref_a
+--   , DereferenceYulVarRef ref_a ~ P'x iea r a
+--   , VersionableYulPort iea v
+--   -- ref_b
+--   , ReferenciableYulVar v r ref_b
+--   , DereferenceYulVarRef ref_b ~ P'x ieb r b
+--   , LinearlyVersionRestrictedYulPort v r (P'x ieb r b) ~ P'V v r b
+--   -- b
+--   , SReferenceable v r (REF b) b
+--   , ABIWordValue b -- FIXME
+--   ) =>
+--   SHMap a b ->
+--   ref_a ->
+--   ref_b ->
+--   YLVM v (v + 1) r ()
+-- shmapPut hmp avar bvar = LVM.do
+--   a <- ytake1 avar
+--   b <- ytakev1 bvar
+--   u <- yrunvt (\vt -> shmapPut'l hmp vt a b)
+--   ygulp u

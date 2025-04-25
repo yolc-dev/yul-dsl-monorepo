@@ -50,7 +50,7 @@ die() { echo "$@" >&2; exit 1; }
 debug() { if is_verbose; then echo "$@" >&2; fi }
 
 do_runyol() {
-  local CABAL=(cabal)
+  local CABAL=(cabal -v0)
   is_verbose && CABAL=(cabal -v1)
 
   runbin=$(cabal "$@" -v0 list-bin runyol)

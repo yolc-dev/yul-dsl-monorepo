@@ -21,9 +21,9 @@ module YulDSL.Haskell.Effects.LinearSMC.YLVM
     -- $YulVarRefAPI
   , UvYulVarRef, Uv (Uv), RvYulVarRef, Rv (Rv)
   , VersionableYulVarRef (ver)
-  , MakeableYulVarRef (ymkref), MakeableYulVarRefNP (ymkref_NP)
+  , MakeableYulVarRef (ymkref), UnwrappableXv (yunref), MakeableYulVarRefNP (ymkref_NP)
   , DereferenceYulVarRef, ReferenciableYulVar, LinearlyVersionRestrictedYulPort
-  , DereferenceXv, ReferenciableXv
+  , DereferenceXv, ReferenciableXv, YulVarRefToXRef
   , ytake1, ytakev1
   , YTakeableVarRefNP (ytakeuv_NP, ytakerv_NP), ytakeuv_N, ytakerv_N, ywithrv_N1
   , ywithuv_N, ywithrv_N
@@ -136,10 +136,20 @@ rm_ylvm_ctx (MkYLVMCtx vt mbRgstr) =
     err     -> lseq (error "rm_ylvm_ctx: registry not consumed" :: ()) (UnsafeLinear.coerce err)
   `lseq` unsafeCoerceYulPort (vtstop vt)
 
+--
+-- ContextualConsumable
+--
+
 instance YulO2 r a => ContextualConsumable (YLVMCtx r) (P'x eff r a) where
   contextualConsume (MkYLVMCtx vt rgstr) x = MkYLVMCtx (vtgulp vt x) rgstr
 
-    -- FIXME: ContextualConsumable Rv/Uv
+                                             -- FIXME: ContextualConsumable Rv/Uv
+
+instance YulO2 r a => ContextualConsumable (YLVMCtx r) (Uv r a) where
+  contextualConsume ctx (Uv _) = ctx
+
+instance YulO2 r a => ContextualConsumable (YLVMCtx r) (Rv v r a) where
+  contextualConsume ctx (Rv _) = ctx
 
 -- Fine-grained ContextualSeqable
 --
@@ -232,8 +242,8 @@ instance VersionableYulVarRef v r a (RvYulVarRef v r a) where
 -- MakeableYulVarRef
 --
 
-class MakeableYulVarRef v r port_ ref_ | v port_ -> ref_, ref_ -> port_ where
-  ymkref :: forall a. (KnownNat v, YulO2 a r) => port_ a ⊸ YLVM v v r (ref_ a)
+class MakeableYulVarRef v r port_ xref_ | v port_ -> xref_, xref_ -> port_ where
+  ymkref :: forall a. (KnownNat v, YulO2 a r) => port_ a ⊸ YLVM v v r (xref_ a)
 
 instance MakeableYulVarRef v r (P'P r) (Uv r) where
   ymkref x = with_yulvar_registry \rgstr ->
@@ -244,6 +254,27 @@ instance MakeableYulVarRef v r (P'V v r) (Rv v r) where
   ymkref x = with_yulvar_registry \rgstr ->
     let !(Ur var, rgstr') = registerRvLVMVar x rgstr
     in LVM.pure (Just rgstr', Rv var)
+
+--
+-- UnwrappableXv
+--
+
+class UnwrappableXv v r port_ xref_ | v port_ -> xref_, xref_ -> port_ where
+  yunref :: forall a. (KnownNat v, YulO2 a r) => xref_ a ⊸ YLVM v v r (port_ a)
+
+instance UnwrappableXv v r (P'P r) (Uv r) where
+  yunref (Uv ref) = with_yulvar_registry \rgstr -> LVM.do
+    (port, rgstr') <- takeLVMVarRef ref rgstr
+    LVM.pure (Just rgstr', port)
+
+instance UnwrappableXv v r (P'V v r) (Rv v r) where
+  yunref (Rv ref) = with_yulvar_registry \rgstr -> LVM.do
+    (port, rgstr') <- takeLVMVarRef ref rgstr
+    LVM.pure (Just rgstr', port)
+
+--
+-- MakeableYulVarRefNP
+--
 
 class MakeableYulVarRef v r port_ ref_ => MakeableYulVarRefNP xs v r port_ ref_ where
   ymkref_NP :: forall. (KnownNat v, YulO2 r (NP xs)) => NP (MapList port_ xs) ⊸ YLVM v v r (NP (MapList ref_ xs))
@@ -280,11 +311,15 @@ type LinearlyVersionRestrictedYulPort v r port = VersionRestrictedData v (YLVMCt
 -- ReferenciableXv
 --
 
-type family YulVarRefToXRef ref where
+type family YulVarRefToXRef ref = xref | xref -> ref where
   YulVarRefToXRef (UvYulVarRef r a)   = Uv r a
   YulVarRefToXRef (RvYulVarRef v r a) = Rv v r a
 
-type ReferenciableXv v r ref xref = (ReferenciableYulVar v r ref, YulVarRefToXRef ref ~ xref)
+type family XRefToYulVarRef xref = ref | ref -> xref where
+  XRefToYulVarRef (Uv r a) = UvYulVarRef r a
+  XRefToYulVarRef (Rv v r a) = RvYulVarRef v r a
+
+type ReferenciableXv v r xref = ReferenciableYulVar v r (XRefToYulVarRef xref)
 
 --
 -- yembed, yrunvt, ygulp

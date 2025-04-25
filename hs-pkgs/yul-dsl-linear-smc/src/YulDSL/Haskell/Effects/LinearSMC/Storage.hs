@@ -15,9 +15,11 @@ This module provides yul monads that work with contract storage.
 -}
 module YulDSL.Haskell.Effects.LinearSMC.Storage
   ( SReferenceable (sget'l, sput'l), sget, sput
-  , SGettableNP (sgetNP), sgetN, (<==)
+  , SGettableNP (sgetNP), sgetN
   , SPuttableNP (sputNP), sputN
-  , StorageAssignment ((:=)), NonEmpty ((:|)), sassign, sputs
+  , StorageAssignment ((:=)), NonEmpty ((:|))
+  , sputs_1, sputs
+  -- , sgets
   ) where
 -- base
 import Data.List.NonEmpty                       (NonEmpty ((:|)))
@@ -118,12 +120,6 @@ sgetN tpl_a = let np_a = fromTupleNtoNP tpl_a
                   np_b = sgetNP np_a :: YLVM v v r (TupleNtoNP tpl_b)
               in np_b LVM.>>= LVM.pure . fromNPtoTupleN
 
-(<==) :: forall tpl_a tpl_b v r.
-  ( ConvertibleTupleNtoNP tpl_a, ConvertibleTupleNtoNP tpl_b
-  , SGettableNP v r (TupleNtoNP tpl_a) (TupleNtoNP tpl_b)
-  ) => tpl_a ⊸ YLVM v v r tpl_b
-(<==) = sgetN
-
 ------------------------------------------------------------------------------------------------------------------------
 -- sputN
 ------------------------------------------------------------------------------------------------------------------------
@@ -164,12 +160,13 @@ sputN tpl = sputNP (fromTupleNtoNP tpl)
 -- sassign StorageAssignment; sputs NonEmpty StorageAssignment
 ------------------------------------------------------------------------------------------------------------------------
 
-data StorageAssignment v r = forall a b iea ieb ref_a ref_b.
+data StorageAssignment v r = forall a b iea ieb xref_a_ ref_b.
   ( -- ref_a
-    ReferenciableYulVar v r ref_a
-  , DereferenceYulVarRef ref_a ~ P'x iea r a
+    ReferenciableXv v r (xref_a_ a)
+  , DereferenceXv (xref_a_ a) ~ P'x iea r a
   , VersionableYulPort iea v
-  , LinearlyVersionRestrictedYulPort v r (P'x iea r a) ~ P'V v r a
+  , UnwrappableXv v r (P'x iea r) xref_a_
+--  , LinearlyVersionRestrictedYulPort v r (P'x iea r a) ~ P'V v r a
   -- ref_b
   , ReferenciableYulVar v r ref_b
   , DereferenceYulVarRef ref_b ~ P'x ieb r b
@@ -177,20 +174,32 @@ data StorageAssignment v r = forall a b iea ieb ref_a ref_b.
     -- b
   , SReferenceable v r a b
   ) =>
-  ref_a := ref_b
+  YLVM v v r (xref_a_ a) := ref_b
+-- infix 5 :=
 
-sassign :: forall v r.
-  ( KnownNat (v + 1), v <= v + 1, YulO1 r
-  ) =>
+sputs_1 :: forall v r.
+  (KnownNat (v + 1), v <= v + 1, YulO1 r) =>
   StorageAssignment v r ⊸ YLVM v (v + 1) r ()
-sassign (to := x) = sput to x
+sputs_1 (maxref := bvar) = LVM.do
+  axref <- maxref
+  a <- yunref axref
+  b <- ytakev1 bvar
+  yrunvt (\vt -> sput'l vt (ver'l a) b)
+  LVM.pure ()
 
 sputs :: forall v r.
   ( KnownNat v, KnownNat (v + 1), v <= v + 1, YulO1 r
   ) => NonEmpty (StorageAssignment v r) ⊸ YLVM v (v + 1) r ()
-sputs (sa :| []) = sassign sa
+sputs (sa :| []) = sputs_1 sa
 sputs (sa :| (sa':sas)) =
-  let x  = sassign sa            :: YLVM v (v + 1) r ()
+  let x  = sputs_1 sa            :: YLVM v (v + 1) r ()
       x' = LVM.unsafeCoerceLVM x :: YLVM v      v  r ()
       xs = sputs (sa' :| sas)
   in x' LVM.>> xs
+
+-- (<==), sgets :: forall tpl_a tpl_b v r.
+--   ( ConvertibleTupleNtoNP tpl_a, ConvertibleTupleNtoNP tpl_b
+--   , SGettableNP v r (TupleNtoNP tpl_a) (TupleNtoNP tpl_b)
+--   ) => tpl_a ⊸ YLVM v v r tpl_b
+-- sgets = sgetN
+-- (<==) = sgetN
