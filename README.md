@@ -109,17 +109,19 @@ Linear Safety For Side Effects
 ------------------------------
 
 ```haskell
-  -- fetch balance of the account
-  (to_p, balanceBefore) <- pass to_p \to_p ->
-    ypure $ balanceOf `callFn'l` ver'l to_p
-
-  -- use linear port values safely
-  (to_p, amount_p) <- passN_ (to_p, amount_p) \(to_p, amount_p) ->
+-- | Mint new tokens
+mint :: OmniFn (ADDR -> U256 -> ())
+mint = $lfn $ ylvm'pv
+  \(Uv to) (Uv amount) -> LVM.do
+    Rv balanceBefore <- ycall balanceOf (ver to)
+    -- calculate new balance
+    (Rv newAmount) <- ywithrv_N1 @(U256 -> U256 -> U256)
+      (Rv balanceBefore, ver amount)
+      (\x y -> x + y)
     -- update balance
-    shmapPut balanceMap to_p (balanceBefore + ver'l amount_p)
-
-  -- call unsafe external contract onTokenMinted
-  externalCall onTokenMinted (ver'l to_p) (ver'l amount_p)
+    sputs $ balanceMap .-> to := newAmount :|[]
+    -- call unsafe external contract onTokenMinted
+    ycall (to @-> onTokenMinted) (ver to) (ver amount)
 ```
 
 Foundry Integration

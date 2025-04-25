@@ -137,7 +137,7 @@ TODO
 
 - [x] 🌟🌟🌟 Linear safety for side effects
   - [x] Compile expression sof linear _data ports_ to YulCat
-  - [x] Working with _versioned data port_ through `YulLVM`, a "Linearly Versioned Monad."
+  - [x] Working with _versioned data port_ through `YLVM`, a "Linearly Versioned Monad."
     - [ ] ⚠️ Removing over-serialization, to have more parallel computations. Validate using 'diagram'
           package based visualization.
   - [x] Build linear functions with `$lfn $ uncurry'lvv | $lfn $ uncurry'lpv`.
@@ -147,8 +147,8 @@ TODO
   - [x] match data port and outputs new data port.
   - [ ] 🟢 `ywith` to work with data ports in pure yul functions.
   - [ ] 🟠 `(rebound) if, ywhen, yunless` to work with BOOL data port.
-- Working with _versioned data port_ through `YulLVM`, a "Linearly Versioned Monad."
-  - [ ] Build YulLVM functions: `$lfn $ yullvm'{pp,pv,vv}`
+- Working with _versioned data port_ through `YLVM`, a "Linearly Versioned Monad."
+  - [ ] Build YLVM functions: `$lfn $ yullvm'{pp,pv,vv}`
 - Working with storage:
   - [x] Assorted storage functions: `SReferenceable(sget, sput), sgetN, (<==), sputN, (:|), (:=),
         sputs`.
