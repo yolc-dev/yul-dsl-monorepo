@@ -27,7 +27,7 @@ import GHC.TypeLits                             (KnownNat, type (+), type (<=))
 -- constraints
 import Data.Constraint.Unsafe                   (unsafeAxiom)
 -- linear-base
-import Prelude.Linear                           (type (~), (.))
+import Prelude.Linear                           (Ur (Ur), type (~), ($), (.))
 -- yul-dsl
 import YulDSL.Core
 -- linearly-versioned-monad
@@ -65,7 +65,7 @@ sget :: forall a b ie r v ref_a.
   , DereferenceYulVarRef ref_a ~ P'x ie r a
   , SReferenceable v r a b
   ) =>
-  ref_a ⊸ YLVM v v r (Rv v r b)
+  ref_a ⊸ YLVM v v r (Ur (Rv v r b))
 sget avar = ytake1 avar LVM.>>= ymkref . sget'l . ver'l
 
 sput :: forall a b iea ieb r v ref_a ref_b.
@@ -96,20 +96,22 @@ sput avar bvar = LVM.do
 class (KnownNat v, YulO1 r) => SGettableNP v r a b where
   sgetNP :: forall. a ⊸ YLVM v v r b
 
-instance (KnownNat v, YulO1 r) => SGettableNP v r (NP '[]) (NP '[]) where
-  sgetNP Nil = LVM.pure Nil
+instance (KnownNat v, YulO1 r) =>
+         SGettableNP v r (NP '[]) (Ur (NP '[])) where
+  sgetNP Nil = LVM.pure $ Ur Nil
 
 instance ( YulO3 r a b
          , VersionableYulPort ie v
          , ReferenciableYulVar v r ref_a
          , DereferenceYulVarRef ref_a ~ P'x ie r a
          , SReferenceable v r a b
-         , SGettableNP v r (NP as) (NP bs)
-         ) => SGettableNP v r (NP (ref_a : as)) (NP (Rv v r b : bs)) where
+         , SGettableNP v r (NP as) (Ur (NP bs))
+         ) =>
+         SGettableNP v r (NP (ref_a : as)) (Ur (NP (Rv v r b : bs))) where
   sgetNP (a :* as) = LVM.do
-    b <- sget a
-    bs <- sgetNP as
-    LVM.pure (b :* bs)
+    Ur b <- sget a
+    Ur bs <- sgetNP as
+    LVM.pure $ Ur (b :* bs)
 
 sgetN :: forall tpl_a tpl_b v r.
   ( KnownNat v
@@ -165,7 +167,7 @@ data StorageAssignment v r = forall a b iea ieb xref_a_ ref_b.
     ReferenciableXv v r (xref_a_ a)
   , DereferenceXv (xref_a_ a) ~ P'x iea r a
   , VersionableYulPort iea v
-  , UnwrappableXv v r (P'x iea r) xref_a_
+  , YulVarRef v r (P'x iea r) xref_a_
 --  , LinearlyVersionRestrictedYulPort v r (P'x iea r a) ~ P'V v r a
   -- ref_b
   , ReferenciableYulVar v r ref_b
@@ -174,15 +176,15 @@ data StorageAssignment v r = forall a b iea ieb xref_a_ ref_b.
     -- b
   , SReferenceable v r a b
   ) =>
-  YLVM v v r (xref_a_ a) := ref_b
+  YLVM v v r (Ur (xref_a_ a)) := ref_b
 -- infix 5 :=
 
 sputs_1 :: forall v r.
   (KnownNat (v + 1), v <= v + 1, YulO1 r) =>
   StorageAssignment v r ⊸ YLVM v (v + 1) r ()
 sputs_1 (maxref := bvar) = LVM.do
-  axref <- maxref
-  a <- yunref axref
+  Ur axref <- maxref
+  a <- ytkref axref
   b <- ytakev1 bvar
   yrunvt (\vt -> sput'l vt (ver'l a) b)
   LVM.pure ()

@@ -60,11 +60,11 @@ shmapPut'l hmp vt a b = let bslot = shmapRef'l hmp a in sput'l vt (ver'l bslot) 
   , ReferenciableYulVar v r ref_a
   , DereferenceYulVarRef ref_a ~ P'x ie r a
   , DereferenceXv (xref_ (REF b)) ~ P'x ie r (REF b)
-  , MakeableYulVarRef v r (P'x ie r) xref_
+  , YulVarRef v r (P'x ie r) xref_
   ) =>
   SHMap a b ->
   ref_a ->
-  YLVM v v r (xref_ (REF b))
+  YLVM v v r (Ur (xref_ (REF b)))
 shmapRef hmp avar = ytake1 avar LVM.>>= ymkref . shmapRef'l hmp
 (.->) = shmapRef
 
@@ -78,7 +78,7 @@ shmapGet :: forall a b ie r v ref_a.
   ) =>
   SHMap a b ->
   ref_a ->
-  YLVM v v r (Rv v r b)
+  YLVM v v r (Ur (Rv v r b))
 shmapGet hmp avar = ytakev1 avar LVM.>>= ymkref . shmapGet'l hmp
 
 -- -- | Get a value from the storage hash-map.

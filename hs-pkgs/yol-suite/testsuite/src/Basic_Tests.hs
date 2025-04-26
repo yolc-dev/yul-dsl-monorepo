@@ -60,7 +60,7 @@ sgetTest = $lfn $ ylvm'pv
 shmapGetTest :: StaticFn (ADDR -> U256)
 shmapGetTest = $lfn $ ylvm'pv
   \(Uv acc) -> LVM.do
-    Uv sslot <- shmapRef (shmap "shmapGetTest" :: SHMap ADDR U256) acc
+    Ur (Uv sslot) <- shmapRef (shmap "shmapGetTest" :: SHMap ADDR U256) acc
     sget sslot
 
 varSharing :: PureFn (U256 -> U256 -> U256 -> U256)
@@ -74,9 +74,7 @@ varSharingL = $lfn $ yulports'pp
 
 lvmvar_test1 :: PureFn (U256 -> U256 -> U256)
 lvmvar_test1 = $lfn $ ylvm'pp
-  \(Uv x_) (Uv y_) -> LVM.do
-    (MkSolo r) <- ywithuv_N @(U256 -> U256 -> Solo U256) (Uv x_, Uv y_) \x y -> be (x * y + y)
-    LVM.pure r
+  \(Uv x_) (Uv y_) -> ywithuvN_1 @(U256 -> U256 -> U256) (Uv x_, Uv y_) \x y -> x * y + y
 
 lvmvar_test2 :: PureFn (U256)
 lvmvar_test2 = $lfn $ ylvm'pp LVM.do
@@ -93,17 +91,17 @@ lvmvar_test3 = $lfn $ ylvm'pv LVM.do
 lvmvar_test4 :: StaticFn (U256 -> U256 -> U256)
 lvmvar_test4 = $lfn $ ylvm'vv
   \(Rv x) (Rv y) -> LVM.do
-    x1 <- ytake1 x
-    x2 <- ytake1 x
-    y1 <- ytake1 y
+    x1 <- ytkref (Rv x)
+    x2 <- ytkref (Rv x)
+    y1 <- ytkref (Rv y)
     ymkref (x1 + x2 * y1)
 
 object = mkYulObject "BasicTests" yulNoop
-  [ pureFn   "embUnit$p" embUnit'p
-  , pureFn   "embTrue$p" embTrue'p
-  , pureFn   "revertIfTrue" revertIfTrue
+  [ pureFn "embUnit$p" embUnit'p
+  , pureFn "embTrue$p" embTrue'p
+  , pureFn "revertIfTrue" revertIfTrue
   , pureFn "embTrue$l" embTrue'l
-  , pureFn   "rangeSum$p" rangeSum'p
+  , pureFn "rangeSum$p" rangeSum'p
   , pureFn "rangeSum$l" rangeSum'l
 
 --  , omniFn   "callExternalFoo0" callExternalFoo0

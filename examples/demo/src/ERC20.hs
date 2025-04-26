@@ -21,14 +21,15 @@ balanceOf = $lfn $ ylvm'pv \(Uv owner) -> balanceMap `shmapGet` owner
 transfer :: OmniFn (ADDR -> U256 -> BOOL)
 transfer = $lfn $ ylvm'pv
   \(Uv to) (Uv amount) -> LVM.do
-    Uv from <- ymkref LVM.=<< ycaller
+    Ur (Uv from) <- ymkref LVM.=<< ycaller
 
     -- get current balances
-    Rv senderBalance <- ycall balanceOf (ver from)
-    Rv receiverBalance <- ycall balanceOf (ver to)
+    Ur (Rv senderBalance) <- ycall balanceOf (ver from)
+    Ur (Rv receiverBalance) <- ycall balanceOf (ver to)
 
     -- calculate new balances
-    (Rv newSenderBalance, Rv newReceiverBalance) <- ywithrv_N @(U256 -> U256 -> U256 -> (U256, U256))
+    Ur (Rv newSenderBalance, Rv newReceiverBalance) <- ywithrvN
+      @(U256 -> U256 -> U256 -> (U256, U256))
       (ver amount, ver senderBalance, ver receiverBalance)
       \amount' senderBalance' receiverBalance' ->
         be (senderBalance' - amount', receiverBalance' + amount')
@@ -44,9 +45,9 @@ transfer = $lfn $ ylvm'pv
 mint :: OmniFn (ADDR -> U256 -> ())
 mint = $lfn $ ylvm'pv
   \(Uv to) (Uv amount) -> LVM.do
-    Rv balanceBefore <- ycall balanceOf (ver to)
+    Ur (Rv balanceBefore) <- ycall balanceOf (ver to)
     -- calculate new balance
-    (Rv newAmount) <- ywithrv_N1 @(U256 -> U256 -> U256)
+    Ur (Rv newAmount) <- ywithrvN_1 @(U256 -> U256 -> U256)
       (Rv balanceBefore, ver amount)
       (\x y -> x + y)
     -- update balance
