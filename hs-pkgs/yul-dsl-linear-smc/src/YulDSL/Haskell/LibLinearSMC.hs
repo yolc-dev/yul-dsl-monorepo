@@ -29,8 +29,8 @@ import YulDSL.Haskell.Effects.LinearSMC
 keccak256'l :: forall a eff r. YulO2 r a => P'x eff r a ⊸ P'x eff r B32
 keccak256'l = encodeP'x (YulJmpB (MkYulBuiltIn @"__keccak_c_" @a @B32))
 
-ycaller :: forall r v. (KnownNat v, YulO1 r) => YLVM v v r (P'P r ADDR)
-ycaller = embed () LVM.>>= LVM.pure . encodeP'x (YulJmpB (MkYulBuiltIn @"__caller"))
+ycaller :: forall r v. (KnownNat v, YulO1 r) => YLVM v v r (Ur (Uv r ADDR))
+ycaller = embed () LVM.>>= ymkvar . encodeP'x (YulJmpB (MkYulBuiltIn @"__caller"))
 
 getSolo :: Solo a %p -> a
 getSolo (MkSolo a) = a

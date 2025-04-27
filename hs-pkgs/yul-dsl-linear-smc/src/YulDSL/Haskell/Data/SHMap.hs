@@ -55,52 +55,33 @@ shmapPut'l :: forall a b ie r v.
 shmapPut'l hmp vt a b = let bslot = shmapRef'l hmp a in sput'l vt (ver'l bslot) b
 
 -- | Get a storage reference from the storage hash-map.
-(.->), shmapRef :: forall a b ie r v ref_a xref_.
+(.->), shmapRef :: forall a b ie r v ref_a_ ref_b_.
   ( YulO4 a b (REF b) r
-  , ReferenciableYulVar v r ref_a
-  , DereferenceYulVarRef ref_a ~ P'x ie r a
-  , DereferenceXv (xref_ (REF b)) ~ P'x ie r (REF b)
-  , YulVarRef v r (P'x ie r) xref_
+  -- ref_b
+  , YulVarRef v r (P'x ie r) ref_a_
+  , ReferenciableYulVar v r (ref_a_ a)
+  , DereferenceYulVarRef (ref_a_ a) ~ P'x ie r a
+  -- ref_a
+  , YulVarRef v r (P'x ie r) ref_b_
+  , DereferenceYulVarRef (ref_b_ (REF b)) ~ P'x ie r (REF b)
   ) =>
   SHMap a b ->
-  ref_a ->
-  YLVM v v r (Ur (xref_ (REF b)))
-shmapRef hmp avar = ytake1 avar LVM.>>= ymkref . shmapRef'l hmp
+  ref_a_ a ->
+  YLVM v v r (Ur (ref_b_ (REF b)))
+shmapRef hmp aVar = ytkvar aVar LVM.>>= ymkvar . shmapRef'l hmp
 (.->) = shmapRef
 
 -- | Get a value from the storage hash-map.
-shmapGet :: forall a b ie r v ref_a.
+shmapGet :: forall a b ie r v ref_.
   ( YulO3 r a b
-  , ReferenciableYulVar v r ref_a
-  , DereferenceYulVarRef ref_a ~ P'x ie r a
+  , YulVarRef v r (P'x ie r) ref_
+  , VersionableYulVarRef v r a (ref_ a)
+  , ReferenciableYulVar v r (ref_ a)
+  , DereferenceYulVarRef (ref_ a) ~ P'x ie r a
   , LinearlyVersionRestrictedYulPort v r (P'x ie r a) ~ P'V v r a
   , SReferenceable v r (REF b) b
   ) =>
   SHMap a b ->
-  ref_a ->
+  ref_ a ->
   YLVM v v r (Ur (Rv v r b))
-shmapGet hmp avar = ytakev1 avar LVM.>>= ymkref . shmapGet'l hmp
-
--- -- | Get a value from the storage hash-map.
--- shmapPut :: forall a b iea ieb r v ref_a ref_b.
---   ( KnownNat (v + 1), v <= v + 1, YulO3 r a b
---   , ReferenciableYulVar v r ref_a
---   , DereferenceYulVarRef ref_a ~ P'x iea r a
---   , VersionableYulPort iea v
---   -- ref_b
---   , ReferenciableYulVar v r ref_b
---   , DereferenceYulVarRef ref_b ~ P'x ieb r b
---   , LinearlyVersionRestrictedYulPort v r (P'x ieb r b) ~ P'V v r b
---   -- b
---   , SReferenceable v r (REF b) b
---   , ABIWordValue b -- FIXME
---   ) =>
---   SHMap a b ->
---   ref_a ->
---   ref_b ->
---   YLVM v (v + 1) r ()
--- shmapPut hmp avar bvar = LVM.do
---   a <- ytake1 avar
---   b <- ytakev1 bvar
---   u <- yrunvt (\vt -> shmapPut'l hmp vt a b)
---   ygulp u
+shmapGet hmp aVar = ytkvarv aVar LVM.>>= ymkvar . shmapGet'l hmp

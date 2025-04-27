@@ -15,13 +15,13 @@ balanceMap = shmap "Yolc.Demo.ERC20.Storage.AccountBalance"
 
 -- | ERC20 balance of the account.
 balanceOf :: StaticFn (ADDR -> U256)
-balanceOf = $lfn $ ylvm'pv \(Uv owner) -> balanceMap `shmapGet` owner
+balanceOf = $lfn $ ylvm'pv \(Uv owner) -> shmapGet balanceMap (Uv owner)
 
 -- | ERC20 transfer function.
 transfer :: OmniFn (ADDR -> U256 -> BOOL)
 transfer = $lfn $ ylvm'pv
   \(Uv to) (Uv amount) -> LVM.do
-    Ur (Uv from) <- ymkref LVM.=<< ycaller
+    Ur (Uv from) <- ycaller
 
     -- get current balances
     Ur (Rv senderBalance) <- ycall balanceOf (ver from)
@@ -35,8 +35,8 @@ transfer = $lfn $ ylvm'pv
         be (senderBalance' - amount', receiverBalance' + amount')
 
     sputs $
-      balanceMap .-> from := newSenderBalance   :|
-      balanceMap .-> to   := newReceiverBalance :[]
+      balanceMap .-> Uv from := Rv newSenderBalance   :|
+      balanceMap .-> Uv to   := Rv newReceiverBalance :[]
 
     -- always return true as a silly urban-legendary ERC20 convention
     yembed true
@@ -51,7 +51,7 @@ mint = $lfn $ ylvm'pv
       (Rv balanceBefore, ver amount)
       (\x y -> x + y)
     -- update balance
-    sputs $ balanceMap .-> to := newAmount :|[]
+    sputs $ balanceMap .-> Uv to := Rv newAmount :|[]
     -- call unsafe external contract onTokenMinted
     ycall (to @-> onTokenMinted) (ver to) (ver amount)
 
