@@ -151,30 +151,30 @@ lfn = [e| lfn' ("$lfn_" ++ $fnLocId) |]
 instance forall f x xs b g r.
          ( YulO4 x (NP xs) b r
          , EquivalentNPOfFunction f (x:xs) b
-         , CurriableNP g xs b (P'P r) (P'P r) (YulCat'LPP r ()) One
+         , CurriableNP g xs b (YulCat'LPP r ()) (P'P r) One (P'P r) One
          ) =>
          CallableFunctionNP PureFn f x xs b (P'P r) (P'P r) One where
   call (MkPureFn f') x =
     let !(x', u) = mkunit'l x
-    in curryNP @g @xs @b @(P'P r) @(P'P r) @(YulCat'LPP r ()) @One
+    in curryNP @g @xs @b @(YulCat'LPP r ()) @(P'P r) @_ @(P'P r) @_
        \(MkYulCat'LPP fxs) -> encodeWith'l (YulJmpU f') id (consNP x' (fxs u))
 
 instance forall f x xs b va g r.
          ( YulO4 x (NP xs) b r
          , EquivalentNPOfFunction f (x:xs) b
-         , CurriableNP g xs b (P'V va r) (P'V va r) (YulCat'LVV va va r ()) One
+         , CurriableNP g xs b (YulCat'LVV va va r ()) (P'V va r) One (P'V va r) One
          ) =>
          CallableFunctionNP PureFn f x xs b (P'V va r) (P'V va r) One where
   call (MkPureFn f) x =
     let f' = unsafeCoerceNamedYulCat f :: NamedYulCat (VersionedInputOutput 0) (NP (x:xs)) b
         !(x', u) = mkunit'l x
-    in curryNP @g @xs @b @(P'V va r) @(P'V va r) @(YulCat'LVV va va r ()) @One
+    in curryNP @g @xs @b @(YulCat'LVV va va r ()) @(P'V va r) @_ @(P'V va r)
        \(MkYulCat'LVV fxs) -> encodeWith'l (YulJmpU f') id (consNP x' (fxs u))
 
 instance forall f x xs b va g r.
          ( YulO4 x (NP xs) b r
          , EquivalentNPOfFunction f (x:xs) b
-         , CurriableNP g xs b (P'V va r) (P'V va r) (YulCat'LVV va va r ()) One
+         , CurriableNP g xs b (YulCat'LVV va va r ()) (P'V va r) One (P'V va r) One
          ) =>
          CallableFunctionNP StaticFn f x xs b (P'V va r) (P'V va r) One where
   call (MkStaticFn f) = call (MkPureFn (unsafeCoerceNamedYulCat f))
@@ -226,13 +226,13 @@ instance (KnownNat v, EquivalentNPOfFunction f xs b, YulO2 (NP xs) b) =>
 ycalluv :: forall f x xs b v g r.
   ( KnownNat v, YulO4 x (NP xs) b r
   , EncodableFn (PureFn f) PureInputPureOutput v r f (x:xs) b
-  , CurriableNP g xs (Ur (Uv r b)) (Uv r) (YLVM v v r) (YulCat'LPP r ()) One
+  , CurriableNP g xs (Ur (Uv r b)) (YulCat'LPP r ()) (YLVM v v r) One (Uv r) One
   , YulVarRef v r (P'P r) (Uv r)
   ) =>
   PureFn f ->
   (Uv r x ⊸ LiftFunction (CurryNP (NP xs) (Ur (Uv r b))) (Uv r) (YLVM v v r) One)
 ycalluv f xVar =
-  curryNP @g @xs @(Ur (Uv r b)) @(Uv r) @(YLVM v v r) @(YulCat'LPP r ()) @One
+  curryNP @g @xs @(Ur (Uv r b)) @(YulCat'LPP r ()) @(YLVM v v r) @One @(Uv r)
   \(MkYulCat'LPP fxs) -> LVM.do
     x <- ytkvar xVar
     let !(x', u) = mkunit'l x
@@ -259,13 +259,13 @@ class EncodableFn fn (VersionedInputOutput vd) va r f (x:xs) b =>
       YCallableFunctionNonNil fn f x xs b va vd r | fn -> x xs b vd where
   ycall :: forall vb g.
     ( KnownNat va, KnownNat vb, va + vd ~ vb, va <= vb, YulO3 r x (NP xs)
-    , CurriableNP g xs (Ur (Rv vb r b)) (Rv va r) (YLVM va vb r) (YulCat'LVV va va r ()) One
+    , CurriableNP g xs (Ur (Rv vb r b)) (YulCat'LVV va va r ()) (YLVM va vb r) One (Rv va r) Many
     , YulVarRef vb r (P'V vb r) (Rv vb r)
     ) =>
     fn ->
-    (Rv va r x ⊸ LiftFunction (CurryNP (NP xs) (Ur (Rv vb r b))) (Rv va r) (YLVM va vb r) One)
+    (Rv va r x -> LiftFunction (CurryNP (NP xs) (Ur (Rv vb r b))) (Rv va r) (YLVM va vb r) Many)
   ycall f xVar =
-    curryNP @g @xs @(Ur (Rv vb r b)) @(Rv va r) @(YLVM va vb r) @(YulCat'LVV va va r ()) @One
+    curryNP @g @xs @(Ur (Rv vb r b)) @(YulCat'LVV va va r ()) @(YLVM va vb r) @_ @(Rv va r) @_
     \(MkYulCat'LVV fxs) -> LVM.do
       x <- ytkvar xVar
       let !(x', u) = mkunit'l x

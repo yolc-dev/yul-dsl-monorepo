@@ -215,7 +215,7 @@ with'l :: forall f x xs b bs r ioe m1 m2 btpl.
   ( ConstraintForWith x xs b bs r ioe m1 m2
    -- f
   , EquivalentNPOfFunction f (x:xs) btpl
-  , UncurriableNP f (x:xs) btpl m2 m2 m2 m2 Many
+  , UncurriableNP f (x:xs) btpl m2 m2 Many m2 m2 Many
   -- x:xs
   , ConvertibleNPtoTupleN (NP (MapList m1 (x:xs)))
   -- b:bs
@@ -232,7 +232,7 @@ with'l tpl f =
   let !(x, xs) = splitNonEmptyNP (fromTupleNtoNP tpl)
       !(x', u) = mkunit'l x
       sxxs = linearDistributeNP (x' :* xs) u
-      cat = uncurryNP @f @(x:xs) @btpl @m2 @m2 @m2 @m2 f YulId
+      cat = uncurryNP @f @(x:xs) @btpl @m2 @m2 @_ @m2 @m2 @_ f YulId
   in is (encodeP'x (YulUnsafeCoerceEffect cat) sxxs)
 
 -- | Process a NP of yul ports with a pure yul function.
@@ -260,7 +260,7 @@ withN'l :: forall f x xs b bs r ioe m1 m2 f' btpl.
   ( ConstraintForWith x xs b bs r ioe m1 m2
   -- f
   , EquivalentNPOfFunction f (x:xs) btpl
-  , UncurriableNP f (x:xs) btpl m2 m2 m2 m2 Many
+  , UncurriableNP f (x:xs) btpl m2 m2 Many m2 m2 Many
   -- f'
   , EquivalentNPOfFunction f' (x:xs) (NP (b:bs))
   -- x:xs
@@ -277,7 +277,7 @@ withN'l :: forall f x xs b bs r ioe m1 m2 f' btpl.
   PureY f ->
   NPtoTupleN (NP (MapList m1 (b:bs)))
 withN'l tpl f = fromNPtoTupleN (withNP'l @f' @x @xs @b @bs (fromTupleNtoNP tpl) f')
-  where f' txxs = uncurryNP @f @(x:xs) @btpl @m2 @m2 @m2 @m2 @Many f (distributeNP txxs) >.> YulReduceType
+  where f' txxs = uncurryNP @f @(x:xs) @btpl @m2 @m2 @_ @m2 @m2 @_ f (distributeNP txxs) >.> YulReduceType
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $VersionThread

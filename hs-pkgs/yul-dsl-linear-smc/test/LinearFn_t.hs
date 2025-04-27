@@ -69,15 +69,14 @@ bar0 = $lfn $ ylvm'pv LVM.do
 
 bar1 :: StaticFn (U256 -> U256)
 bar1 = $lfn $ ylvm'pv
-  \(Uv x1) -> LVM.do
-    ycall foo1 (ver x1)
+  \x1 -> ycall foo1 (ver x1)
 
 bar3 :: StaticFn (U256 -> U256 -> U256 -> U256)
 bar3 = $lfn $ ylvm'pv
-  \(Uv x1'uv) (Uv x2'uv) (Uv x3'uv) -> LVM.do
-    x1 <- ytkvar (Uv x1'uv)
-    x2 <- ytkvar (Uv x2'uv)
-    x3 <- ytkvar (Uv x3'uv)
+  \x1'uv x2'uv x3'uv -> LVM.do
+    x1 <- ytkvar x1'uv
+    x2 <- ytkvar x2'uv
+    x3 <- ytkvar x3'uv
     ymkvar (ver'l (x1 + x2 + x3))
 
 --------------------------------------------------------------------------------
@@ -123,13 +122,13 @@ tuple2_input = $lfn $ yulports'vv
 
 fooSPut :: OmniFn (B32 -> U256 -> ())
 fooSPut = $lfn $ ylvm'pv
-  \(Uv slot) (Uv val) -> LVM.do
-    sput (LVM.pure (Ur (Uv slot)) := Uv val)
+  \slot val -> LVM.do
+    sput (LVM.pure (Ur slot) := val)
     yembed ()
 
 callSPut :: OmniFn (B32 -> U256 -> ())
 callSPut = $lfn $ ylvm'pv
-  \(Uv addr) (Uv val) -> ycall fooSPut (ver addr) (ver val)
+  \addr val -> ycall fooSPut (ver addr) (ver val)
 
 --------------------------------------------------------------------------------
 

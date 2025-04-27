@@ -15,43 +15,42 @@ globalCounterLoc = $fn do
 
 incGlobalCounter :: OmniFn (U256 -> ())
 incGlobalCounter = $lfn $ ylvm'pv
-  \(Uv inc) -> LVM.do
-    Ur (Uv counterRef) <- ycalluv_0 globalCounterLoc
+  \inc -> LVM.do
+    Ur counterRef <- ycalluv_0 globalCounterLoc
 
-    Ur (Rv currentValue) <- sget (Uv counterRef)
+    Ur currentValue <- sget counterRef
 
-    Ur (Rv newValue) <- ywithrvN_1 @(U256 -> U256 -> U256)
-      (Rv currentValue, ver inc)
+    Ur newValue <- ywithrvN_1 @(U256 -> U256 -> U256)
+      (currentValue, ver inc)
       (\a b -> a + b)
 
-    sput (ycalluv_0 globalCounterLoc := Rv newValue)
+    sput (ycalluv_0 globalCounterLoc := newValue)
 
     yembed ()
 
 getGlobalCounter :: StaticFn U256
 getGlobalCounter = $lfn $ ylvm'pv LVM.do
-  Ur (Uv counterRef) <- ycalluv_0 globalCounterLoc
-  sget (Uv counterRef)
+  Ur counterRef <- ycalluv_0 globalCounterLoc
+  sget counterRef
 
 -- | Storage map of user counters
 counterMap :: SHMap ADDR U256
 counterMap = shmap "Yolc.Demo.Counter.Storage.Counter.PerUser"
 
 getCounter :: StaticFn (ADDR -> U256)
-getCounter = $lfn $ ylvm'pv \(Uv acc) -> counterMap `shmapGet` Uv acc
+getCounter = $lfn $ ylvm'pv \acc -> counterMap `shmapGet` acc
 
 incCounter :: OmniFn (U256 -> ())
 incCounter = $lfn $ ylvm'pv
-  \(Uv inc) -> LVM.do
-    -- TODO: Uv acc <- ycaller
-    Ur (Uv acc) <- ycaller
+  \inc -> LVM.do
+    Ur acc <- ycaller
 
-    Ur (Uv counterRef) <- shmapRef counterMap (Uv acc)
-    Ur (Rv currentValue) <- sget (Uv counterRef)
+    Ur counterRef <- shmapRef counterMap acc
+    Ur currentValue <- sget counterRef
 
-    Ur (Rv newValue) <- ywithrvN_1 @(U256 -> U256 -> U256)
-      (Rv currentValue, ver inc)
+    Ur newValue <- ywithrvN_1 @(U256 -> U256 -> U256)
+      (currentValue, ver inc)
       (\a b -> a + b)
 
-    sput (counterMap .-> Uv acc := Rv newValue)
+    sput (counterMap .-> acc := newValue)
     yembed ()

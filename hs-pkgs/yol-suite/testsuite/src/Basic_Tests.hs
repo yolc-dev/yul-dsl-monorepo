@@ -44,23 +44,23 @@ rangeSum'l = $lfn $ yulports'pp
 
 callExternalFoo1 :: OmniFn (ADDR -> U256 -> U256)
 callExternalFoo1 = $lfn $ ylvm'pv
-  \(Uv to) (Uv val) -> ycall (to @-> external_foo1) (ver val)
+  \to val -> ycall (to @-> external_foo1) (ver val)
 
 callExternalFoo2 :: OmniFn (ADDR -> U256 -> U256 -> U256)
 callExternalFoo2 = $lfn $ ylvm'vv
-  \(Rv to) (Rv val1) (Rv val2) -> ycall (to @-> external_foo2) (Rv val1) (Rv val2)
+  \to val1 val2 -> ycall (to @-> external_foo2) val1 val2
 
 sgetTest :: StaticFn (ADDR -> U256)
 sgetTest = $lfn $ ylvm'pv
-  \(Uv acc'uv) -> LVM.do
-    acc <- ytkvarv (Uv acc'uv)
+  \acc'uv -> LVM.do
+    acc <- ytkvarv acc'uv
     key <- embed (42 :: U32)
     ymkvar (sget'l (extendType'l @(REF U256) (keccak256'l (merge'l (key, acc)))))
 
 shmapGetTest :: StaticFn (ADDR -> U256)
 shmapGetTest = $lfn $ ylvm'pv
-  \(Uv acc) -> LVM.do
-    Ur sslot <- (shmap "shmapGetTest" :: SHMap ADDR U256) .-> Uv acc
+  \acc -> LVM.do
+    Ur sslot <- (shmap "shmapGetTest" :: SHMap ADDR U256) .-> acc
     sget sslot
 
 varSharing :: PureFn (U256 -> U256 -> U256 -> U256)
@@ -74,7 +74,7 @@ varSharingL = $lfn $ yulports'pp
 
 lvmvar_test1 :: PureFn (U256 -> U256 -> U256)
 lvmvar_test1 = $lfn $ ylvm'pp
-  \(Uv x_) (Uv y_) -> ywithuvN_1 @(U256 -> U256 -> U256) (Uv x_, Uv y_) \x y -> x * y + y
+  \x_ y_ -> ywithuvN_1 @(U256 -> U256 -> U256) (x_, y_) \x y -> x * y + y
 
 lvmvar_test2 :: PureFn (U256)
 lvmvar_test2 = $lfn $ ylvm'pp LVM.do
@@ -90,10 +90,10 @@ lvmvar_test3 = $lfn $ ylvm'pv LVM.do
 
 lvmvar_test4 :: StaticFn (U256 -> U256 -> U256)
 lvmvar_test4 = $lfn $ ylvm'vv
-  \(Rv x) (Rv y) -> LVM.do
-    x1 <- ytkvar (Rv x)
-    x2 <- ytkvar (Rv x)
-    y1 <- ytkvar (Rv y)
+  \x y -> LVM.do
+    x1 <- ytkvar x
+    x2 <- ytkvar x
+    y1 <- ytkvar y
     ymkvar (x1 + x2 * y1)
 
 object = mkYulObject "BasicTests" yulNoop

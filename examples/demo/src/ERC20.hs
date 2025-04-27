@@ -15,28 +15,28 @@ balanceMap = shmap "Yolc.Demo.ERC20.Storage.AccountBalance"
 
 -- | ERC20 balance of the account.
 balanceOf :: StaticFn (ADDR -> U256)
-balanceOf = $lfn $ ylvm'pv \(Uv owner) -> shmapGet balanceMap (Uv owner)
+balanceOf = $lfn $ ylvm'pv \owner -> shmapGet balanceMap owner
 
 -- | ERC20 transfer function.
 transfer :: OmniFn (ADDR -> U256 -> BOOL)
 transfer = $lfn $ ylvm'pv
-  \(Uv to) (Uv amount) -> LVM.do
-    Ur (Uv from) <- ycaller
+  \to amount -> LVM.do
+    Ur from <- ycaller
 
     -- get current balances
-    Ur (Rv senderBalance) <- ycall balanceOf (ver from)
-    Ur (Rv receiverBalance) <- ycall balanceOf (ver to)
+    Ur senderBalance <- ycall balanceOf (ver from)
+    Ur receiverBalance <- ycall balanceOf (ver to)
 
     -- calculate new balances
-    Ur (Rv newSenderBalance, Rv newReceiverBalance) <- ywithrvN
+    Ur (newSenderBalance, newReceiverBalance) <- ywithrvN
       @(U256 -> U256 -> U256 -> (U256, U256))
-      (ver amount, ver senderBalance, ver receiverBalance)
+      (ver amount, senderBalance, receiverBalance)
       \amount' senderBalance' receiverBalance' ->
         be (senderBalance' - amount', receiverBalance' + amount')
 
     sputs $
-      balanceMap .-> Uv from := Rv newSenderBalance   :|
-      balanceMap .-> Uv to   := Rv newReceiverBalance :[]
+      balanceMap .-> from := newSenderBalance   :|
+      balanceMap .-> to   := newReceiverBalance :[]
 
     -- always return true as a silly urban-legendary ERC20 convention
     yembed true
@@ -44,16 +44,16 @@ transfer = $lfn $ ylvm'pv
 -- | Mint new tokens
 mint :: OmniFn (ADDR -> U256 -> ())
 mint = $lfn $ ylvm'pv
-  \(Uv to) (Uv amount) -> LVM.do
-    Ur (Rv balanceBefore) <- ycall balanceOf (ver to)
+  \to amount -> LVM.do
+    Ur balanceBefore <- ycall balanceOf (ver to)
     -- calculate new balance
-    Ur (Rv newAmount) <- ywithrvN_1 @(U256 -> U256 -> U256)
-      (Rv balanceBefore, ver amount)
+    Ur newAmount <- ywithrvN_1 @(U256 -> U256 -> U256)
+      (balanceBefore, ver amount)
       (\x y -> x + y)
-    -- update balance
-    sputs $ balanceMap .-> Uv to := Rv newAmount :|[]
-    -- call unsafe external contract onTokenMinted
+    -- call **untrusted** external contract onTokenMinted
     ycall (to @-> onTokenMinted) (ver to) (ver amount)
+    -- update balance
+    sputs $ balanceMap .-> to := newAmount :|[]
 
     -- return () always, for demo purpose
     yembed ()

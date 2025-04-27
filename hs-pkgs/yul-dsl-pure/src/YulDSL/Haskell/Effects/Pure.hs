@@ -63,15 +63,15 @@ instance forall b r.
          , EquivalentNPOfFunction b '[] b
          , LiftFunction b (YulCat'P r) (YulCat'P r) Many ~ YulCat'P r b
          ) =>
-         UncurriableNP b '[] b (YulCat'P r) (YulCat'P r) (YulCat'P r) (YulCat'P r) Many where
+         UncurriableNP b '[] b (YulCat'P r) (YulCat'P r) Many (YulCat'P r) (YulCat'P r) Many where
   uncurryNP b _ = b
 
 -- ^ Inductive case: @uncurryingNP (x -> ...xs -> b) => (x, uncurryingNP (... xs -> b)) => NP (x:xs) -> b@
 instance forall g x xs b r.
          ( YulO4 x (NP xs) b r
-         , UncurriableNP g xs b (YulCat'P r) (YulCat'P r) (YulCat'P r) (YulCat'P r) Many
+         , UncurriableNP g xs b (YulCat'P r) (YulCat'P r) Many (YulCat'P r) (YulCat'P r) Many
          ) =>
-         UncurriableNP (x -> g) (x:xs) b (YulCat'P r) (YulCat'P r) (YulCat'P r) (YulCat'P r) Many where
+         UncurriableNP (x -> g) (x:xs) b (YulCat'P r) (YulCat'P r) Many (YulCat'P r) (YulCat'P r) Many where
   uncurryNP f xxs = let (x, xs) = unconsNP xxs in uncurryNP @g @xs @b @(YulCat'P r) @(YulCat'P r) (f x) xs
 
 --
@@ -84,16 +84,16 @@ instance forall b r.
          , EquivalentNPOfFunction b '[] b
          , LiftFunction b (YulCat'P r) (YulCat'P r) Many ~ YulCat'P r b
          ) =>
-         CurriableNP b '[] b (YulCat'P r) (YulCat'P r) (YulCat'P r) Many where
+         CurriableNP b '[] b (YulCat'P r) (YulCat'P r) Many (YulCat'P r) Many where
   curryNP fNP = fNP (YulReduceType `YulComp` YulDis)
 
 -- ^ Inductive case: @curryingNP (NP (x:xs) -> b) => x -> curryingNP (NP xs -> b)@
 instance forall g x xs b r.
          ( YulO5 x (NP xs) b (NP (x:xs)) r
-         , CurriableNP g xs b (YulCat'P r) (YulCat'P r) (YulCat'P r) Many
+         , CurriableNP g xs b (YulCat'P r) (YulCat'P r) Many (YulCat'P r) Many
          ) =>
-         CurriableNP (x -> g) (x:xs) b (YulCat'P r) (YulCat'P r) (YulCat'P r) Many where
-  curryNP fNP x = curryNP @g @xs @b @(YulCat'P r) @(YulCat'P r) (fNP . consNP x)
+         CurriableNP (x -> g) (x:xs) b (YulCat'P r) (YulCat'P r) Many (YulCat'P r) Many where
+  curryNP fNP x = curryNP @g @xs @b @(YulCat'P r) @(YulCat'P r) @_ @(YulCat'P r) @_ (fNP . consNP x)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $PureFn
@@ -138,30 +138,31 @@ instance EquivalentNPOfFunction f xs b => KnownNamedYulCat (PureFn f) PureEffect
 fn' :: forall f xs b m.
   ( YulO2 (NP xs) b
   , YulCat'P (NP xs) ~ m
-  , UncurriableNP f xs b m m m m Many
+  , UncurriableNP f xs b m m Many m m Many
   ) =>
   String ->
   LiftFunction f m m Many -> -- ^ uncurrying function type
   PureFn (CurryNP (NP xs) b) -- ^ result type, or its short form @m b@
-fn' cid f = let cat = uncurryNP @f @xs @b @m @m @m @m f YulId in MkPureFn (cid, cat)
+fn' cid f = let cat = uncurryNP @f @xs @b @m @m @_ @m @m @_ f YulId in MkPureFn (cid, cat)
 
 -- | Create a 'PureFn' with automatic id based on function definition source location.
 fn :: TH.Q TH.Exp
 fn = [e| fn' ("$pfn_" ++ $fnLocId) |]
 
-instance forall f x xs b g a.
-         ( YulO4 x (NP xs) b a
+instance forall f x xs b g r.
+         ( YulO4 x (NP xs) b r
          , EquivalentNPOfFunction f (x:xs) b
-         , CurriableNP g xs b (YulCat'P a) (YulCat'P a) (YulCat'P a) Many
+         , CurriableNP g xs b (YulCat'P r) (YulCat'P r) Many (YulCat'P r) Many
          ) =>
-         CallableFunctionNP PureFn f x xs b (YulCat'P a) (YulCat'P a) Many where
-  call (MkPureFn (cid, cat)) x = curryNP @g @xs @b @(YulCat'P a) @(YulCat'P a) @(YulCat'P a)
+         CallableFunctionNP PureFn f x xs b (YulCat'P r) (YulCat'P r) Many where
+  call (MkPureFn (cid, cat)) x = curryNP @g @xs @b @(YulCat'P r) @(YulCat'P r) @_ @(YulCat'P r) @_
     (\xs -> consNP x xs >.> YulJmpU (cid, cat))
 
 call0 :: forall b a.
   ( YulO2 b a
   , EquivalentNPOfFunction b '[] b
-  ) => PureFn b -> YulCat'P a b
+  ) =>
+  PureFn b -> YulCat'P a b
 call0 f = callN f ()
 
 instance forall f xs b r.
