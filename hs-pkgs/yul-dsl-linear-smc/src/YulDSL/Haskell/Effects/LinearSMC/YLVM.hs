@@ -1,7 +1,7 @@
 {-# LANGUAGE AllowAmbiguousTypes    #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
--- {-# LANGUAGE UndecidableInstances   #-}
+{-# LANGUAGE UndecidableInstances   #-}
 {-|
 
 Copyright   : (c) 2024-2025 Miao, ZhiCheng
