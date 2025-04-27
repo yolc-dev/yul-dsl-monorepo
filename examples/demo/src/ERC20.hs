@@ -28,7 +28,7 @@ transfer = $lfn $ ylvm'pv
     Ur receiverBalance <- ycall balanceOf (ver to)
 
     -- calculate new balances
-    Ur (newSenderBalance, newReceiverBalance) <- ywithrvN
+    Ur (newSenderBalance, newReceiverBalance) <- ywithrv
       @(U256 -> U256 -> U256 -> (U256, U256))
       (ver amount, senderBalance, receiverBalance)
       \amount' senderBalance' receiverBalance' ->
@@ -47,13 +47,13 @@ mint = $lfn $ ylvm'pv
   \to amount -> LVM.do
     Ur balanceBefore <- ycall balanceOf (ver to)
     -- calculate new balance
-    Ur newAmount <- ywithrvN_1 @(U256 -> U256 -> U256)
+    Ur newAmount <- ywithrv_1 @(U256 -> U256 -> U256)
       (balanceBefore, ver amount)
       (\x y -> x + y)
-    -- call **untrusted** external contract onTokenMinted
-    ycall (to @-> onTokenMinted) (ver to) (ver amount)
     -- update balance
     sputs $ balanceMap .-> to := newAmount :|[]
+    -- call **untrusted** external contract onTokenMinted
+    ycall (to @-> onTokenMinted) (ver to) (ver amount)
 
     -- return () always, for demo purpose
     yembed ()

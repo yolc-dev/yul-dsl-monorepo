@@ -20,7 +20,7 @@ incGlobalCounter = $lfn $ ylvm'pv
 
     Ur currentValue <- sget counterRef
 
-    Ur newValue <- ywithrvN_1 @(U256 -> U256 -> U256)
+    Ur newValue <- ywithrv_1 @(U256 -> U256 -> U256)
       (currentValue, ver inc)
       (\a b -> a + b)
 
@@ -48,7 +48,7 @@ incCounter = $lfn $ ylvm'pv
     Ur counterRef <- shmapRef counterMap acc
     Ur currentValue <- sget counterRef
 
-    Ur newValue <- ywithrvN_1 @(U256 -> U256 -> U256)
+    Ur newValue <- ywithrv_1 @(U256 -> U256 -> U256)
       (currentValue, ver inc)
       (\a b -> a + b)
 

@@ -25,7 +25,7 @@ module YulDSL.Haskell.Effects.LinearSMC.YLVM
   , YulVarRef (ymkvar, ytkvar, ytkvarv), YulVarRefNP (ymkvarNP, ytkvarNP), ytakeuvN, ytkrvN
   , yembed, yretvar
     -- ** Process With Pure Functions
-  , ywithuvN, ywithuvN_1, ywithrvN, ywithrvN_1
+  , ywithuv, ywithuv_1, ywithrv, ywithrv_1
     -- $YLVMDiagrams
   , YulCat'LPPM (MkYulCat'LPPM), YulCat'LPVM (MkYulCat'LPVM), YulCat'LVVM (MkYulCat'LVVM)
   , ylvm'pp, ylvm'pv, ylvm'vv
@@ -348,7 +348,7 @@ ytkrvN tpl = LVM.do
   LVM.pure (fromNPtoTupleN aNP)
 
 --
--- yembed
+-- yembed, yretvar
 --
 
 -- | Embed a value into a yul variable.
@@ -368,7 +368,7 @@ yretvar :: forall a v r ie vref_.
 yretvar a = LVM.pure (Ur a)
 
 --
--- ywithuvN{_1}, ywithrvN{_1}
+-- ywithuv{_1}, ywithrv{_1}
 --
 
 type ConstraintForYWith f x xs b bs bret f' v r m1 m1b m2 mp =
@@ -391,7 +391,7 @@ type ConstraintForYWith f x xs b bs bret f' v r m1 m1b m2 mp =
   , YulVarRefNP (b:bs) v r mp m1b
   )
 
-ywithuvN :: forall f x xs b bs btpl f' v r m1 m1b m2.
+ywithuv :: forall f x xs b bs btpl f' v r m1 m1b m2.
   ( ConstraintForYWith f x xs b bs btpl f' v r m1 m1b m2 (P'P r)
     -- m1, m1b, m2
   , Uv r ~ m1
@@ -403,7 +403,7 @@ ywithuvN :: forall f x xs b bs btpl f' v r m1 m1b m2.
   NPtoTupleN (NP (MapList (Uv r) (x:xs))) ⊸
   PureY f ->
   YLVM v v r (Ur (NPtoTupleN (NP (MapList (Uv r) (b:bs)))))
-ywithuvN xxstpl f = LVM.do
+ywithuv xxstpl f = LVM.do
   xxstpl' <- ytakeuvN @v @(x:xs) xxstpl
   let bbs = withNP'l @f' (fromTupleNtoNP xxstpl') f'
   Ur bbsrefs <- ymkvarNP @(b:bs) bbs
@@ -411,7 +411,7 @@ ywithuvN xxstpl f = LVM.do
   where f' txxs = uncurryNP @f @(x:xs) @btpl @m2 @m2 @Many @m2 @m2 @Many f (distributeNP txxs)
                   >.> YulReduceType
 
-ywithuvN_1 :: forall f x xs b v r m1 m1b m2 f'.
+ywithuv_1 :: forall f x xs b v r m1 m1b m2 f'.
   ( ConstraintForYWith f x xs b '[] b f' v r m1 m1b m2 (P'P r)
     -- m1, m2
   , Uv r ~ m1
@@ -421,14 +421,14 @@ ywithuvN_1 :: forall f x xs b v r m1 m1b m2 f'.
   NPtoTupleN (NP (MapList (Uv r) (x:xs))) ⊸
   PureY f ->
   YLVM v v r (Ur (Uv r b))
-ywithuvN_1 xxstpl f = LVM.do
+ywithuv_1 xxstpl f = LVM.do
   xxstpl' <- ytakeuvN @v @(x:xs) xxstpl
   let !(b :* Nil) = withNP'l @f' (fromTupleNtoNP xxstpl') f'
   ymkvar b
   where f' txxs = uncurryNP @f @(x:xs) @b @m2 @m2 @Many @m2 @m2 @Many f (distributeNP txxs)
                   >.> YulCoerceType @_ @b @(NP '[b]) >.> YulReduceType
 
-ywithrvN :: forall f x xs b bs btpl v r m1 m1b m2 f'.
+ywithrv :: forall f x xs b bs btpl v r m1 m1b m2 f'.
   ( ConstraintForYWith f x xs b bs btpl f' v r m1 m1b m2 (P'V v r)
     -- m1, m2
   , Rv v r ~ m1
@@ -440,7 +440,7 @@ ywithrvN :: forall f x xs b bs btpl v r m1 m1b m2 f'.
   NPtoTupleN (NP (MapList (Rv v r) (x:xs))) ->
   PureY f ->
   YLVM v v r (Ur (NPtoTupleN (NP (MapList (Rv v r) (b:bs)))))
-ywithrvN xxstpl f = LVM.do
+ywithrv xxstpl f = LVM.do
   xxstpl' <- ytkrvN @v @(x:xs) xxstpl
   let bbs = withNP'l @f' (fromTupleNtoNP xxstpl') f'
   Ur bbsrefs <- ymkvarNP @(b:bs) bbs
@@ -448,7 +448,7 @@ ywithrvN xxstpl f = LVM.do
   where f' txxs = uncurryNP @f @(x:xs) @btpl @m2 @m2 @Many @m2 @m2 @Many f (distributeNP txxs)
                   >.> YulReduceType
 
-ywithrvN_1 :: forall f x xs b v r m1 m1b m2 f'.
+ywithrv_1 :: forall f x xs b v r m1 m1b m2 f'.
   ( ConstraintForYWith f x xs b '[] b f' v r m1 m1b m2 (P'V v r)
     -- m1, m2
   , Rv v r ~ m1
@@ -458,7 +458,7 @@ ywithrvN_1 :: forall f x xs b v r m1 m1b m2 f'.
   NPtoTupleN (NP (MapList (Rv v r) (x:xs))) ->
   PureY f ->
   YLVM v v r (Ur (Rv v r b))
-ywithrvN_1 xxstpl f = LVM.do
+ywithrv_1 xxstpl f = LVM.do
   xxstpl' <- ytkrvN @v @(x:xs) xxstpl
   let !(b :* Nil) = withNP'l @f' (fromTupleNtoNP xxstpl') f'
   ymkvar b
