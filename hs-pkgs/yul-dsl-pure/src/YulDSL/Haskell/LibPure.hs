@@ -22,6 +22,7 @@ import Data.Type.Function
 -- yul-dsl
 import YulDSL.Core
 --
+import YulDSL.Haskell.YulCatObj.BOOL   ()
 import YulDSL.Haskell.YulCatObj.Maybe  ()
 import YulDSL.Haskell.YulCatObj.NP     ()
 import YulDSL.Haskell.YulCatObj.TUPLEn ()

@@ -1,8 +1,10 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
-{-# OPTIONS_GHC -Wno-orphans #-}
+-- {-# OPTIONS_GHC -Wno-orphans #-}
 module TestCommon where
+import Prelude
 -- eth-abi
 import Ethereum.ContractABI.Arbitrary ()
+
 
 --
 -- KnownBool

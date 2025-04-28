@@ -141,6 +141,26 @@ test_poly_foo = and
 -- Pattern Matching: Maybe
 --------------------------------------------------------------------------------
 
+bool_fn1 :: PureFn (BOOL -> U8 -> U8 -> U8)
+bool_fn1 = $fn
+  \a b c -> if a then b else c
+
+bool_fn2 :: PureFn (BOOL -> U8 -> U8 -> U8)
+bool_fn2 = $fn
+  \a b c -> match a \case True -> b; False -> c
+
+test_bool_fns :: Bool
+test_bool_fns = and
+  [ evalFn bool_fn1 (true :* 42 :* 69 :* Nil) == 42
+  , evalFn bool_fn1 (false :* 42 :* 69 :* Nil) == 69
+  , evalFn bool_fn2 (true :* 42 :* 69 :* Nil) == 42
+  , evalFn bool_fn2 (false :* 42 :* 69 :* Nil) == 69
+  ]
+
+--------------------------------------------------------------------------------
+-- Pattern Matching: Maybe
+--------------------------------------------------------------------------------
+
 maybe_num_fn2 :: PureFn (Maybe U8 -> Maybe U8 -> U8)
 maybe_num_fn2 = $fn
   \a b -> match (a + b) \case
@@ -177,5 +197,6 @@ tests = describe "YulDSL.Core.Fn" $ do
   it "simple functions" $ property test_simple_fns
   it "NP functions" $ property test_np_fns
   it "polymorphic function" test_poly_foo
+  it "boolean objects" test_bool_fns
   it "pattern matching with Maybe" test_maybe_fn
   it "pure effects classification" test_effect_classification

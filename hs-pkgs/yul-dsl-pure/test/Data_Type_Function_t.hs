@@ -1,6 +1,6 @@
 {-# LANGUAGE LinearTypes #-}
 module Data_Type_Function_t where
-
+import Prelude
 -- base
 import Data.Functor.Identity (Identity)
 import Data.Type.Equality    (type (==))

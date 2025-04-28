@@ -41,6 +41,7 @@ library
     Control.IfThenElse
     -- YulDSL/Haskell
     YulDSL.Haskell.Effects.Pure
+    YulDSL.Haskell.YulCatObj.BOOL
     YulDSL.Haskell.YulCatObj.Maybe
     YulDSL.Haskell.YulCatObj.NP
     YulDSL.Haskell.YulCatObj.TUPLEn
@@ -52,6 +53,7 @@ Test-Suite test-yul-dsl-pure
   default-extensions: TemplateHaskell
                       ViewPatterns
                       ImpredicativeTypes
+                      RebindableSyntax
   ghc-options:        -Wno-missing-signatures
   hs-source-dirs:     test
   build-depends:      QuickCheck >=2.13,
