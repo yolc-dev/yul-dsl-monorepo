@@ -31,16 +31,9 @@ rangeSum'l :: PureFn (U256 -> U256 -> U256 -> U256)
 rangeSum'l = $lfn $ yulports'pp
   \from'p step'p until'p -> call rangeSum'p from'p step'p until'p
 
-  -- FIXME: yikes, this is ugly and we need to improve.
--- FIXME: this does't even work; codegen error in extcall.
--- callExternalFoo0 :: OmniFn (ADDR -> U256)
--- callExternalFoo0 = $lfn $ ylvm'pv
---  \(Uv to'uv) -> LVM.do
---    to <- ytakev1 to'uv
---    u <- embed ()
---    ret <- externalCall external_foo0 to u
---    Ur retref <- ymkvar ret
---    LVM.pure retref
+callExternalFoo0 :: OmniFn (ADDR -> U256)
+callExternalFoo0 = $lfn $ ylvm'pv
+  \to -> ycall0 (to @-> external_foo0)
 
 callExternalFoo1 :: OmniFn (ADDR -> U256 -> U256)
 callExternalFoo1 = $lfn $ ylvm'pv
@@ -122,6 +115,6 @@ object = mkYulObject "BasicTests" yulNoop
 
 -- TODO generated interfaces
 
-external_foo0 = externalOmniFn @(() -> U256) "foo0"
+external_foo0 = externalOmniFn @U256 "foo0"
 external_foo1 = externalOmniFn @(U256 -> U256) "foo1"
 external_foo2 = externalOmniFn @(U256 -> U256 -> U256) "foo2"
