@@ -35,8 +35,9 @@ TODO
   - [ ] 🟠 STRING
 - ExtendedType
   - [x] TUPLEn
-  - [x] 🟠 REF, storage or memory raw reference with `constRef, keyRef`.
+  - [ ] 🟠 REF, storage or memory raw reference with `constRef, keyRef`.
     - SREF for strarage.
+    - Recursive `REF a b` type.
     - MREF family for memory: IMREF (immutable), LMREF (locked), and MMREF (mutable).
   - [ ] 🟢 SELECTOR
 - ABICodec
@@ -63,7 +64,7 @@ TODO
     - [x] Function export modifiers resembling solidity: `pureFn, staticFn, omniFn`.
     - [x] mkYulObject
   - Type Safety
-    - [x] Type-level purity classification: `IsEffectNotPure, MayEffectWorld`.
+    - [x] Effect purity classification: `IsEffectNotPure, MayEffectWorld`.
 
 - Standard Built-in Yul Functions:
   - [x] Built-in extension infrastructure
@@ -115,46 +116,66 @@ TODO
 
 ### yul-dsl-pure
 
-- `Data` & `Control` extensions
-  - [x] `IfThenElse` for rebindable syntax.
-  - [x] `PatternMatchable` and the "match, is, be" verbs.
-  - [x] `MPOrd` for lifted Boolean types.
+- `Data` and `Control` extensions
+  - [x] `Data.MPOrd` for lifted Boolean types.
+  - [x] `Data.Type.Function` to work with function signatures.
+  - [x] `Control.IfThenElse` for rebindable syntax.
+  - [x] `Control.PatternMatchable` and the "match, is, be" verbs.
 - Working with integers
   - [x] Num class with checked integer operations.
   - [x] ⭐ Maybe Num with optional integer operations and Pattern matching of support.
   - [ ] Type-safe `upCast`, and `safeCast` for down-casting to `Maybe` values.
 - Additional yul objects
+  - [x] BOOL. Instances: 'IfThenElse', 'PatternMatchable', 'InjectivePattern'.
   - [x] Maybe a
-    - [] ⚠️ Expand beyond `Maybe (INTx s n)`
+    - [ ] ⚠️ Expand beyond `Maybe (INTx s n)`
   - [x] NP
   - [x] TUPLEn
-- Working with pure effect
+- Pure Effect:
   - [x] Build pure functions `$fn`.
-  - [x] Call pure functions `call`, `callN`.
-  - [ ] `YulFunctor`, `YulFoldable`, `YulApplicative`, `YulAlternative`, `YulMonad`.
+  - [x] Call pure functions `call`, `call0`, `callN`.
+- Yul Functors
+  - [ ] `YulFunctor`
+  - [ ] `YulFoldable`
+  - [ ] `YulApplicative`
+  - [ ] `YulAlternative`
+  - [ ] `YulTraversable`
 
 ### yul-dsl-linear-smc
 
-- [x] 🌟🌟🌟 Linear safety for side effects
-  - [x] Compile expression sof linear _data ports_ to YulCat
-  - [x] Working with _versioned data port_ through `YLVM`, a "Linearly Versioned Monad."
-    - [ ] ⚠️ Removing over-serialization, to have more parallel computations. Validate using 'diagram'
-          package based visualization.
-  - [x] Build linear functions with `$lfn $ uncurry'lvv | $lfn $ uncurry'lpv`.
-  - [ ] 🟢Call functions linearly with `call`, `ycall`, `ycallN`.
-  - [ ] 🟢 Fix `ypure` and `yembed` (?).
-- Working with _data ports_
-  - [x] match data port and outputs new data port.
-  - [ ] 🟢 `ywith` to work with data ports in pure yul functions.
-  - [ ] 🟠 `(rebound) if, ywhen, yunless` to work with BOOL data port.
-- Working with _versioned data port_ through `YLVM`, a "Linearly Versioned Monad."
-  - [ ] Build YLVM functions: `$lfn $ yullvm'{pp,pv,vv}`
+- [x] 🌟🌟🌟 Linear safety for side effects.
+  - [x] Compile expressions of linear _yul ports_ to YulCat
+  - [x] Working with _versioned data port_ through `YLVM`, a "Linearly-Versioned Monad."
+- Working with _yul ports_ using linear-smc directly.
+  - [x] Build _yul ports_ functions: `$lfn $ yulports'{pp,pv,vv}`.
+  - [x] Process _yul ports_ in pure yul functions: `ywith'l`.
+  - [x] VersionThread API: `vtstat{_}, vtstop, vtreturn, vtkmunit, vtgulp, vtseq`.
+  - [ ] 🟢 call functions using _yul_ports_: `call'l`.
+  - [ ] 🟠 `(rebound syntax) if` to work with BOOL _yul port_.
+- Working with _yul variables_ using `YLVM`.
+  - [x] Build YLVM functions: `$lfn $ ylvm'{pp,pv,vv}`.
+  - [x] Call functions in a `YLVM`: `ycall`, `ycall0`.
+  - [x] Yul variables: `Uv, Rv, ver`.
+  - [x] Yul variables <-> yul ports: `ymkvar{NP}, ytkvar{NP}, ytkvarv, ytakeuvN, ytkrvN`;
+  - [x] `yembed`, `yreturn`.
+  - [x] Process _yul variables_ in pure yul functions: `ywith{ur,rv}N{_1}`.
+  - [ ] 🟠 `(rebound syntax) if, ywhen, yunless` to work with BOOL _yul variable_.
 - Working with storage:
-  - [x] Assorted storage functions: `SReferenceable(sget, sput), sgetN, (<==), sputN, (:|), (:=),
-        sputs`.
-    - [ ] ⚠️ YulVar variants.
-    - [ ] 🟠 Storage functions working with `Referenceable` types.
-  - [x] SHMap - Storage Hash Map.
+  - [x] Extensible Storage type: `SReferenceable(sget'l, sput'l)`.
+  - [ ] 🟢 Storage primitives: `sget, sgetNP, sgetN, sput (<:=), sputM (<<:=), sputMM (<<:=<<)`.
+  - [ ] 🟠 Storage functions working with `Referenceable` types.
+- Storage Hash Map.
+  - [ ] `shmapRef'l, shmapGet'l, shmapPut'l`.
+  - [ ] `(.->), shmapRef`
+  - [ ] `shmapGet`
+
+**internal: lvm (linearly-versioned-monad)**
+
+- LinearContext
+- LVM
+- LVM combinators: toss{1,N}, pass{1,N},
+- LVMVar
+
 
 ### yol-suite
 

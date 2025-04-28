@@ -17,16 +17,19 @@ This module provides the linearly-versioned monad (LVM) for yul ports, aka. YLVM
 module YulDSL.Haskell.Effects.LinearSMC.YLVM
   ( -- $YLVM
     YLVM, runYLVM
+    -- * YLVM: A Linearly Versioned Monad for Yul Ports
   , ygulp, yrunvt
     -- $YulVarRefAPI
+    -- * Yul Variable Reference's API
   , LinearlyVersionRestrictedYulPort, DereferenceYulVarRef, ReferenciableYulVar
   , Uv, Rv, VersionableYulVarRef (ver)
     -- ** Make And Take Of Yul Variables
-  , YulVarRef (ymkvar, ytkvar, ytkvarv), YulVarRefNP (ymkvarNP, ytkvarNP), ytakeuvN, ytkrvN
-  , yembed, yretvar
+  , YulVarRef (ymkvar, ytkvar, ytkvarv), YulVarRefNP (ymkvarNP, ytkvarNP), ytkuvN, ytkrvN
+  , yembed, yreturn
     -- ** Process With Pure Functions
   , ywithuv, ywithuv_1, ywithrv, ywithrv_1
     -- $YLVMDiagrams
+    -- * YLVM Monadic Diagrams
   , YulCat'LPPM (MkYulCat'LPPM), YulCat'LPVM (MkYulCat'LPVM), YulCat'LVVM (MkYulCat'LVVM)
   , ylvm'pp, ylvm'pv, ylvm'vv
     -- * Re-export LVM Primitives
@@ -55,7 +58,6 @@ import YulDSL.Haskell.Effects.LinearSMC.YulPort
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $YLVM
--- * YLVM: A Linearly Versioned Monad for Yul Ports
 ------------------------------------------------------------------------------------------------------------------------
 
 -- | YLVM is a linear versioned monad with 'YLVMCtx' as its context data.
@@ -201,7 +203,6 @@ instance (KnownNat v, YulO2 a r) => LinearlyVersionRestrictable v (YLVMCtx r) (P
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $YulVarRefAPI
--- * Yul Variable Reference's API
 ------------------------------------------------------------------------------------------------------------------------
 
 type LinearlyVersionRestrictedYulPort v r port = VersionRestrictedData v (YLVMCtx r) port
@@ -254,7 +255,7 @@ instance (KnownNat v, YulO2 r a) => VersionableYulVarRef v r a (Rv v r a) where
   ver = id
 
 instance (KnownNat v, YulO2 r a) => VersionableYulVarRef v r a (UvYulVarRef r a) where
-  ver ref = Rv (VerUvLVMVarRef ref)
+  ver uvref = Rv (VerUvLVMVarRef uvref)
 
 instance VersionableYulVarRef v r a (RvYulVarRef v r a) where
   ver = Rv
@@ -318,10 +319,10 @@ instance ( YulO2 x (NP xs)
     LVM.pure (x :* xs)
 
 --
--- ytakeuvN, ytkrvN
+-- ytkuvN, ytkrvN
 --
 
-ytakeuvN :: forall v xs r m1 m2.
+ytkuvN :: forall v xs r m1 m2.
   ( Uv r ~ m1
   , P'P r ~ m2
   , ConvertibleNPtoTupleN (NP (MapList m1 xs))
@@ -330,7 +331,7 @@ ytakeuvN :: forall v xs r m1 m2.
   ) =>
   NPtoTupleN (NP (MapList m1 xs)) ->
   YLVM v v r (NPtoTupleN (NP (MapList m2 xs)))
-ytakeuvN tpl = LVM.do
+ytkuvN tpl = LVM.do
   aNP <- ytkvarNP @xs @v @r @m2 @m1 (fromTupleNtoNP tpl)
   LVM.pure (fromNPtoTupleN aNP)
 
@@ -348,7 +349,7 @@ ytkrvN tpl = LVM.do
   LVM.pure (fromNPtoTupleN aNP)
 
 --
--- yembed, yretvar
+-- yembed, yreturn
 --
 
 -- | Embed a value into a yul variable.
@@ -360,12 +361,12 @@ yembed :: forall a v r ie vref_.
 yembed a = embed a LVM.>>= ymkvar
 
 -- | Return a yul variable unrestricted.
-yretvar :: forall a v r ie vref_.
+yreturn :: forall a v r ie vref_.
   ( YulO1 a
   , YulVarRef v r (P'x ie r) vref_
   ) =>
   vref_ a -> YLVM v v r (Ur (vref_ a))
-yretvar a = LVM.pure (Ur a)
+yreturn a = LVM.pure (Ur a)
 
 --
 -- ywithuv{_1}, ywithrv{_1}
@@ -404,7 +405,7 @@ ywithuv :: forall f x xs b bs btpl f' v r m1 m1b m2.
   PureY f ->
   YLVM v v r (Ur (NPtoTupleN (NP (MapList (Uv r) (b:bs)))))
 ywithuv xxstpl f = LVM.do
-  xxstpl' <- ytakeuvN @v @(x:xs) xxstpl
+  xxstpl' <- ytkuvN @v @(x:xs) xxstpl
   let bbs = withNP'l @f' (fromTupleNtoNP xxstpl') f'
   Ur bbsrefs <- ymkvarNP @(b:bs) bbs
   LVM.pure $ Ur (fromNPtoTupleN bbsrefs)
@@ -422,7 +423,7 @@ ywithuv_1 :: forall f x xs b v r m1 m1b m2 f'.
   PureY f ->
   YLVM v v r (Ur (Uv r b))
 ywithuv_1 xxstpl f = LVM.do
-  xxstpl' <- ytakeuvN @v @(x:xs) xxstpl
+  xxstpl' <- ytkuvN @v @(x:xs) xxstpl
   let !(b :* Nil) = withNP'l @f' (fromTupleNtoNP xxstpl') f'
   ymkvar b
   where f' txxs = uncurryNP @f @(x:xs) @b @m2 @m2 @Many @m2 @m2 @Many f (distributeNP txxs)
@@ -467,7 +468,6 @@ ywithrv_1 xxstpl f = LVM.do
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $YLVMDiagrams
--- * YLVM Monadic Diagrams
 ------------------------------------------------------------------------------------------------------------------------
 
 --

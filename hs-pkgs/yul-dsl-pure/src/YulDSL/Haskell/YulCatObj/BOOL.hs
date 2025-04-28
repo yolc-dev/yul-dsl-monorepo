@@ -1,5 +1,4 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
-{-# OPTIONS_HADDOCK hide #-}
 {-|
 
 Copyright   : (c) 2023-2025 Miao, ZhiCheng

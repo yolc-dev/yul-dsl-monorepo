@@ -14,11 +14,13 @@ This module provides the operations for working with the 'Pure' kind of effect f
 -}
 module YulDSL.Haskell.Effects.Pure
   (
+    -- * Pure Effect Kind
     -- $PureEffectKind
     PureEffectKind (Pure, Total)
-  , PureY, YulCat'P
+  , YulCat'P, PureY
     -- $PureFn
-  , PureFn (MkPureFn), fn', fn, call0
+    -- * Pure Functions
+  , PureFn (MkPureFn), fn', fn, call, call0, callN
     -- * Template Haskell Support
   , fnLocId
     -- * Technical Notes
@@ -34,7 +36,6 @@ import YulDSL.Core
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $PureEffectKind
--- * Pure Effect Kind
 ------------------------------------------------------------------------------------------------------------------------
 
 -- | Data kind for pure morphisms in the yul category.
@@ -51,7 +52,7 @@ instance KnownYulCatEffect Total
 type YulCat'P = YulCat Pure
 
 -- | Pure 'YulCat' n-ary function form, with each morphism on the arrow sharing the same domain @a@.
-type PureY f = forall a. YulO1 a => LiftFunction f (YulCat'P a) (YulCat'P a) Many
+type PureY f = forall a. YulO1 a => LiftFunction f (YulCat Pure a) (YulCat Pure a) Many
 
 --
 -- UncurriableNP instances
@@ -97,7 +98,6 @@ instance forall g x xs b r.
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $PureFn
--- * Pure Functions
 ------------------------------------------------------------------------------------------------------------------------
 
 -- | Function without side effects, hence pure.
@@ -121,18 +121,19 @@ instance EquivalentNPOfFunction f xs b => KnownNamedYulCat (PureFn f) PureEffect
 -- __Note: How to use__
 --
 -- @
---   -- Use type application to resolve the type @f@:
---   bar = fn "bar" $ uncurry'p @(U256 -> U256)
+--   -- Use type signature to constrain data type:
+--   bar :: PureFn (U256 -> U256)
+--   bar = $fn
 --     \a -> a + a
 -- @
 --
--- __Note: How to Read This Type Signature__
+-- __Note: How to read this type signature__
 --
 -- When given:
 --
 --   * @NP xs = (x1, x2 ... xn)@
---   * @x1' = Pure (NP xs ⤳ x1), x2' = Pure (NP xs ↝ x2), ... xn' = Pure (NP xs ⤳ xn)@
---   * @f = λ x1' -> λ x2' -> ... λ xn' -> Pure (NP xs ↝ b)@
+--   * @x1' = Pure (NP xs ⤳ x1), ... xn' = Pure (NP xs ⤳ xn)@
+--   * @f = λ x1' -> ... λ xn' -> Pure (NP xs ↝ b)@
 --
 -- It returns: @Pure (NP xs ↝ b)@
 fn' :: forall f xs b m.
@@ -158,6 +159,7 @@ instance forall f x xs b g r.
   call (MkPureFn (cid, cat)) x = curryNP @g @xs @b @(YulCat'P r) @(YulCat'P r) @_ @(YulCat'P r) @_
     (\xs -> consNP x xs >.> YulJmpU (cid, cat))
 
+-- | An alias to @callN f ()@.
 call0 :: forall b a.
   ( YulO2 b a
   , EquivalentNPOfFunction b '[] b
@@ -186,11 +188,12 @@ fnLocId = do
 
 -- $yulCatVal
 --
--- = Yul Categorical Value
+-- == Yul Categorical Values
 --
--- A yul categorical value of @r ⤳ a@ is another way of saying all morphisms that leads to @a@ in the category of
--- 'YulCat'.
+-- A yul categorical value of @r ⤳ a@ a morphism from some @r@ to @a@ in the category of yul.
 --
--- One may also wrap it around an effect kind, e.g. @Pure (r ⤳ a)@ means a pure yul categorical value of @r ⤳ a@.
+-- Notation-wise, one may also wrap it around an effect kind, e.g. @Pure (r ⤳ a)@ means a pure yul categorical value of
+-- @r ⤳ a@.
 --
--- From category theory perspective, it is a hom-set @YulCat(-, a)@ that is contravariant of @a@.
+-- From category theory perspective, all category values of @a@ forms a hom-set @YulCat(-, a)@ that is contravariant in
+-- @a@; or the hom-set of the opposite of the yul category: YulCatOp(a, -).

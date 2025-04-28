@@ -138,10 +138,3 @@ sputs (sa :| (sa':sas)) =
       x' = LVM.unsafeCoerceLVM x :: YLVM v      v  r ()
       xs = sputs (sa' :| sas)
   in x' LVM.>> xs
-
--- (<==), sgets :: forall tpl_a tpl_b v r.
---   ( ConvertibleTupleNtoNP tpl_a, ConvertibleTupleNtoNP tpl_b
---   , SGettableNP v r (TupleNtoNP tpl_a) (TupleNtoNP tpl_b)
---   ) => tpl_a ⊸ YLVM v v r tpl_b
--- sgets = sgetN
--- (<==) = sgetN
