@@ -1,6 +1,6 @@
 module YulPortNum_t where
 -- base
-import Prelude         (fromInteger, pure, (<$>), (==), (>>=))
+import Prelude         (fromInteger, pure, (<$>), (==), (>>=), and)
 -- hspec, quickcheck
 import Test.Hspec
 import Test.QuickCheck

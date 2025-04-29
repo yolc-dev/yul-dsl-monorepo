@@ -22,7 +22,7 @@ module YulDSL.Haskell.Effects.LinearSMC.YLVM
     -- $YulVarRefAPI
     -- * Yul Variable Reference's API
   , LinearlyVersionRestrictedYulPort, DereferenceYulVarRef, ReferenciableYulVar
-  , Uv, Rv, VersionableYulVarRef (ver)
+  , Ur (Ur), unur, Uv, Rv, VersionableYulVarRef (ver)
     -- ** Make And Take Of Yul Variables
   , YulVarRef (ymkvar, ytkvar, ytkvarv), YulVarRefNP (ymkvarNP, ytkvarNP), ytkuvN, ytkrvN
   , yembed, yreturn
@@ -37,7 +37,7 @@ module YulDSL.Haskell.Effects.LinearSMC.YLVM
   , module Control.LinearlyVersionedMonad.LVMVar
   ) where
 -- base
-import GHC.TypeLits                                  (KnownNat, type (<=))
+import GHC.TypeLits                                  (type (<=))
 -- linear-base
 import Prelude.Linear
 import Unsafe.Linear                                 qualified as UnsafeLinear

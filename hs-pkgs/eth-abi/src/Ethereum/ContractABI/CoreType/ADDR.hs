@@ -19,7 +19,7 @@ module Ethereum.ContractABI.CoreType.ADDR
   ) where
 
 -- base
-import GHC.TypeLits                       (KnownNat, type (-), type (<=), type (^))
+import GHC.TypeLits                       (type (-), type (<=), type (^))
 import Numeric                            (showHex)
 -- cereal
 import Data.Serialize                     qualified as S

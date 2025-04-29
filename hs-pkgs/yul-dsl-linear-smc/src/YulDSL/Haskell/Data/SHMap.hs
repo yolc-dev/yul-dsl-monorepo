@@ -4,7 +4,7 @@ module YulDSL.Haskell.Data.SHMap
   , shmapRef, (.->), shmapGet
   ) where
 -- base
-import GHC.TypeLits                       (KnownNat, type (+), type (<=))
+import GHC.TypeLits                       (type (+), type (<=))
 -- yul-dsl
 import YulDSL.Core
 --

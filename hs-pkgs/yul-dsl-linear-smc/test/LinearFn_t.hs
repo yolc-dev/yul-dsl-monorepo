@@ -4,7 +4,7 @@ import Test.Hspec
 -- (lvm)
 import Control.LinearlyVersionedMonad.LVM qualified as LVM
 --
-import Prelude                        ((>>))
+import Prelude                        ((>>), and)
 import Prelude qualified as BasePrelude
 import Prelude.YulDSL
 

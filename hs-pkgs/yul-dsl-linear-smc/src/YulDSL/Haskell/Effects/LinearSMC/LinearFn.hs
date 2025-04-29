@@ -28,7 +28,7 @@ module YulDSL.Haskell.Effects.LinearSMC.LinearFn
 -- base
 import Data.Proxy                                    (Proxy (Proxy))
 import GHC.TypeError                                 qualified as TypeError
-import GHC.TypeLits                                  (KnownNat, type (+), type (<=))
+import GHC.TypeLits                                  (type (+), type (<=))
 -- template-haskell
 import Language.Haskell.TH                           qualified as TH
 -- constraints

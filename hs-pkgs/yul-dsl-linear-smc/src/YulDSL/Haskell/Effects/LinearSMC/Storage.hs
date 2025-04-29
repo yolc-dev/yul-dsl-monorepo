@@ -22,7 +22,7 @@ module YulDSL.Haskell.Effects.LinearSMC.Storage
   ) where
 -- base
 import Data.List.NonEmpty                       (NonEmpty ((:|)))
-import GHC.TypeLits                             (KnownNat, type (+), type (<=))
+import GHC.TypeLits                             (type (+), type (<=))
 -- linear-base
 import Prelude.Linear                           (Ur (Ur), type (~), ($), (.))
 -- yul-dsl

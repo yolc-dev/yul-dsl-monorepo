@@ -12,7 +12,7 @@ module YulDSL.Haskell.Effects.LinearSMC.LinearYulCat
   , yulports'pp, yulports'pv, yulports'vv
   ) where
 -- base
-import GHC.TypeLits                             (KnownNat, type (+))
+import GHC.TypeLits                             (type (+))
 -- linear-base
 import Prelude.Linear
 -- yul-dsl-pure

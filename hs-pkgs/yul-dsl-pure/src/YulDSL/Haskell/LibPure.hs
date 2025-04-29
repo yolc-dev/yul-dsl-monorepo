@@ -1,16 +1,18 @@
 {-# LANGUAGE LinearTypes #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 module YulDSL.Haskell.LibPure
-  -- * YulDSL/Haskell's pure effect support
-  ( module YulDSL.Core
+  ( -- * YulDSL/Haskell's pure effect support
+    module YulDSL.Core
   , module YulDSL.Haskell.Effects.Pure
-  -- * Data and Control Flow Extensions
+    -- * Data and Control Flow Extensions
   , module Control.IfThenElse
   , module Control.PatternMatchable
   , module Data.MPOrd
   , module Data.Type.Function
-  -- * Re-exports
+    -- * Miscellaneous functions
+    -- TODO: - Fixed inability to re-export the ``Data.Tuple.MkSolo`` constructor (:ghc-ticket:`25182`)
   , Solo (MkSolo)
+  , getSolo
   ) where
 -- base
 import Data.Tuple                      (Solo (MkSolo))
@@ -28,3 +30,7 @@ import YulDSL.Haskell.YulCatObj.NP     ()
 import YulDSL.Haskell.YulCatObj.TUPLEn ()
 --
 import YulDSL.Haskell.Effects.Pure
+
+
+getSolo :: Solo a %1 -> a
+getSolo (MkSolo a) = a
