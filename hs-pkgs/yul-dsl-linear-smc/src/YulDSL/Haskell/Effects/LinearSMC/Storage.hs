@@ -24,7 +24,7 @@ module YulDSL.Haskell.Effects.LinearSMC.Storage
 import Data.List.NonEmpty                       (NonEmpty ((:|)))
 import GHC.TypeLits                             (type (+), type (<=))
 -- linear-base
-import Prelude.Linear                           (Ur (Ur), type (~), ($), (.))
+import Prelude.Linear                           (type (~), ($), (.))
 -- yul-dsl
 import YulDSL.Core
 -- linearly-versioned-monad
