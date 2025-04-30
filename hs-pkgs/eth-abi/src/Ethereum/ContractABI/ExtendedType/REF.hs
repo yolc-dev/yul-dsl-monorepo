@@ -45,6 +45,7 @@ keyRef = REF . bytesnToInteger . stringKeccak256
 
 instance ABITypeable a => ABITypeable (REF a) where
   type instance ABITypeDerivedOf (REF a) = B32
+  abiDefault = REF 0
   abiToCoreType (REF n) = BYTESn n
   abiFromCoreType (BYTESn n) = REF n
 

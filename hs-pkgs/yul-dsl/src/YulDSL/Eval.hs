@@ -67,7 +67,8 @@ evalYulCat s_ a_ = evalState (go s_ a_) initEvalState
     go YulDis _ = pure () -- FIXME: there may be semantic difference with YulGen when it comes effect order.
     go YulDup a = pure (a, a)
     -- co-cartesian category
-    go (YulEmb b)       _ = pure b
+    go YulAbsurd  _ = error "absurd"
+    go (YulEmb b) _ = pure b
     -- control flow
     go (YulHaskFunc  f) a = go (f (YulEmb a)) ()
     go (YulJmpU (_, f)) a = go f a

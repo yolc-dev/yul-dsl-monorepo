@@ -28,6 +28,7 @@ import Data.ExoFunctor
 
 instance {-# OVERLAPPABLE #-} ABITypeable a => ABITypeable (Maybe a) where
   type instance ABITypeDerivedOf (Maybe a) = NP [BOOL, a]
+  abiDefault = Nothing
   abiToCoreType = error "to be implemented"
   abiFromCoreType = error "to be implemented"
 
@@ -35,7 +36,7 @@ instance {-# OVERLAPPABLE #-} ABITypeable a => ABITypeable (Maybe a) where
 
 instance ValidINTx s n => ABITypeable (Maybe (INTx s n)) where
   type instance ABITypeDerivedOf (Maybe (INTx s n)) = NP [BOOL, INTx s n]
-
+  abiDefault = Nothing
   abiToCoreType (Just x) = true :* abiToCoreType x :* Nil
   abiToCoreType Nothing  = false :* 0 :* Nil
 
@@ -68,7 +69,7 @@ instance YulO2 r a => InjectivePattern (YulCat eff r) (Maybe a) (Maybe (YulCat e
     Just a  -> YulFork (yulEmb true) a
                >.> YulReduceType
                >.> YulExtendType
-    Nothing -> YulFork (yulEmb false) YulAbsurd -- it would be absurd to use the value
+    Nothing -> YulFork (yulEmb false) (yulEmb abiDefault)
                >.> YulReduceType
                >.> YulExtendType
 

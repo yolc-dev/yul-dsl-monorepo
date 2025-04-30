@@ -35,6 +35,9 @@ class ABITypeable a where
   -- | Convert @a@ to the ABI core type it derives from.
   type ABITypeDerivedOf a
 
+  -- | Default value of the type.
+  abiDefault :: a
+
   -- | Returns a list of core types represented by this type.
   --
   -- Invariant: @abi_type_info a == abi_type_info \@(ABITypeDerivedOf a)@

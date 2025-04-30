@@ -28,11 +28,13 @@ import Ethereum.ContractABI.ABITypeCodec (ABITypeCodec (..))
 
 instance ABITypeable (NP '[]) where
   type instance ABITypeDerivedOf (NP '[]) = NP '[]
+  abiDefault = Nil
   abiTypeInfo = []
 
 instance ( ABITypeable x, ABITypeable (NP xs)
          ) => ABITypeable (NP (x : xs)) where
   type instance ABITypeDerivedOf (NP (x : xs)) = NP (x : xs)
+  abiDefault = abiDefault :* abiDefault
   abiTypeInfo = abiTypeInfo @x <> abiTypeInfo @(NP xs)
 
 instance ABITypeCodec (NP '[]) where

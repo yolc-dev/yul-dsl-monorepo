@@ -32,6 +32,7 @@ import Ethereum.ContractABI.CoreType.NP  (NP (..))
 -- ^ ABI typeable unit.
 instance ABITypeable () where
   type instance ABITypeDerivedOf () = NP '[]
+  abiDefault = ()
   abiToCoreType () = Nil
   abiFromCoreType Nil = ()
 instance ABITypeCodec ()
@@ -39,6 +40,7 @@ instance ABITypeCodec ()
 -- ^ ABI typeable for solo tuple.
 instance ABITypeable a => ABITypeable (Solo a) where
   type instance ABITypeDerivedOf (Solo a) = NP '[a]
+  abiDefault = MkSolo abiDefault
   abiToCoreType = fromTupleNtoNP
   abiFromCoreType = fromNPtoTupleN
 instance ABITypeCodec a => ABITypeCodec (Solo a)
@@ -46,6 +48,7 @@ instance ABITypeCodec a => ABITypeCodec (Solo a)
 -- | ABI typeable tuple.
 instance (ABITypeable a1, ABITypeable a2) => ABITypeable (a1, a2) where
   type instance ABITypeDerivedOf (a1, a2) = NP '[a1, a2]
+  abiDefault = (abiDefault, abiDefault)
   abiToCoreType = fromTupleNtoNP
   abiFromCoreType = fromNPtoTupleN
 
@@ -59,6 +62,7 @@ do
     [d| instance $(tupleNFromVarsTWith (TH.conT ''ABITypeable `TH.appT`) as) =>
                   ABITypeable $(tupleNFromVarsT as) where
           type instance ABITypeDerivedOf $(tupleNFromVarsT as) = NP $(promotedListFromVarsT as)
+          abiDefault = $(TH.tupE (replicate n (TH.varE 'abiDefault)))
           abiToCoreType = $(TH.varE 'fromTupleNtoNP)
           abiFromCoreType = $(TH.varE 'fromNPtoTupleN)
         instance $(tupleNFromVarsTWith (TH.conT ''ABITypeCodec `TH.appT`) as) =>

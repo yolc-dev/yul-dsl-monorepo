@@ -63,6 +63,7 @@ stringKeccak256 s = let hash = Hash.hash (Data.ByteString.Char8.pack s) :: Hash.
 
 instance (ValidINTn n) => ABITypeable (BYTESn n) where
   type instance ABITypeDerivedOf (BYTESn n) = BYTESn n
+  abiDefault = BYTESn 0
   abiTypeInfo = [BYTESn' (natSing @n)]
 
 instance (ValidINTn n) => ABITypeCodec (BYTESn n) where

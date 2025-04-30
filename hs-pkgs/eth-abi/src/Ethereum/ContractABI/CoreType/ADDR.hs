@@ -61,6 +61,7 @@ instance Bounded ADDR where
 
 instance ABITypeable ADDR where
   type instance ABITypeDerivedOf ADDR = ADDR
+  abiDefault = zeroAddress
   abiTypeInfo = [ADDR']
 
 instance ABITypeCodec ADDR where
