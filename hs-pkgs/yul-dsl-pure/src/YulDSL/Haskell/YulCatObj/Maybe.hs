@@ -85,6 +85,7 @@ instance YulO2 a r => PatternMatchable (YulCat eff r) (Maybe a) (Maybe (YulCat e
 --
 
 instance ExoFunctor (YulCat eff) (YulCat eff) Maybe where
+  -- This is one of the most beautiful things I have ever seen:
   exomap g = match YulId \case
-    Just justCase -> justCase >.> be (Just g)
-    Nothing -> be Nothing
+    Just val -> be (Just g) <.< val
+    Nothing  -> be Nothing
