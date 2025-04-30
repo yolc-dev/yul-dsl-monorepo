@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
+{-# LANGUAGE LinearTypes     #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-|
 
@@ -12,11 +13,11 @@ Stability   : experimental
 This module provides the pattern matching instances for yul morphisms to n-tuples.
 
 -}
-module YulDSL.Haskell.YulCatObj.TUPLEn where
+module YulDSL.Haskell.YulCatObj.TUPLEn (getSolo) where
 -- base
 import Control.Monad            (replicateM)
-  -- TODO: - Fixed inability to re-export the ``Data.Tuple.MkSolo`` constructor (:ghc-ticket:`25182`)
-import Data.Tuple
+-- TODO: - Fixed inability to re-export the ``Data.Tuple.MkSolo`` constructor (:ghc-ticket:`25182`)
+import Data.Tuple               (Solo (MkSolo))
 -- template-haskell
 import Language.Haskell.TH      qualified as TH
 -- yul-dsl
@@ -24,6 +25,10 @@ import YulDSL.Core
 -- (control-extra)
 import Control.PatternMatchable
 
+
+-- | Linear arrow version of the getSolo.
+getSolo :: Solo a %1 -> a
+getSolo (MkSolo a) = a
 
 -- Tuple1 is Solo and special.
 
