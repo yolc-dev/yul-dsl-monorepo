@@ -161,24 +161,28 @@ test_bool_fns = and
 -- Pattern Matching: Maybe
 --------------------------------------------------------------------------------
 
+maybe_num_fn1 :: PureFn (U8 -> U8)
+maybe_num_fn1 = $fn
+  \a -> call maybe_num_fn2 (be (Just a)) (be (Just (a + 42)))
+
 maybe_num_fn2 :: PureFn (Maybe U8 -> Maybe U8 -> U8)
 maybe_num_fn2 = $fn
   \a b -> match (a + b) \case
     Just x -> x
     Nothing -> 0
 
-maybe_num_fn1 :: PureFn (U8 -> U8)
-maybe_num_fn1 = $fn
-  \a -> call maybe_num_fn2 (be (Just a)) (be (Just (a + 42)))
+maybe_functor_fn1 :: PureFn (Maybe U8 -> Maybe U8)
+maybe_functor_fn1 = $fn \a -> (+ yulEmb @Pure 42) <$$> a
 
 test_maybe_fn :: Bool
 test_maybe_fn = and
-  [ evalFn maybe_num_fn2 (Just 42 :* Just 69 :* Nil)   == 111
+  [ evalFn maybe_num_fn1 (30 :* Nil) == 102
+  , evalFn maybe_num_fn1 (150 :* Nil) == 0
+  , evalFn maybe_num_fn2 (Just 42 :* Just 69 :* Nil)   == 111
   , evalFn maybe_num_fn2 (Just 255 :* Just 0 :* Nil)   == 255
   , evalFn maybe_num_fn2 (Just 255 :* Just 1 :* Nil)   == 0
   , evalFn maybe_num_fn2 (Just 128 :* Just 128 :* Nil) == 0
-  , evalFn maybe_num_fn1 (30 :* Nil) == 102
-  , evalFn maybe_num_fn1 (150 :* Nil) == 0
+  , evalFn maybe_functor_fn1 (30 :* Nil) == Just 72
   ]
 
 --------------------------------------------------------------------------------

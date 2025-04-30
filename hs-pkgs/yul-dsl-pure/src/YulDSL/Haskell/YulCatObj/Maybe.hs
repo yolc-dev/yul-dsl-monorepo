@@ -15,12 +15,23 @@ module YulDSL.Haskell.YulCatObj.Maybe () where
 -- yul-dsl
 import YulDSL.Core
 import YulDSL.StdBuiltIns.ValueType ()
+--
+import YulDSL.Haskell.YulCat        ()
 -- (control-extra)
 import Control.PatternMatchable
+import Data.ExoFunctor
+
 
 --
--- Maybe (INTx s n) as YulCatObj
+-- "Maybe a" as YulCatObj
 --
+
+instance {-# OVERLAPPABLE #-} ABITypeable a => ABITypeable (Maybe a) where
+  type instance ABITypeDerivedOf (Maybe a) = NP [BOOL, a]
+  abiToCoreType = error "to be implemented"
+  abiFromCoreType = error "to be implemented"
+
+-- only support "Maybe (INTx s n)" for now:
 
 instance ValidINTx s n => ABITypeable (Maybe (INTx s n)) where
   type instance ABITypeDerivedOf (Maybe (INTx s n)) = NP [BOOL, INTx s n]
@@ -31,11 +42,13 @@ instance ValidINTx s n => ABITypeable (Maybe (INTx s n)) where
   abiFromCoreType (b :* x :* Nil) = case b of
     BOOL True  -> Just (abiFromCoreType x)
     BOOL False -> Nothing
+
 instance ValidINTx s n => ABITypeCodec (Maybe (INTx s n))
+
 instance ValidINTx s n => YulCatObj (Maybe (INTx s n))
 
 --
--- Num Instance for Maybe (INTx s n)
+-- Num instance for "Maybe (INTx s n)"
 --
 
 instance (YulO1 a, ValidINTx s n) => Num (YulCat eff a (Maybe (INTx s n))) where
@@ -47,28 +60,30 @@ instance (YulO1 a, ValidINTx s n) => Num (YulCat eff a (Maybe (INTx s n))) where
   fromInteger x = yulEmb (Just (fromInteger x))
 
 --
--- PatternMatchable Instances for Maybe (INTx s n)
+-- PatternMatchable instances for "Maybe a"
 --
 
--- TODO:
--- , YulO3 (ABITypeDerivedOf a) (Maybe a) (ABITypeDerivedOf (Maybe a))
--- , ABITypeDerivedOf (Maybe a) ~ NP [BOOL, ABITypeDerivedOf a]
--- , ABITypeCoercible (ABITypeDerivedOf (Maybe a)) (BOOL, NP '[ABITypeDerivedOf a])
-
-instance (YulO1 r, ValidINTx s n) =>
-         InjectivePattern (YulCat eff r) (Maybe (INTx s n)) (Maybe (YulCat eff r (INTx s n))) YulCatObj Many where
+instance YulO2 r a => InjectivePattern (YulCat eff r) (Maybe a) (Maybe (YulCat eff r a)) YulCatObj Many where
   be = \case
-    Just a  -> YulFork (yulEmb true) (a >.> YulReduceType)
+    Just a  -> YulFork (yulEmb true) a
                >.> YulReduceType
                >.> YulExtendType
-    Nothing -> YulFork (yulEmb false) (yulEmb 0)
+    Nothing -> YulFork (yulEmb false) YulAbsurd -- it would be absurd to use the value
                >.> YulReduceType
                >.> YulExtendType
 
-instance (YulO1 r , ValidINTx s n) =>
-         PatternMatchable (YulCat eff r) (Maybe (INTx s n)) (Maybe (YulCat eff r (INTx s n))) YulCatObj Many where
+instance YulO2 a r => PatternMatchable (YulCat eff r) (Maybe a) (Maybe (YulCat eff r a)) YulCatObj Many where
   match pats f =
-    let bn = pats >.> YulReduceType >.> YulExtendType :: YulCat eff r (BOOL, INTx s n)
+    let bn = pats >.> YulReduceType >.> YulExtendType -- :: YulCat eff r (BOOL, INTx s n)
         b  = bn >.> YulExl
         n  = bn >.> YulExr
     in yulIfThenElse b (f (Just n)) (f Nothing)
+
+--
+-- YulFunctor instance
+--
+
+instance ExoFunctor (YulCat eff) (YulCat eff) Maybe where
+  exomap g = match YulId \case
+    Just justCase -> justCase >.> be (Just g)
+    Nothing -> be Nothing

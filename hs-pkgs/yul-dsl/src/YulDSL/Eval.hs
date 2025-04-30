@@ -27,56 +27,62 @@ import YulDSL.Core.YulCat
 import YulDSL.Core.YulCatObj
 
 
-newtype EvalData = MkEvalData { store_map :: M.Map B32 WORD
-                              }
-                 deriving Show
+-- Data type for the state monad.
+newtype EvalData = MkEvalData
+  { store_map :: M.Map B32 WORD
+  }
+  deriving Show
 
-type EvalState = State EvalData
-
+-- Initial evaluation state.
 initEvalState :: EvalData
-initEvalState = MkEvalData { store_map = M.empty
-                           }
+initEvalState = MkEvalData
+  { store_map = M.empty
+  }
 
-evalYulCat' :: (HasCallStack, YulO2 a b) => YulCat eff a b -> a -> EvalState b
--- type-level conversions
-evalYulCat' YulReduceType a = pure $ fromJust . abiDecode . abiEncode $ a
-evalYulCat' YulExtendType a = pure $ fromJust . abiDecode . abiEncode $ a
-evalYulCat' YulCoerceType a = pure $ fromJust . abiDecode . abiEncode $ a
--- category
-evalYulCat' YulId     a = pure a
-evalYulCat' (YulComp n m) a = evalYulCat' m a >>= evalYulCat' n
--- monoidal category
-evalYulCat' (YulProd m n) (a, b) = do
-  a' <- evalYulCat' m a
-  b' <- evalYulCat' n b
-  pure (a', b')
-evalYulCat' YulSwap (a, b) = pure (b, a)
--- cartesian category
-evalYulCat' (YulFork m n) a = do
-  b <- evalYulCat' m a
-  c <- evalYulCat' n a
-  pure (b, c)
-evalYulCat' YulExl  (a, _)  = pure a
-evalYulCat' YulExr  (_, b)  = pure b
-evalYulCat' YulDis _ = pure () -- FIXME: there may be semantic difference with YulGen, a is always evaluated even if eff may not affect the world.
-evalYulCat' YulDup a = pure (a, a)
--- control flow
-evalYulCat' (YulJmpU (_, f)) a = evalYulCat' f a
-evalYulCat' (YulJmpB p) a = pure (yulB_eval p a)
-evalYulCat' (YulCall _) _    = error "YulCall not supported" -- FIXME
-evalYulCat' (YulITE ct cf) (BOOL t, a) = if t then evalYulCat' ct a else evalYulCat' cf a
--- value primitives
-evalYulCat' (YulEmb b)  _ = pure b
-evalYulCat' YulSGet r = gets $ \s -> fromJust (fromWord =<< M.lookup r (store_map s))
-evalYulCat' YulSPut (r, a) = modify' $ \s -> s { store_map = M.insert r (toWord a) (store_map s) }
-evalYulCat' (YulUnsafeCoerceEffect c) a = evalYulCat' c a
-
+-- | Evaluate yul category morphism with a value from Hask.
 evalYulCat :: YulO2 a b => YulCat eff a b -> a -> b
-evalYulCat s a = evalState (evalYulCat' s a) initEvalState
+evalYulCat s_ a_ = evalState (go s_ a_) initEvalState
+  where
+    go :: (HasCallStack, YulO2 a b) => YulCat eff a b -> a -> State EvalData b
+    -- type-level conversions
+    go YulReduceType a = pure $ fromJust . abiDecode . abiEncode $ a
+    go YulExtendType a = pure $ fromJust . abiDecode . abiEncode $ a
+    go YulCoerceType a = pure $ fromJust . abiDecode . abiEncode $ a
+    -- category
+    go YulId     a = pure a
+    go (YulComp n m) a = go m a >>= go n
+    -- monoidal category
+    go (YulProd m n) (a, b) = do
+      a' <- go m a
+      b' <- go n b
+      pure (a', b')
+    go YulSwap (a, b) = pure (b, a)
+    -- cartesian category
+    go (YulFork m n) a = do
+      b <- go m a
+      c <- go n a
+      pure (b, c)
+    go YulExl  (a, _)  = pure a
+    go YulExr  (_, b)  = pure b
+    go YulDis _ = pure () -- FIXME: there may be semantic difference with YulGen when it comes effect order.
+    go YulDup a = pure (a, a)
+    -- co-cartesian category
+    go (YulEmb b)       _ = pure b
+    -- control flow
+    go (YulHaskFunc  f) a = go (f (YulEmb a)) ()
+    go (YulJmpU (_, f)) a = go f a
+    go (YulJmpB p) a = pure (yulB_eval p a)
+    go (YulCall _) _    = error "YulCall not supported" -- FIXME
+    go (YulITE ct cf) (BOOL t, a) = if t then go ct a else go cf a
+    -- value primitives
+    go YulSGet r = gets $ \s -> fromJust (fromWord =<< M.lookup r (store_map s))
+    go YulSPut (r, a) = modify' $ \s -> s { store_map = M.insert r (toWord a) (store_map s) }
+    go (YulUnsafeCoerceEffect c) a = go c a
 
+-- | Evaluate a known named yul category morphism with NP-typed inputs.
 evalFn :: forall fn efc xs b.
-          ( YulO2 (NP xs) b
-          , KnownNamedYulCat fn efc (NP xs) b
-          )
-       => fn -> NP xs -> b
+  ( YulO2 (NP xs) b
+  , KnownNamedYulCat fn efc (NP xs) b
+  ) =>
+  fn -> NP xs -> b
 evalFn fn = withKnownNamedYulCat fn (evalYulCat . snd)

@@ -27,7 +27,7 @@ module YulDSL.Core.YulCat
     YulCat (..), AnyYulCat (..)
   , YulCallTarget, YulCallGasLimit, YulCallValue
   , NamedYulCat, KnownNamedYulCat (withKnownNamedYulCat, classifyKnownNamedYulCat), unsafeCoerceNamedYulCat
-  -- * YulCat Stringify Functions
+    -- * YulCat Stringify Functions
   , yulCatCompactShow, yulCatToUntypedLisp, yulCatFingerprint
   ) where
 -- base
@@ -97,13 +97,19 @@ data YulCat eff a b where
   YulExr  :: forall eff a b.   YulO2 a b   => YulCat eff (a, b) b
   YulDis  :: forall eff a. YulO1 a => YulCat eff a ()
   YulDup  :: forall eff a. YulO1 a => YulCat eff a (a, a)
+  -- ** Co-cartesian Category (incomplete, WIP)
+  -- *** Variations of the co-cartesian "new", the duo of "dis".
+  -- ^ An absurd yul value. It is handy for visualizing YulHaskFunc with it.
+  YulAbsurd :: forall eff b r. YulO2 b r => YulCat eff r b
+  -- ^ Embed a constant value @b@ as a new yul value.
+  YulEmb    :: forall eff b. YulO1 b => b %1-> YulCat eff () b
 
   -- * Control Flow Primitives
   --
-  -- ^ Embed a constant value @b@ and disregard any input object @a@.
-  YulEmb :: forall eff b.
-    YulO1 b =>
-    b %1-> YulCat eff () b
+  -- ^ Create a yul morhism from a yul categorical hask function.
+  YulHaskFunc :: forall eff a b p.
+    YulO2 a b =>
+    (YulCat eff () a %p -> YulCat eff () b) %1 -> YulCat eff a b
   -- ^ If-then-else expression.
   YulITE :: forall eff a b.
     YulO2 a b =>
@@ -212,7 +218,7 @@ instance (YulO3 x (NP xs) r, DistributiveNP (YulCat eff r) xs) =>
 yulCatCompactShow :: YulCat eff a b -> String
 yulCatCompactShow = go
   where
-    go :: YulCat eff' a' b' -> String
+    go :: YulCat eff a b -> String
     go (YulReduceType @_ @a @b)    = "Tr" <> abi_type_name2 @a @b
     go (YulExtendType @_ @a @b)    = "Te" <> abi_type_name2 @a @b
     go (YulCoerceType @_ @a @b)    = "Tc" <> abi_type_name2 @a @b
@@ -227,7 +233,10 @@ yulCatCompactShow = go
     go (YulDis @_ @a)              = "ε" <> abi_type_name @a
     go (YulDup @_ @a)              = "δ" <> abi_type_name @a
     --
+    go (YulAbsurd)                 = ""
     go (YulEmb @_ @b x)            = "{" <> show x <> "}" <> abi_type_name @b
+    --
+    go (YulHaskFunc @_ @b f)       = "{{" <> go (f (YulAbsurd @_ @b)) <> "}}" <> abi_type_name @b
     go (YulITE a b)                = "?" <> "(" <> go a <> "):(" <> go b <> ")"
     go (YulJmpU @_ @a @b (cid, _)) = "Ju " <> cid <> abi_type_name2 @a @b
     go (YulJmpB @_ @a @b p)        = "Jb " <> yulB_fname p <> abi_type_name2 @a @b
@@ -245,10 +254,10 @@ yulCatCompactShow = go
     -- TODO escape the value of x
     -- escape = show
 
-yulCatToUntypedLisp :: forall eff a b. YulCat eff a b -> Code
+yulCatToUntypedLisp :: YulCat eff a b -> Code
 yulCatToUntypedLisp = go init_ind
   where
-    go :: forall eff' a' b'. Indenter -> YulCat eff' a' b' -> Code
+    go :: Indenter -> YulCat eff a b -> Code
     go _ YulReduceType               = T.empty
     go _ YulExtendType               = T.empty
     go _ YulCoerceType               = T.empty
@@ -262,7 +271,10 @@ yulCatToUntypedLisp = go init_ind
     go ind YulExr                    = ind $ T.pack "exr"
     go ind YulDis                    = ind $ T.pack "dis"
     go ind YulDup                    = ind $ T.pack "dup"
-    go ind (YulEmb x)                = ind $ T.pack (show x)
+    go _ (YulAbsurd)                 = T.empty
+    go ind (YulEmb x)                = ind $ T.pack ("new " ++ (show x) ++ ")")
+    --
+    go ind (YulHaskFunc @_ @b  f)    = ind $ T.pack "new " <> go (indent ind) (f (YulAbsurd @_ @b)) <> T.pack ")"
     go ind (YulITE a b)              = g2 ind "ite" a b
     go ind (YulJmpU (cid, _))        = ind $ T.pack ("(jmpu " ++ cid ++ ")")
     go ind (YulJmpB p)               = ind $ T.pack ("(jmpb " ++ yulB_fname p ++ ")")
@@ -300,7 +312,7 @@ instance Show (YulCat eff a b) where show = yulCatCompactShow
 deriving instance Show AnyYulCat
 
 --
--- Num Instance
+-- Num instance
 --
 
 -- ^ 'Num' instance for INTx.

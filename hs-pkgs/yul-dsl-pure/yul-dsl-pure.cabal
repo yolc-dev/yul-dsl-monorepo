@@ -35,11 +35,14 @@ library
   -- modules
   exposed-modules:
     -- Data and Control extensions
-    Data.Type.Function
-    Data.MPOrd
+    Control.Category
     Control.PatternMatchable
     Control.IfThenElse
+    Data.Type.Function
+    Data.MPOrd
+    Data.ExoFunctor
     -- YulDSL/Haskell
+    YulDSL.Haskell.YulCat
     YulDSL.Haskell.Effects.Pure
     YulDSL.Haskell.YulCatObj.BOOL
     YulDSL.Haskell.YulCatObj.Maybe
