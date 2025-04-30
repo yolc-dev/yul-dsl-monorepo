@@ -174,6 +174,7 @@ maybe_num_fn2 = $fn
 maybe_functor_fn1 :: PureFn (Maybe U8 -> Maybe U8)
 maybe_functor_fn1 = $fn \a -> a <&&> (+ yulEmb @Pure 42)
 
+{- HLint ignore test_maybe_fn "Use isNothing" -}
 test_maybe_fn :: Bool
 test_maybe_fn = and
   [ evalFn maybe_num_fn1 (30 :* Nil) == 102
