@@ -34,6 +34,10 @@ transfer = $lfn $ ylvm'pv
       \amount' senderBalance' receiverBalance' ->
         be (senderBalance' - amount', receiverBalance' + amount')
 
+    -- WARNING: THIS IS WRONG, we shouldn't batch like this, and it violats data freshness.
+    -- Have you found the issue?
+    --
+    -- It will be fixed; by removing sputs.
     sputs $
       balanceMap .-> from := newSenderBalance   :|
       balanceMap .-> to   := newReceiverBalance :[]
