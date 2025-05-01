@@ -39,8 +39,8 @@ m >.> n = n `YulComp` m
 infixr 1 >.>, <.<
 
 -- | Embed a constant in a yul morphism.
-yulEmb :: forall eff a b. YulO2 a b => b %1 -> YulCat eff a b
-yulEmb b = YulDis >.> YulEmb b
+yulEmb :: forall eff r b. YulO2 r b => b %1 -> YulCat eff r b
+yulEmb = YulEmb
 
 -- | Create any no-op morphisms.
 yulNoop :: forall. AnyYulCat

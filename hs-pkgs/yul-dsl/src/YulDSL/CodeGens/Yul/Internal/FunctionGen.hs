@@ -33,15 +33,20 @@ do_compile_cat (MkAnyYulCat (cat :: YulCat eff a b)) = go cat where
   -- - categorical
   go (YulId)                   = build_rhs_aliases @a
   go (YulComp cb ac)           = go_comp cb ac
+  -- -- monoidal
   go (YulProd ab cd)           = go_prod ab cd
   go (YulSwap @_ @m @n)        = go_swap @m @n
+  -- -- cartesian
   go (YulFork ab ac)           = go_fork ab ac
   go (YulExl @_ @m @n)         = go_extract @m @n True  {- extractLeft -}
   go (YulExr @_ @m @n)         = go_extract @m @n False {- extractLeft -}
   go (YulDis)                  = go_dis @a
   go (YulDup)                  = go_dup @a
+  -- - co-cartesian
+  go YulAbsurd                 = error "absurd"
+  go (YulEmb @_ @m @r x)       = go_emb @m @r x
   -- - control flows
-  go (YulEmb @_ @m x)          = go_emb @m x
+  go (YulHask _)               = error "TODO: YulHaskFunc"
   go (YulITE ct cf)            = go_ite ct cf
   go (YulJmpU t)               = go_jmpu t
   go (YulJmpB b)               = go_jmpb b
@@ -148,13 +153,13 @@ go_dup = build_code_block @a @(a, a) $ \ind (code, a_ins) -> do
         new_code
        , mk_rhs_vars (b_vars ++ b_vars))
 
-go_emb :: forall b. (HasCallStack, YulO1 b)
+go_emb :: forall b r. (HasCallStack, YulO2 b r)
        => b -> CGState RhsExprGen
 go_emb b =
   case length (abiTypeInfo @b) of
-    0 -> build_code_block @() @() $ \_ (code, _) -> pure (code, [])
+    0 -> build_code_block @r @() $ \_ (code, _) -> pure (code, [])
     -- FIXME: proper implementation of embeddable
-    1 -> build_inline_expr @() $ \_ -> pure (T.pack (show b))
+    1 -> build_inline_expr @r $ \_ -> pure (T.pack (show b))
     _ -> error ("Unembedable: " ++ show b)
 --
 go_ite :: forall eff a b. (HasCallStack, YulO2 a b)

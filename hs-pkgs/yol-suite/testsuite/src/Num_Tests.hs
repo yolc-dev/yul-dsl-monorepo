@@ -78,18 +78,25 @@ mul_int32  = fn' @(I32  -> I32  -> I32)  $fnLocId \x y -> x * y
 -- maybe values
 --
 
-add_maybe_int96 = fn' @(Maybe I96 -> Maybe I96 -> Maybe I96) $fnLocId
+add_maybe_int96 :: PureFn (Maybe I96 -> Maybe I96 -> Maybe I96)
+add_maybe_int96 = $fn
   \x y -> x + y
 
-add_int96_with_default = fn' @(I96 -> I96 -> I96 -> I96) $fnLocId
+add_int96_with_default :: PureFn (I96 -> I96 -> I96 -> I96)
+add_int96_with_default = $fn
   \x y def -> match (be (Just x) + be (Just y)) \case
     Nothing -> def
     Just z  -> z
 
-add_maybe_int96_with_default = fn' @(Maybe I96 -> Maybe I96 -> I96 -> I96) $fnLocId
+add_maybe_int96_with_default :: PureFn (Maybe I96 -> Maybe I96 -> I96 -> I96)
+add_maybe_int96_with_default = $fn
   \x y def -> match (x + y) \case
     Nothing -> def
     Just z  -> z
+
+add_maybe_functor :: PureFn (Maybe I96 -> I96 -> Maybe I96)
+add_maybe_functor = $fn
+  \x y -> forget (+ y) <$$> x
 
 object :: YulObject
 object = mkYulObject "NumTests" yulNoop
@@ -136,4 +143,5 @@ object = mkYulObject "NumTests" yulNoop
   , pureFn "add_maybe_int96" add_maybe_int96
   , pureFn "add_int96_with_default" add_int96_with_default
   , pureFn "add_maybe_int96_with_default" add_maybe_int96_with_default
+  -- , pureFn "add_maybe_functor" add_maybe_functor
   ]

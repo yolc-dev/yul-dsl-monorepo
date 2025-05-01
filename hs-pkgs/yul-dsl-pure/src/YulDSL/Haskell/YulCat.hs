@@ -16,11 +16,11 @@ instance Category (YulCat eff) where
 
 type YulFunctor eff f = EndoFunctor (YulCat eff) f
 
-instance YulFunctor eff f => ExoFunctor (HaskCatFunction (YulCat eff) ()) (YulCat eff) f where
+instance (YulO1 r, YulFunctor eff f) => ExoFunctor (HaskCatFunction (YulCat eff) r) (YulCat eff) f where
   -- goal: f a ~ f b
   -- endomap (a ~> b) : f a ~> f b
   -- \case
   --   (MkHaskCatFunction g) ->
   --     g : (() ~> a) -> (() ~> b)
-  --     YulHaskFunc g: a ~> b
-  exomap (MkHaskCatFunction g) = endomap (YulHaskFunc g)
+  --     YulHask g: a ~> b
+  exomap (MkHaskCatFunction g) = endomap (YulHask g)

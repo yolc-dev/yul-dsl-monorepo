@@ -99,17 +99,17 @@ data YulCat eff a b where
   YulDup  :: forall eff a. YulO1 a => YulCat eff a (a, a)
   -- ** Co-cartesian Category (incomplete, WIP)
   -- *** Variations of the co-cartesian "new", the duo of "dis".
-  -- ^ An absurd yul value. It is handy for visualizing YulHaskFunc with it.
+  -- ^ An absurd yul value. It is handy for visualizing YulHask with it.
   YulAbsurd :: forall eff b r. YulO2 b r => YulCat eff r b
   -- ^ Embed a constant value @b@ as a new yul value.
-  YulEmb    :: forall eff b. YulO1 b => b %1-> YulCat eff () b
+  YulEmb    :: forall eff b r. YulO2 b r => b %1-> YulCat eff r b
 
   -- * Control Flow Primitives
   --
-  -- ^ Create a yul morhism from a yul categorical hask function.
-  YulHaskFunc :: forall eff a b p.
-    YulO2 a b =>
-    (YulCat eff () a %p -> YulCat eff () b) %1 -> YulCat eff a b
+  -- ^ Create a yul morhism from a hask function of yul categorical values.
+  YulHask :: forall eff a b r.
+    YulO3 a b r =>
+    (YulCat eff r a -> YulCat eff r b) %1 -> YulCat eff a b
   -- ^ If-then-else expression.
   YulITE :: forall eff a b.
     YulO2 a b =>
@@ -233,10 +233,10 @@ yulCatCompactShow = go
     go (YulDis @_ @a)              = "ε" <> abi_type_name @a
     go (YulDup @_ @a)              = "δ" <> abi_type_name @a
     --
-    go (YulAbsurd)                 = ""
-    go (YulEmb @_ @b x)            = "{" <> show x <> "}" <> abi_type_name @b
+    go (YulAbsurd @_ @b @r)        = "_" <> abi_type_name2 @b @r
+    go (YulEmb @_ @b @r x)         = "{" <> show x <> "}" <> abi_type_name2 @b @r
     --
-    go (YulHaskFunc @_ @b f)       = "{{" <> go (f (YulAbsurd @_ @b)) <> "}}" <> abi_type_name @b
+    go (YulHask @_ @b f)           = "{{" <> go (f (YulAbsurd @_ @b)) <> "}}" <> abi_type_name @b
     go (YulITE a b)                = "?" <> "(" <> go a <> "):(" <> go b <> ")"
     go (YulJmpU @_ @a @b (cid, _)) = "Ju " <> cid <> abi_type_name2 @a @b
     go (YulJmpB @_ @a @b p)        = "Jb " <> yulB_fname p <> abi_type_name2 @a @b
@@ -272,9 +272,9 @@ yulCatToUntypedLisp = go init_ind
     go ind YulDis                    = ind $ T.pack "dis"
     go ind YulDup                    = ind $ T.pack "dup"
     go _ (YulAbsurd)                 = T.empty
-    go ind (YulEmb x)                = ind $ T.pack ("new " ++ (show x) ++ ")")
+    go ind (YulEmb x)                = ind $ T.pack ("new (" ++ (show x) ++ ")")
     --
-    go ind (YulHaskFunc @_ @b  f)    = ind $ T.pack "new " <> go (indent ind) (f (YulAbsurd @_ @b)) <> T.pack ")"
+    go ind (YulHask @_ @b  f)        = ind $ T.pack "new (" <> go (indent ind) (f (YulAbsurd @_ @b)) <> T.pack ")"
     go ind (YulITE a b)              = g2 ind "ite" a b
     go ind (YulJmpU (cid, _))        = ind $ T.pack ("(jmpu " ++ cid ++ ")")
     go ind (YulJmpB p)               = ind $ T.pack ("(jmpb " ++ yulB_fname p ++ ")")

@@ -1,7 +1,17 @@
+{-|
+
+Copyright   : (c) 2023-2025 Miao, ZhiCheng
+License     : LGPL-3
+Maintainer  : hellwolf@yolc.dev
+Stability   : experimental
+
+This modules provides the functor proper, named ExoFunctor to avoid naming conflict with hask's endo-functor.
+
+-}
 {-# LANGUAGE UndecidableInstances #-}
 module Data.ExoFunctor
   ( ExoFunctor (exomap)
-  , (<$$>), (<&&>)
+  , hexomap, (<$$>), (<&&>)
   , EndoFunctor, endomap
   , HaskFunctor
   ) where
@@ -15,31 +25,33 @@ class (Category cat1, Category cat2) => ExoFunctor cat1 cat2 f where
    (Obj cat1 a, Obj cat1 b, Obj cat2 (f a), Obj cat2 (f b)) =>
     cat1 a b -> cat2 (f a) (f b)
 
--- | "<$$>" is the exomap wrapped around HaskCatFunction.
+-- | hexomap, or (<$$>), is the exomap wrapped around HaskCatFunction.
 --
--- Note: This is more general than the fmap in hask.
--- >>> fmap2 f (fa :: f a) = ((\ua -> const (f (ua ()))) <$$> const fa) ()
+-- Note: This is more general than the fmap in hask:
+-- >>> fmap2 f (fa :: f a) = getHaskVal ((mkHaskVal . f . getHaskVal) <$$> const fa)
 -- >>> :type fmap2
--- fmap2 :: Functor f => (a -> b) -> f a -> f b
-(<$$>) :: forall cat1 cat2 f a b r2.
-  ( Category cat1, ExoFunctor (HaskCatFunction cat1 ()) cat2 f
-  , Obj cat1 (), Obj cat2 r2
+-- fmap2 :: HaskFunctor f => (a -> b) -> f a -> f b
+hexomap, (<$$>) :: forall cat1 cat2 f a b r1 r2.
+  ( Category cat1, ExoFunctor (HaskCatFunction cat1 r1) cat2 f
+  , Obj cat1 r1, Obj cat2 r2
   , Obj cat1 a, Obj cat1 b
   , Obj cat2 (f a), Obj cat2 (f b)
   ) =>
-  (cat1 () a     -> cat1 () b) ->
+  (cat1 r1 a     -> cat1 r1 b) ->
   (cat2 r2 (f a) -> cat2 r2 (f b))
-(<$$>) g = unHaskCatFunction (anyCatToHask (exomap (MkHaskCatFunction g)))
+hexomap g = unHaskCatFunction (anyCatToHask (exomap (MkHaskCatFunction g)))
+(<$$>) = hexomap
 infixl 4 <$$>
 
-(<&&>) :: forall cat1 cat2 f a b r2.
-  ( Category cat1, ExoFunctor (HaskCatFunction cat1 ()) cat2 f
-  , Obj cat1 (), Obj cat2 r2
+-- | An analogue to the (<&>) operator but for exo-functors.
+(<&&>) :: forall cat1 cat2 f a b r1 r2.
+  ( Category cat1, ExoFunctor (HaskCatFunction cat1 r1) cat2 f
+  , Obj cat1 r1, Obj cat2 r2
   , Obj cat1 a, Obj cat1 b
   , Obj cat2 (f a), Obj cat2 (f b)
   ) =>
   cat2 r2 (f a) ->
-  (cat1 () a     -> cat1 () b) ->
+  (cat1 r1 a -> cat1 r1 b) ->
   cat2 r2 (f b)
 (<&&>) fa g = unHaskCatFunction (anyCatToHask (exomap (MkHaskCatFunction g))) fa
 infixl 1 <&&>
@@ -71,4 +83,4 @@ instance HaskFunctor f => ExoFunctor (->) (->) f where
 
 -- ^ We need this for the @ExoFunctor (->) (->) f@ instance.
 instance HaskFunctor f => ExoFunctor (HaskCatFunction (->) ()) (->) f where
-  exomap (MkHaskCatFunction g) = fmap (flip g () . const)
+  exomap (MkHaskCatFunction g) = fmap (getHaskVal . g . mkHaskVal)

@@ -70,7 +70,7 @@ evalYulCat s_ a_ = evalState (go s_ a_) initEvalState
     go YulAbsurd  _ = error "absurd"
     go (YulEmb b) _ = pure b
     -- control flow
-    go (YulHaskFunc  f) a = go (f (YulEmb a)) ()
+    go (YulHask f) a = go (f (YulEmb a)) (abiDefault {- this will not be used -})
     go (YulJmpU (_, f)) a = go f a
     go (YulJmpB p) a = pure (yulB_eval p a)
     go (YulCall _) _    = error "YulCall not supported" -- FIXME
