@@ -51,8 +51,6 @@ evalYulCat s_ a_ = evalState (go s_ a_) initEvalState
     go YulCoerceType a = pure $ fromJust . abiDecode . abiEncode $ a
     -- category
     go YulId  a = pure a
-    go YulJig a = pure (unsafeCoerce a)
-    go YulSaw a = pure (unsafeCoerce a)
     go (YulComp n m) a = go m a >>= go n
     -- monoidal category
     go (YulProd m n) (a, b) = do
@@ -72,6 +70,8 @@ evalYulCat s_ a_ = evalState (go s_ a_) initEvalState
     -- co-cartesian category
     go (YulEmb b) _ = pure b
     -- control flow
+    go YulCont        a = pure (unsafeCoerce a) -- FIXME: how do we not use unsafeCoerce?
+    go (YulRunCont b) a = go b (unsafeCoerce a)
     go (YulJmpU (_, f)) a = go f a
     go (YulJmpB p) a = pure (yulB_eval p a)
     go (YulCall _) _    = error "YulCall not supported" -- FIXME

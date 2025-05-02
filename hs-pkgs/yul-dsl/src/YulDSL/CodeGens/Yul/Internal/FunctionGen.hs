@@ -47,8 +47,6 @@ do_compile_cat (MkAnyYulCat (cat :: YulCat eff a b)) = go cat where
   -- - categorical
   go (YulId)                   = build_rhs_aliases @a
   go (YulComp cb ac)           = go_comp cb ac
-  go (YulJig @_ @m)            = build_rhs_aliases @m
-  go (YulSaw @_ @m)            = build_rhs_aliases @m
   -- -- monoidal
   go (YulProd ab cd)           = go_prod ab cd
   go (YulSwap @_ @m @n)        = go_swap @m @n

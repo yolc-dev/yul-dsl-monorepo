@@ -135,7 +135,7 @@ TODO
   - [x] Build pure functions `$fn`.
   - [x] Call pure functions `call`, `call0`, `callN`.
 - Yul Functors
-  - [ ] `YulFunctor`
+  - [x] `YulFunctor`
   - [ ] `YulFoldable`
   - [ ] `YulApplicative`
   - [ ] `YulAlternative`
