@@ -26,6 +26,7 @@ module YulDSL.Core.YulCat
   ( -- * YulCat, the Categorical DSL of Yul
     YulCat (..), AnyYulCat (..)
   , YulCallTarget, YulCallGasLimit, YulCallValue
+  , yulRunCont
   , NamedYulCat, KnownNamedYulCat (withKnownNamedYulCat, classifyKnownNamedYulCat), unsafeCoerceNamedYulCat
     -- * YulCat Stringify Functions
   , yulCatCompactShow, yulCatToUntypedLisp, yulCatFingerprint
@@ -82,6 +83,10 @@ data YulCat eff a b where
   YulExtendType :: forall eff a b. (YulO2 a b, a ~ ABITypeDerivedOf b) => YulCat eff a b
   -- ^ Convert between coercible yul objects.
   YulCoerceType :: forall eff a b. (YulO2 a b, ABITypeCoercible a b) => YulCat eff a b
+  -- ^ Unsafe coerce between different effects.
+  YulUnsafeCoerceEffect :: forall k1 k2 (eff1 :: k1) (eff2 :: k2) a b.
+    YulO2 a b =>
+    YulCat eff1 a b %1-> YulCat eff2 a b
 
   -- * SMC
   --
@@ -99,19 +104,22 @@ data YulCat eff a b where
   YulDis  :: forall eff a.     YulO1 a     => YulCat eff a ()
   YulDup  :: forall eff a.     YulO1 a     => YulCat eff a (a, a)
   -- ** Co-cartesian Category (incomplete, WIP)
-  -- *** Variations of the co-cartesian "new", the duo of "dis".
-  -- ^ Embed a constant value @b@ as a new yul value.
+  -- ^ Embed a constant value @b@ as a new yul value, the duo of "dis".
   YulEmb :: forall eff b r. YulO2 b r => b %1-> YulCat eff r b
 
   -- * Control Flow Primitives
+  --
+  -- ** Continuation Constructors (DO NOT USE DIRECTLY; USE 'yulRunCont')
   -- ^ A continuation that result in @r@ for any @a_@.
-  YulCont   :: forall eff r a_.    YulO2 r a_   => YulCat eff a_ r
-  -- ^ Create a new morphism @a ~> b@ by replacing all @YulCont a_ r@ with @r ↝ r@.
-  YulRunCont :: forall eff a b a_. YulO3 a b a_ => YulCat eff a_ b -> YulCat eff a b
+  YulCont    :: forall eff r a_.    YulO2 r a_   => YulCat eff a_ r
+  -- ^ Create a new morphism @a ~> b@ by replacing all @YulCont a_ r@ with the final continuation @a ↝ a_@.
+  YulFinCont :: forall eff a b a_. YulO3 a b a_ => YulCat eff a_ b -> YulCat eff a b
+  -- ** Structural Control Flows
   -- ^ If-then-else expression.
   YulITE :: forall eff a b.
     YulO2 a b =>
     YulCat eff a b %1-> YulCat eff a b %1-> YulCat eff (BOOL, a) b
+  -- ** Call Flows
   -- ^ Jump to an user-defined morphism.
   YulJmpU :: forall eff a b.
     YulO2 a b =>
@@ -144,10 +152,9 @@ data YulCat eff a b where
     ) =>
     YulCat eff (B32, a) ()
 
-  -- ^ Unsafe coerce between different effects.
-  YulUnsafeCoerceEffect :: forall k1 k2 (eff1 :: k1) (eff2 :: k2) a b.
-    YulO2 a b =>
-    YulCat eff1 a b %1-> YulCat eff2 a b
+-- | A smart constructor to build a contination from a Yul hask function.
+yulRunCont :: forall eff a b a_. YulO3 a_ a b => (YulCat eff a_ a -> YulCat eff a_ b) -> YulCat eff a b
+yulRunCont g = YulFinCont (g YulCont)
 
 -- | Yul morphisms with classified effect.
 --
@@ -220,6 +227,7 @@ yulCatCompactShow = go
     go (YulReduceType @_ @a @b)    = "Tr" <> abi_type_name2 @a @b
     go (YulExtendType @_ @a @b)    = "Te" <> abi_type_name2 @a @b
     go (YulCoerceType @_ @a @b)    = "Tc" <> abi_type_name2 @a @b
+    go (YulUnsafeCoerceEffect c)   = go c
     --
     go (YulId @_ @a)               = "id" <> abi_type_name @a
     go (YulComp cb ac)             = "(" <> go ac <> ");(" <> go cb <> ")"
@@ -236,7 +244,7 @@ yulCatCompactShow = go
     go (YulEmb @_ @b @r x)         = "{" <> show x <> "}" <> abi_type_name2 @b @r
     --
     go (YulCont @_ @r)             =  "⚇" <> abi_type_name @r
-    go (YulRunCont @_ @a @b b)     = "⚉" <> abi_type_name2 @a @b <> "()" <> go b<> ")"
+    go (YulFinCont @_ @a @b b)     = "⚉" <> abi_type_name2 @a @b <> "()" <> go b<> ")"
     go (YulITE a b)                = "?" <> "(" <> go a <> "):(" <> go b <> ")"
     go (YulJmpU @_ @a @b (cid, _)) = "Ju " <> cid <> abi_type_name2 @a @b
     go (YulJmpB @_ @a @b p)        = "Jb " <> yulB_fname p <> abi_type_name2 @a @b
@@ -244,8 +252,6 @@ yulCatCompactShow = go
     --
     go (YulSGet @_ @a)             = "Sg" <> abi_type_name @a
     go (YulSPut @_ @a)             = "Sp" <> abi_type_name @a
-    --
-    go (YulUnsafeCoerceEffect c)   = go c
     -- A 'abi_type_name variant, enclosing name with "@()".
     abi_type_name :: forall a. ABITypeable a => String
     abi_type_name = "@" ++ abiTypeCompactName @a
@@ -261,6 +267,7 @@ yulCatToUntypedLisp = go init_ind
     go _ YulReduceType               = T.empty
     go _ YulExtendType               = T.empty
     go _ YulCoerceType               = T.empty
+    go ind (YulUnsafeCoerceEffect c) = go ind c
     --
     go _ YulId                       = T.empty
     go ind (YulComp cb ac)           = gcomp ind cb ac
@@ -276,14 +283,13 @@ yulCatToUntypedLisp = go init_ind
     go ind (YulEmb x)                = ind $ T.pack ("emb (" ++ show x ++ ")")
     --
     go ind YulCont                   = ind $ T.pack "cont"
-    go ind (YulRunCont b)            = ind $ T.pack "tonc (" <> go (indent ind) b <> T.pack ")"
+    go ind (YulFinCont b)            = ind $ T.pack "tonc (" <> go (indent ind) b <> T.pack ")"
     go ind (YulITE a b)              = g2 ind "ite" a b
     go ind (YulJmpU (cid, _))        = ind $ T.pack ("(jmpu " ++ cid ++ ")")
     go ind (YulJmpB p)               = ind $ T.pack ("(jmpb " ++ yulB_fname p ++ ")")
     go ind (YulCall sel)             = ind $ T.pack ("(call " ++ showSelectorOnly sel ++ ")")
     go ind YulSGet                   = ind $ T.pack "sget"
     go ind YulSPut                   = ind $ T.pack "sput"
-    go ind (YulUnsafeCoerceEffect c) = go ind c
     --
     gcomp :: forall eff' a' b' c'. Indenter -> YulCat eff' c' b' -> YulCat eff' a' c' -> Code
     gcomp ind cb ac = let c1 = go ind ac

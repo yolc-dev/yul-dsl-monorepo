@@ -49,6 +49,7 @@ evalYulCat s_ a_ = evalState (go s_ a_) initEvalState
     go YulReduceType a = pure $ fromJust . abiDecode . abiEncode $ a
     go YulExtendType a = pure $ fromJust . abiDecode . abiEncode $ a
     go YulCoerceType a = pure $ fromJust . abiDecode . abiEncode $ a
+    go (YulUnsafeCoerceEffect c) a = go c a
     -- category
     go YulId  a = pure a
     go (YulComp n m) a = go m a >>= go n
@@ -71,15 +72,14 @@ evalYulCat s_ a_ = evalState (go s_ a_) initEvalState
     go (YulEmb b) _ = pure b
     -- control flow
     go YulCont        a = pure (unsafeCoerce a) -- FIXME: how do we not use unsafeCoerce?
-    go (YulRunCont b) a = go b (unsafeCoerce a)
+    go (YulFinCont b) a = go b (unsafeCoerce a)
     go (YulJmpU (_, f)) a = go f a
     go (YulJmpB p) a = pure (yulB_eval p a)
     go (YulCall _) _    = error "YulCall not supported" -- FIXME
     go (YulITE ct cf) (BOOL t, a) = if t then go ct a else go cf a
-    -- value primitives
+    -- storage primitives
     go YulSGet r = gets $ \s -> fromJust (fromWord =<< M.lookup r (store_map s))
     go YulSPut (r, a) = modify' $ \s -> s { store_map = M.insert r (toWord a) (store_map s) }
-    go (YulUnsafeCoerceEffect c) a = go c a
 
 -- | Evaluate a known named yul category morphism with NP-typed inputs.
 evalFn :: forall fn efc xs b.
