@@ -28,9 +28,11 @@ class (Category cat1, Category cat2) => ExoFunctor cat1 cat2 f where
 -- | hexomap, or (<$$>), is the exomap wrapped around HaskCatFunction.
 --
 -- Note: This is more general than the fmap in hask:
--- >>> fmap2 f (fa :: f a) = getHaskVal ((mkHaskVal . f . getHaskVal) <$$> const fa)
+-- >>> fmap2 f (fa :: f a) = getHaskVal ((mkHaskVal . f . getHaskVal) <$$> mkHaskVal fa)
 -- >>> :type fmap2
+-- >>> :type fmap
 -- fmap2 :: HaskFunctor f => (a -> b) -> f a -> f b
+-- fmap :: Functor f => (a -> b) -> f a -> f b
 hexomap, (<$$>) :: forall cat1 cat2 f a b r1 r2.
   ( Category cat1, ExoFunctor (HaskCatFunction cat1 r1) cat2 f
   , Obj cat1 r1, Obj cat2 r2
