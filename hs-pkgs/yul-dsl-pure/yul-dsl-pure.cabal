@@ -19,8 +19,9 @@ copyright:      (c) 2023-2025 Miao, ZhiCheng
 
 common basic-options
   default-language:   GHC2024
-  default-extensions: TypeFamilies
-                      BlockArguments
+  default-extensions: BlockArguments
+                      TypeFamilies
+                      ImpredicativeTypes
   ghc-options:        -Wall
                       -Wcompat
                       -Wunused-packages
@@ -55,8 +56,8 @@ Test-Suite test-yul-dsl-pure
   type:               exitcode-stdio-1.0
   default-extensions: TemplateHaskell
                       ViewPatterns
-                      ImpredicativeTypes
                       RebindableSyntax
+                      ImpredicativeTypes
   ghc-options:        -Wno-missing-signatures
   hs-source-dirs:     test
   build-depends:      QuickCheck >=2.13,
