@@ -86,8 +86,13 @@ data YulCat eff a b where
   -- * SMC
   --
   -- ** Category
-  YulId   :: forall eff a.     YulO2 a a   => YulCat eff a a
+  YulId   :: forall eff a.     YulO1 a     => YulCat eff a a
   YulComp :: forall eff a b c. YulO3 a b c => YulCat eff c b %1-> YulCat eff a c %1-> YulCat eff a b
+  -- ^ A "jig" misses a "saw". It is used to construct morphism where @r@ is a wildcard value.
+  YulJig  :: forall eff a r.   YulO2 a r   => YulCat eff r a
+  -- ^ A "saw" is the piece to replace the "jig" to become an identity morphism of @a@ in disguise.
+  YulSaw  :: forall eff a r.   YulO2 a r   => YulCat eff a r
+  -- YulJigsaw :: forall eff a r.   YulO2 a r   => YulCat eff a r
   -- ** Monoidal Category
   YulProd :: forall eff a b c d. YulO4 a b c d => YulCat eff a b %1-> YulCat eff c d %1-> YulCat eff (a, c) (b, d)
   YulSwap :: forall eff a b.     YulO2 a b     => YulCat eff (a, b) (b, a)
@@ -95,21 +100,18 @@ data YulCat eff a b where
   YulFork :: forall eff a b c. YulO3 a b c => YulCat eff a b %1-> YulCat eff a c %1-> YulCat eff a (b, c)
   YulExl  :: forall eff a b.   YulO2 a b   => YulCat eff (a, b) a
   YulExr  :: forall eff a b.   YulO2 a b   => YulCat eff (a, b) b
-  YulDis  :: forall eff a. YulO1 a => YulCat eff a ()
-  YulDup  :: forall eff a. YulO1 a => YulCat eff a (a, a)
+  YulDis  :: forall eff a.     YulO1 a     => YulCat eff a ()
+  YulDup  :: forall eff a.     YulO1 a     => YulCat eff a (a, a)
   -- ** Co-cartesian Category (incomplete, WIP)
   -- *** Variations of the co-cartesian "new", the duo of "dis".
-  -- ^ An absurd yul value. It is handy for visualizing YulHask with it.
-  YulAbsurd :: forall eff b r. YulO2 b r => YulCat eff r b
   -- ^ Embed a constant value @b@ as a new yul value.
-  YulEmb    :: forall eff b r. YulO2 b r => b %1-> YulCat eff r b
+  YulEmb :: forall eff b r. YulO2 b r => b %1-> YulCat eff r b
 
   -- * Control Flow Primitives
   --
-  -- ^ Create a yul morhism from a hask function of yul categorical values.
-  YulHask :: forall eff a b r.
-    YulO3 a b r =>
-    (YulCat eff r a -> YulCat eff r b) %1 -> YulCat eff a b
+  YulCont :: forall eff a b.
+    YulO2 a b =>
+    (forall r. YulCat eff r a -> YulCat eff r b) %1 -> YulCat eff a b
   -- ^ If-then-else expression.
   YulITE :: forall eff a b.
     YulO2 a b =>
@@ -225,18 +227,20 @@ yulCatCompactShow = go
     --
     go (YulId @_ @a)               = "id" <> abi_type_name @a
     go (YulComp cb ac)             = "(" <> go ac <> ");(" <> go cb <> ")"
+    go (YulJig @_ @a @r)           = abi_type_name2 @a @r <> "◖"
+    go (YulSaw @_ @a @r)           = "◗" <> abi_type_name2 @a @r
+    --
     go (YulProd ab cd)             = "(" <> go ab <> ")×(" <> go cd <> ")"
     go (YulSwap @_ @a @b)          = "σ" <> abi_type_name2 @a @b
+    --
     go (YulFork ab ac)             = "(" <> go ab <> ")▵(" <> go ac <> ")"
     go (YulExl @_ @a @b)           = "π₁" <> abi_type_name2 @a @b
     go (YulExr @_ @a @b)           = "π₂" <> abi_type_name2 @a @b
     go (YulDis @_ @a)              = "ε" <> abi_type_name @a
     go (YulDup @_ @a)              = "δ" <> abi_type_name @a
     --
-    go (YulAbsurd @_ @b @r)        = "_" <> abi_type_name2 @b @r
     go (YulEmb @_ @b @r x)         = "{" <> show x <> "}" <> abi_type_name2 @b @r
     --
-    go (YulHask @_ @b f)           = "{{" <> go (f (YulAbsurd @_ @b)) <> "}}" <> abi_type_name @b
     go (YulITE a b)                = "?" <> "(" <> go a <> "):(" <> go b <> ")"
     go (YulJmpU @_ @a @b (cid, _)) = "Ju " <> cid <> abi_type_name2 @a @b
     go (YulJmpB @_ @a @b p)        = "Jb " <> yulB_fname p <> abi_type_name2 @a @b
@@ -264,17 +268,19 @@ yulCatToUntypedLisp = go init_ind
     --
     go _ YulId                       = T.empty
     go ind (YulComp cb ac)           = gcomp ind cb ac
+    go _ YulJig                      = T.empty
+    go _ YulSaw                      = T.empty
+    --
     go ind (YulProd ab cd)           = g2 ind "prod" ab cd
     go ind YulSwap                   = ind $ T.pack "swap"
+    --
     go ind (YulFork ab ac)           = g2 ind "fork" ab ac
     go ind YulExl                    = ind $ T.pack "exl"
     go ind YulExr                    = ind $ T.pack "exr"
     go ind YulDis                    = ind $ T.pack "dis"
     go ind YulDup                    = ind $ T.pack "dup"
-    go _ (YulAbsurd)                 = T.empty
     go ind (YulEmb x)                = ind $ T.pack ("new (" ++ (show x) ++ ")")
     --
-    go ind (YulHask @_ @b  f)        = ind $ T.pack "new (" <> go (indent ind) (f (YulAbsurd @_ @b)) <> T.pack ")"
     go ind (YulITE a b)              = g2 ind "ite" a b
     go ind (YulJmpU (cid, _))        = ind $ T.pack ("(jmpu " ++ cid ++ ")")
     go ind (YulJmpB p)               = ind $ T.pack ("(jmpb " ++ yulB_fname p ++ ")")

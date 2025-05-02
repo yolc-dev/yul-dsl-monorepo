@@ -4,9 +4,8 @@ module YulDSL.CodeGens.Yul.Internal.RhsExpr
   ( -- * Right-hand-side Expression
     RhsExpr (LetVar, SimpleExpr)
   , rhs_expr_to_code, spread_rhs, mk_rhs_vars, assign_vars
-    -- * Right-hand-side Expression Group
     -- * Right-hand-side Expression Generator
-  , RhsExprGen (..)
+  , RhsExprGen (rhs_exprs_spec, gen_rhs_exprs)
   , build_rhs_aliases, build_inline_expr, build_code_block
   ) where
 -- text
@@ -25,8 +24,9 @@ import YulDSL.CodeGens.Yul.Internal.CodeGen
 ------------------------------------------------------------------------------------------------------------------------
 
 -- | Types of right-hand-side (RHS) expressions.
-data RhsExpr = LetVar Var      -- ^ Declared let var
-             | SimpleExpr Code -- ^ Simple expression that can be used directly in place of a let var
+data RhsExpr
+  = LetVar Var      -- ^ Declared let var
+  | SimpleExpr Code -- ^ Simple expression that can be used directly in place of a let var
   deriving Show
 
 -- | Render RHS expression to code.
@@ -43,8 +43,8 @@ mk_rhs_vars :: [Var] -> [RhsExpr]
 mk_rhs_vars = fmap LetVar
 
 -- | Assign variables to RHS expressions.
-assign_vars :: HasCallStack
-            => Indenter -> [Var] -> [RhsExpr] -> Code
+assign_vars :: HasCallStack =>
+  Indenter -> [Var] -> [RhsExpr] -> Code
 assign_vars ind vars rexprs = gen_assert_msg ("assign_vars" ++ show(length vars, length rexprs))
                               (length vars == length rexprs) $ T.unlines $
   zipWith
@@ -65,15 +65,16 @@ data RhsExprGen = MkRhsExprGen
   }
 
 -- | Build RHS expression that are aliases of inputs.
-build_rhs_aliases :: forall a. (HasCallStack, YulO1 a)
-            => CGState RhsExprGen
+build_rhs_aliases :: forall a. (HasCallStack, YulO1 a) =>
+  CGState RhsExprGen
 build_rhs_aliases = pure $
   let n = length (abiTypeInfo @a)
   in MkRhsExprGen (n, n) (\_ (code, ins) -> pure (code, ins))
 
 -- | Build expression from the rhs expression of type @a@ to an inline output expression.
-build_inline_expr :: forall a. (HasCallStack, YulO1 a)
-                  => ([RhsExpr] -> CGState Code) -> CGState RhsExprGen
+build_inline_expr :: forall a. (HasCallStack, YulO1 a) =>
+  ([RhsExpr] -> CGState Code) ->
+  CGState RhsExprGen
 build_inline_expr g = pure $
   let n = length (abiTypeInfo @a)
   in MkRhsExprGen (n, 1) $ \_ (code, ins) ->
@@ -82,9 +83,9 @@ build_inline_expr g = pure $
     (g ins >>= \out -> pure (code, [SimpleExpr out]))
 
 -- | Build a code block from the RHS expression of type @a@ to a RHS expression of type @b@.
-build_code_block :: forall a b. (HasCallStack, YulO2 a b)
-                 => (Indenter -> (Code, [RhsExpr]) -> CGState (Code, [RhsExpr]))
-                 -> CGState RhsExprGen
+build_code_block :: forall a b. (HasCallStack, YulO2 a b) =>
+  (Indenter -> (Code, [RhsExpr]) -> CGState (Code, [RhsExpr])) ->
+  CGState RhsExprGen
 build_code_block g = pure $
   let na = length (abiTypeInfo @a)
       nb = length (abiTypeInfo @b)

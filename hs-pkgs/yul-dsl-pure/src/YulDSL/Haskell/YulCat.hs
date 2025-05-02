@@ -21,6 +21,6 @@ instance (YulO1 r, YulFunctor eff f) => ExoFunctor (HaskCatFunction (YulCat eff)
   -- endomap (a ~> b) : f a ~> f b
   -- \case
   --   (MkHaskCatFunction g) ->
-  --     g : (() ~> a) -> (() ~> b)
+  --     g : (r ~> a) -> (r ~> b)
   --     YulHask g: a ~> b
-  exomap (MkHaskCatFunction g) = endomap (YulHask g)
+  exomap (MkHaskCatFunction g) = endomap (g YulJig <.< YulSaw)
