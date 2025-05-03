@@ -26,7 +26,6 @@ module YulDSL.Core.YulCat
   ( -- * YulCat, the Categorical DSL of Yul
     YulCat (..), AnyYulCat (..)
   , YulCallTarget, YulCallGasLimit, YulCallValue
-  , yulRunCont
   , NamedYulCat, KnownNamedYulCat (withKnownNamedYulCat, classifyKnownNamedYulCat), unsafeCoerceNamedYulCat
     -- * YulCat Stringify Functions
   , yulCatCompactShow, yulCatToUntypedLisp, yulCatFingerprint
@@ -108,12 +107,6 @@ data YulCat eff a b where
   YulEmb :: forall eff b r. YulO2 b r => b %1-> YulCat eff r b
 
   -- * Control Flow Primitives
-  --
-  -- ** Continuation Constructors (DO NOT USE DIRECTLY; USE 'yulRunCont')
-  -- ^ A continuation that result in @r@ for any @a_@.
-  YulCont    :: forall eff r a_.    YulO2 r a_   => YulCat eff a_ r
-  -- ^ Create a new morphism @a ~> b@ by replacing all @YulCont a_ r@ with the final continuation @a ↝ a_@.
-  YulFinCont :: forall eff a b a_. YulO3 a b a_ => YulCat eff a_ b -> YulCat eff a b
   -- ** Structural Control Flows
   -- ^ If-then-else expression.
   YulITE :: forall eff a b.
@@ -151,10 +144,6 @@ data YulCat eff a b where
     , AssertOmniEffect eff
     ) =>
     YulCat eff (B32, a) ()
-
--- | A smart constructor to build a contination from a Yul hask function.
-yulRunCont :: forall eff a b a_. YulO3 a_ a b => (YulCat eff a_ a -> YulCat eff a_ b) -> YulCat eff a b
-yulRunCont g = YulFinCont (g YulCont)
 
 -- | Yul morphisms with classified effect.
 --
@@ -243,8 +232,6 @@ yulCatCompactShow = go
     --
     go (YulEmb @_ @b @r x)         = "{" <> show x <> "}" <> abi_type_name2 @b @r
     --
-    go (YulCont @_ @r)             =  "⚇" <> abi_type_name @r
-    go (YulFinCont @_ @a @b b)     = "⚉" <> abi_type_name2 @a @b <> "()" <> go b<> ")"
     go (YulITE a b)                = "?" <> "(" <> go a <> "):(" <> go b <> ")"
     go (YulJmpU @_ @a @b (cid, _)) = "Ju " <> cid <> abi_type_name2 @a @b
     go (YulJmpB @_ @a @b p)        = "Jb " <> yulB_fname p <> abi_type_name2 @a @b
@@ -261,7 +248,7 @@ yulCatCompactShow = go
     -- escape = show
 
 yulCatToUntypedLisp :: YulCat eff a b -> Code
-yulCatToUntypedLisp = go init_ind
+yulCatToUntypedLisp cat = T.pack "(" <> go init_ind cat <> T.pack ")"
   where
     go :: Indenter -> YulCat eff a b -> Code
     go _ YulReduceType               = T.empty
@@ -280,10 +267,8 @@ yulCatToUntypedLisp = go init_ind
     go ind YulExr                    = ind $ T.pack "exr"
     go ind YulDis                    = ind $ T.pack "dis"
     go ind YulDup                    = ind $ T.pack "dup"
-    go ind (YulEmb x)                = ind $ T.pack ("emb (" ++ show x ++ ")")
+    go ind (YulEmb x)                = ind $ T.pack ("emb {" ++ show x ++ "}")
     --
-    go ind YulCont                   = ind $ T.pack "cont"
-    go ind (YulFinCont b)            = ind $ T.pack "tonc (" <> go (indent ind) b <> T.pack ")"
     go ind (YulITE a b)              = g2 ind "ite" a b
     go ind (YulJmpU (cid, _))        = ind $ T.pack ("(jmpu " ++ cid ++ ")")
     go ind (YulJmpB p)               = ind $ T.pack ("(jmpb " ++ yulB_fname p ++ ")")
@@ -296,7 +281,7 @@ yulCatToUntypedLisp = go init_ind
                           c2 = go ind cb
                       in if T.null c1 || T.null c2
                          then c1 <> c2
-                         else c1 <> ind (T.pack ";;") <> c2
+                         else c1 <> ind (T.pack ":>.>") <> c2
     g2 :: forall eff' m n p q. Indenter -> String -> YulCat eff' m n -> YulCat eff' p q -> Code
     g2 ind op c1 c2 =
       let op' = T.pack "(" <> T.pack op

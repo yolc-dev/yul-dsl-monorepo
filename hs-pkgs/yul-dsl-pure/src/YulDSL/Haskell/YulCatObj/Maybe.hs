@@ -84,8 +84,12 @@ instance YulO2 a r => PatternMatchable (YulCat eff r) (Maybe a) (Maybe (YulCat e
 -- YulFunctor instance
 --
 
-instance ExoFunctor (YulCat eff) (YulCat eff) Maybe where
-  -- This is one of the most beautiful things I have ever seen:
+instance YulO1 r => HexoFunctor Maybe (YulCat eff) r (YulCat eff) r where
+  hexomap g fa = match fa \case
+    Just val -> be (Just (g val))
+    Nothing -> be Nothing
+
+instance ExoFunctor Maybe (YulCat eff) (YulCat eff) where
   exomap g = match YulId \case
     Just val -> be (Just g) <.< val
     Nothing  -> be Nothing

@@ -15,7 +15,6 @@ module YulDSL.Eval where
 -- base
 import Data.Maybe               (fromJust)
 import GHC.Stack                (HasCallStack)
-import Unsafe.Coerce            (unsafeCoerce)
 -- containers
 import Data.Map                 qualified as M
 -- mtl
@@ -71,8 +70,6 @@ evalYulCat s_ a_ = evalState (go s_ a_) initEvalState
     -- co-cartesian category
     go (YulEmb b) _ = pure b
     -- control flow
-    go YulCont        a = pure (unsafeCoerce a) -- FIXME: how do we not use unsafeCoerce?
-    go (YulFinCont b) a = go b (unsafeCoerce a)
     go (YulJmpU (_, f)) a = go f a
     go (YulJmpB p) a = pure (yulB_eval p a)
     go (YulCall _) _    = error "YulCall not supported" -- FIXME

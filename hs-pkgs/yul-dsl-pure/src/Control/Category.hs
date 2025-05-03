@@ -13,7 +13,6 @@ module Control.Category
   ( Category (Obj, idₖ, (∘))
   , OpCat (MkOpCat)
   , HaskObj, HaskVal, mkHaskVal, getHaskVal
-  , HaskCatFunction (MkHaskCatFunction, unHaskCatFunction), anyCatToHask
   ) where
 -- base
 import Data.Kind (Constraint, Type)
@@ -65,26 +64,3 @@ instance Category (->) where
   type instance Obj (->) = HaskObj
   idₖ = Prelude.id
   (∘) = (Prelude..)
-
-------------------------------------------------------------------------------------------------------------------------
--- Hask functions for categorical values
-------------------------------------------------------------------------------------------------------------------------
-
--- | Represent a morphism in the category of @cat@ using Hask's function arrows to encode the natural transformation
--- from hom-functor /C(-, a)/ to hom-functor /C(-, b)/.
-data HaskCatFunction cat r a b where
-  MkHaskCatFunction :: forall cat a b r.
-    { unHaskCatFunction :: cat r a -> cat r b } ->
-    HaskCatFunction cat r a b
-
--- | Construct a HaskCatFunction for any category that has an initial object @Obj cat ()@.
-anyCatToHask :: forall cat a b r.
-  (Category cat, Obj cat a, Obj cat b, Obj cat r) =>
-  cat a b -> HaskCatFunction cat r a b
-anyCatToHask ab = MkHaskCatFunction (\ra -> ab ∘ ra)
-
--- ^ All HaskCatFunction are categories.
-instance Category cat => Category (HaskCatFunction cat r) where
-  type instance Obj (HaskCatFunction cat r) = Obj cat
-  idₖ = MkHaskCatFunction idₖ
-  (MkHaskCatFunction f1) ∘ (MkHaskCatFunction f2) = MkHaskCatFunction (f1 . f2)

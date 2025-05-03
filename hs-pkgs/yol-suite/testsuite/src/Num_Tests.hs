@@ -1,5 +1,4 @@
 module Num_Tests where
-
 import Prelude.YulDSL
 
 --
@@ -95,8 +94,13 @@ add_maybe_int96_with_default = $fn
     Just z  -> z
 
 add_maybe_functor :: PureFn (Maybe I96 -> I96 -> Maybe I96)
-add_maybe_functor = $fn
-  \x y -> forget (+ y) <$$> x
+add_maybe_functor = $fn \x y -> x
+  <<&> forget (+ y)
+  <<&> forget (+ yulEmb 42)
+  <<&> (\z -> match (forget (+ y) <$>> be (Just z)) \case
+           Just val -> val
+           Nothing -> yulEmb 0
+       )
 
 object :: YulObject
 object = mkYulObject "NumTests" yulNoop
@@ -143,5 +147,5 @@ object = mkYulObject "NumTests" yulNoop
   , pureFn "add_maybe_int96" add_maybe_int96
   , pureFn "add_int96_with_default" add_int96_with_default
   , pureFn "add_maybe_int96_with_default" add_maybe_int96_with_default
-  -- , pureFn "add_maybe_functor" add_maybe_functor
+  , pureFn "add_maybe_functor" add_maybe_functor
   ]

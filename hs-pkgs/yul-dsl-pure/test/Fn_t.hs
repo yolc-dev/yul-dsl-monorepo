@@ -172,10 +172,10 @@ maybe_num_fn2 = $fn
     Nothing -> 0
 
 maybe_functor_fn1 :: PureFn (Maybe U8 -> Maybe U8)
-maybe_functor_fn1 = $fn \a -> a <&&> (+ yulEmb @Pure @() 42)
+maybe_functor_fn1 = $fn \a -> a <&&> (+ yulEmb @Pure 42)
 
 maybe_functor_fn2 :: PureFn (Maybe U8 -> U8 -> Maybe U8)
-maybe_functor_fn2 = $fn \a b-> (+ b) <$$> a
+maybe_functor_fn2 = $fn \a b -> (+ b) <$$> a
 
 {- HLint ignore test_maybe_fn "Use isNothing" -}
 test_maybe_fn :: Bool
@@ -188,6 +188,8 @@ test_maybe_fn = and
   , evalFn maybe_num_fn2 (Just 128 :* Just 128 :* Nil) == 0
   , evalFn maybe_functor_fn1 (30 :* Nil)  == Just 72
   , evalFn maybe_functor_fn1 (Nothing :* Nil) == Nothing
+  , evalFn maybe_functor_fn2 (Just 30 :* 40 :* Nil)  == Just 70
+  , evalFn maybe_functor_fn2 (Nothing :* 20 :* Nil) == Nothing
   ]
 
 --------------------------------------------------------------------------------
