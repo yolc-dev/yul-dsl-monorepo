@@ -24,6 +24,7 @@ common basic-options
                       -Wcompat
                       -Wunused-packages
   default-extensions: TypeFamilies
+                      FunctionalDependencies
                       TypeAbstractions
                       RequiredTypeArguments
   build-depends:      base >= 4.20.0.0 && < 666

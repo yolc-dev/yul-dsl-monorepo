@@ -1,5 +1,4 @@
 {-# LANGUAGE AllowAmbiguousTypes    #-}
-{-# LANGUAGE FunctionalDependencies #-}
 {-|
 Copyright   : (c) 2023-2025 Miao, ZhiCheng
 License     : LGPL-3

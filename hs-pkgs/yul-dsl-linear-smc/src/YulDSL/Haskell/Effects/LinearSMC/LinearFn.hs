@@ -1,7 +1,6 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# LANGUAGE AllowAmbiguousTypes    #-}
 {-# LANGUAGE DefaultSignatures      #-}
-{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE PatternSynonyms        #-}
 {-# LANGUAGE TemplateHaskell        #-}
 {-# LANGUAGE UndecidableInstances   #-}

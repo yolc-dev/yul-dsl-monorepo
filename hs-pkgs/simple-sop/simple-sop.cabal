@@ -28,6 +28,7 @@ common basic-options
   ghc-options:        -Wall
                       -Wunused-packages
   default-extensions: TypeFamilies
+                      FunctionalDependencies
   build-depends:      base >= 4.20.0.0 && < 666
 
 library

@@ -1,5 +1,4 @@
 {-# LANGUAGE AllowAmbiguousTypes    #-}
-{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE LinearTypes            #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
 {-|

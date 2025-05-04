@@ -21,6 +21,7 @@ common basic-options
   default-language:   GHC2024
   default-extensions: BlockArguments
                       TypeFamilies
+                      FunctionalDependencies
                       ImpredicativeTypes
   ghc-options:        -Wall
                       -Wcompat

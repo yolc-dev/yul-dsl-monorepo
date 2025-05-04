@@ -1,5 +1,4 @@
 {-# LANGUAGE DefaultSignatures      #-}
-{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE LinearTypes            #-}
 {-|
 

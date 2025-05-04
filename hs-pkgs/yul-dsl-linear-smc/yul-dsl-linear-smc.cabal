@@ -37,6 +37,7 @@ common basic-options
                       QualifiedDo
                       NoImplicitPrelude
                       ImpredicativeTypes
+                      FunctionalDependencies
                       LinearTypes
   build-depends:      base >= 4.20.0.0 && < 666
 
