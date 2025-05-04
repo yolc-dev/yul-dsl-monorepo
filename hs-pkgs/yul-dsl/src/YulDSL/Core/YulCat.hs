@@ -1,6 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes    #-}
 {-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE LinearTypes            #-}
 {-|
 Copyright   : (c) 2023-2025 Miao, ZhiCheng
 License     : LGPL-3
@@ -83,39 +82,39 @@ data YulCat eff a b where
   -- ^ Convert between coercible yul objects.
   YulCoerceType :: forall eff a b. (YulO2 a b, ABITypeCoercible a b) => YulCat eff a b
   -- ^ Unsafe coerce between different effects.
-  YulUnsafeCoerceEffect :: forall k1 k2 (eff1 :: k1) (eff2 :: k2) a b.
+  YulUnsafeCoerceEffect :: forall {k1} {k2} (eff1 :: k1) (eff2 :: k2) a b.
     YulO2 a b =>
-    YulCat eff1 a b %1-> YulCat eff2 a b
+    YulCat eff1 a b -> YulCat eff2 a b
 
   -- * SMC
   --
   -- ** Category
   YulId   :: forall eff a.     YulO1 a     => YulCat eff a a
-  YulComp :: forall eff a b c. YulO3 a b c => YulCat eff c b %1-> YulCat eff a c %1-> YulCat eff a b
+  YulComp :: forall eff a b c. YulO3 a b c => YulCat eff c b -> YulCat eff a c -> YulCat eff a b
   -- ** Monoidal Category
-  YulProd :: forall eff a b c d. YulO4 a b c d => YulCat eff a b %1-> YulCat eff c d %1-> YulCat eff (a, c) (b, d)
+  YulProd :: forall eff a b c d. YulO4 a b c d => YulCat eff a b -> YulCat eff c d -> YulCat eff (a, c) (b, d)
   YulSwap :: forall eff a b.     YulO2 a b     => YulCat eff (a, b) (b, a)
   -- ** Cartesian Category
-  YulFork :: forall eff a b c. YulO3 a b c => YulCat eff a b %1-> YulCat eff a c %1-> YulCat eff a (b, c)
+  YulFork :: forall eff a b c. YulO3 a b c => YulCat eff a b -> YulCat eff a c -> YulCat eff a (b, c)
   YulExl  :: forall eff a b.   YulO2 a b   => YulCat eff (a, b) a
   YulExr  :: forall eff a b.   YulO2 a b   => YulCat eff (a, b) b
   YulDis  :: forall eff a.     YulO1 a     => YulCat eff a ()
   YulDup  :: forall eff a.     YulO1 a     => YulCat eff a (a, a)
   -- ** Co-cartesian Category (incomplete, WIP)
   -- ^ Embed a constant value @b@ as a new yul value, the duo of "dis".
-  YulEmb :: forall eff b r. YulO2 b r => b %1-> YulCat eff r b
+  YulEmb :: forall eff b r. YulO2 b r => b -> YulCat eff r b
 
   -- * Control Flow Primitives
   -- ** Structural Control Flows
   -- ^ If-then-else expression.
   YulITE :: forall eff a b.
     YulO2 a b =>
-    YulCat eff a b %1-> YulCat eff a b %1-> YulCat eff (BOOL, a) b
+    YulCat eff a b -> YulCat eff a b -> YulCat eff (BOOL, a) b
   -- ** Call Flows
   -- ^ Jump to an user-defined morphism.
   YulJmpU :: forall eff a b.
     YulO2 a b =>
-    NamedYulCat eff a b %1-> YulCat eff a b
+    NamedYulCat eff a b -> YulCat eff a b
   -- ^ Jump to a built-in yul function.
   YulJmpB :: forall eff a b p.
     ( YulO2 a b, YulBuiltInPrefix p a b
@@ -158,7 +157,7 @@ class KnownYulCatEffectClass efc => KnownNamedYulCat fn (efc :: YulCatEffectClas
   -- | Process the named YulCat morphism with its known effect enclosed within a continuation.
   withKnownNamedYulCat :: forall r.
     fn ->
-    (forall k (eff :: k). KnownYulCatEffect eff => NamedYulCat eff a b -> r) %1->
+    (forall k (eff :: k). KnownYulCatEffect eff => NamedYulCat eff a b -> r) ->
     r
 
   -- | Classify the effect of the known named YulCat morphism.
