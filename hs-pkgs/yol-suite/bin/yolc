@@ -32,7 +32,7 @@ yolc, the YulDSL commandline transpiler.
 
 Usage: yolc [options] yol_module_spec...
 
--m [codegen_mode] Valid codegen modes: yul (default), show, lisp, yul_and_show
+-m [codegen_mode] Valid codegen modes: yul (default), show, lisp, show_compact, yul_and_show
 -v                Output more information about what is going on
 -f                Force the rebuild of RunYol module
 -h                Display this help and exit
@@ -90,11 +90,20 @@ main() {
   while getopts m:hvf o; do
     case $o in
       m)
-        codegen_name=$OPTARG
         case "$OPTARG" in
           yul)
+            codegen_name=yul
           ;;
-          lisp | show)
+          lisp)
+            codegen_name=showLisp
+            show_output_always=1
+            ;;
+          show)
+            codegen_name=show
+            show_output_always=1
+            ;;
+          show_compact)
+            codegen_name=showCompact
             show_output_always=1
             ;;
           yul_and_show)
@@ -102,7 +111,7 @@ main() {
             show_output_always=1
             ;;
           *)
-            die "Unknown output mode"
+            die "Unknown codegen: $OPTARG"
             ;;
         esac
         ;;

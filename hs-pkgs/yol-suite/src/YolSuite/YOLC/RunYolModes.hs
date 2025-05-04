@@ -32,7 +32,10 @@ yulProjectMode = YOLCBuilder.buildManifest
 
 -- show modes
 
-showFnMode :: Show fn => fn -> IO RunYolResult
+showFnMode ::
+  ( KnownNamedYulCat fn efc (NP xs) b
+  , Show fn
+  ) => fn -> IO RunYolResult
 showFnMode = pure . Right . T.pack . show
 
 showObjectMode :: YulObject -> IO RunYolResult
@@ -41,11 +44,16 @@ showObjectMode = pure . Right . T.pack . show
 showProjectMode :: Manifest -> IO RunYolResult
 showProjectMode = pure . Right . T.pack . show
 
+-- show compact modes
+
+showCompactFnMode ::
+  KnownNamedYulCat fn efc (NP xs) b =>
+  fn -> IO RunYolResult
+showCompactFnMode fn = withKnownNamedYulCat fn (pure . Right . T.pack . yulCatCompactShow . snd)
+
 -- lisp modes
 
-lispFnMode :: forall fn efc xs b.
-  ( KnownNamedYulCat fn efc (NP xs) b
-  , YulO2 (NP xs) b
-  ) =>
+showLispFnMode :: forall fn efc xs b.
+  KnownNamedYulCat fn efc (NP xs) b =>
   fn -> IO RunYolResult
-lispFnMode fn = withKnownNamedYulCat fn (pure . Right . yulCatToUntypedLisp . snd)
+showLispFnMode fn = withKnownNamedYulCat fn (pure . Right . yulCatToUntypedLisp . snd)

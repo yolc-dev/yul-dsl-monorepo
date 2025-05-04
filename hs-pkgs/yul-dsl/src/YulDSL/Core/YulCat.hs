@@ -56,7 +56,7 @@ import YulDSL.StdBuiltIns.ValueType ()
 -- The Cat
 ------------------------------------------------------------------------------------------------------------------------
 
--- | Use kind signature for the 'YulCat' to introduce the terminology in a lexical-orderly way.
+-- | Use the kind signature to introduce 'YulCat' before its definition.
 type YulCat :: forall effKind. effKind -> Type -> Type -> Type
 
 -- | Existential wrapper of the 'YulCat'.
@@ -92,7 +92,6 @@ data YulCat eff a b where
   -- ** Category
   YulId   :: forall eff a.     YulO1 a     => YulCat eff a a
   YulComp :: forall eff a b c. YulO3 a b c => YulCat eff c b %1-> YulCat eff a c %1-> YulCat eff a b
-  -- YulJigsaw :: forall eff a r.   YulO2 a r   => YulCat eff a r
   -- ** Monoidal Category
   YulProd :: forall eff a b c d. YulO4 a b c d => YulCat eff a b %1-> YulCat eff c d %1-> YulCat eff (a, c) (b, d)
   YulSwap :: forall eff a b.     YulO2 a b     => YulCat eff (a, b) (b, a)
@@ -269,7 +268,7 @@ yulCatToUntypedLisp cat = T.pack "(" <> go init_ind cat <> T.pack ")"
     go ind YulDup                    = ind $ T.pack "dup"
     go ind (YulEmb x)                = ind $ T.pack ("emb {" ++ show x ++ "}")
     --
-    go ind (YulITE a b)              = g2 ind "ite" a b
+    go ind (YulITE a b)              = g2 ind "bool" a b
     go ind (YulJmpU (cid, _))        = ind $ T.pack ("(jmpu " ++ cid ++ ")")
     go ind (YulJmpB p)               = ind $ T.pack ("(jmpb " ++ yulB_fname p ++ ")")
     go ind (YulCall sel)             = ind $ T.pack ("(call " ++ showSelectorOnly sel ++ ")")
@@ -300,7 +299,9 @@ yulCatFingerprint :: YulCat eff a b -> String
 yulCatFingerprint = concatMap (printf "%02x") . BS.unpack . BA.convert . hash . show
   where hash s = Hash.hash (BS_Char8.pack s) :: Hash.Digest Hash.Keccak_256
 
-instance Show (YulCat eff a b) where show = yulCatCompactShow
+-- Deriving stock Show instances
+
+deriving instance Show (YulCat eff a b)
 deriving instance Show AnyYulCat
 
 --

@@ -41,6 +41,9 @@ class KnownSymbol prefix => YulBuiltInPrefix (prefix :: Symbol) a b where
   -- | Equivalent evaluation function for the built-in.
   yulB_eval :: forall. YulBuiltIn prefix a b -> (a -> b)
 
+instance YulBuiltInPrefix p a b => Show (YulBuiltIn p a b) where
+  show = yulB_fname
+
 -- | Reference to an instance of yul built-in by its prefix @p@, domain and codomain types @a -> b@.
 data YulBuiltIn p a b where
   MkYulBuiltIn :: forall p a b. YulBuiltInPrefix p a b => YulBuiltIn p a b
