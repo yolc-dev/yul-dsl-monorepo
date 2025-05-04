@@ -36,6 +36,7 @@ common basic-options
                       BlockArguments
                       QualifiedDo
                       NoImplicitPrelude
+                      TemplateHaskell
                       ImpredicativeTypes
                       FunctionalDependencies
                       LinearTypes

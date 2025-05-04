@@ -1,5 +1,4 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE TemplateHaskell     #-}
 {-|
 
 Copyright   : (c) 2024-2025 Miao, ZhiCheng

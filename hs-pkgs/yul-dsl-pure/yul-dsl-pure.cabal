@@ -20,6 +20,7 @@ copyright:      (c) 2023-2025 Miao, ZhiCheng
 common basic-options
   default-language:   GHC2024
   default-extensions: BlockArguments
+                      TemplateHaskell
                       TypeFamilies
                       FunctionalDependencies
                       ImpredicativeTypes
