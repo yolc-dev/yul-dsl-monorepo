@@ -53,18 +53,20 @@ do_runyol() {
   local CABAL=(cabal -v0)
   is_verbose && CABAL=(cabal -v1)
 
-  runbin=$(cabal "$@" -v0 list-bin runyol)
-
   if [ -n "$opt_force_rebuild" ]; then
     #echo "-- Rebuilding forced at: $(date --iso-8601=seconds)"
     "${CABAL[@]}" "$@" clean 1>&2;
   fi
 
+  runbin=$(cabal "$@" -v0 list-bin runyol)
   "${CABAL[@]}" "$@" build runyol 1>&2 && {
     debug "+ exec: $runbin"
     "$runbin" || die
     debug "- exec: $runbin"
   }
+
+  # alternatively, run in repl mode:
+  # "${CABAL[@]}" "$@" -v1 repl --repl-options="-e main" RunYol
 }
 
 maybe_update_file() {
