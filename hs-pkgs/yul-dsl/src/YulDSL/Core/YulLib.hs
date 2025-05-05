@@ -47,9 +47,14 @@ yulNoop :: forall. AnyYulCat
 yulNoop = MkAnyYulCat (YulDis @_ @())
 
 -- | Helper function for if-then-else expression in yul.
-yulIfThenElse :: forall eff a r. YulO2 a r =>
-  YulCat eff r BOOL -> YulCat eff r a -> YulCat eff r a -> YulCat eff r a
+yulIfThenElse :: forall eff b r. YulO2 b r =>
+  YulCat eff r BOOL -> YulCat eff r b -> YulCat eff r b -> YulCat eff r b
 yulIfThenElse c a b = YulFork c YulId >.> YulITE a b
+
+-- -- | Helper function for if-then-else expression in yul.
+-- yulIfThenElse :: forall eff b r. YulO2 b r =>
+--   YulCat eff r BOOL -> YulCat eff r b -> YulCat eff r b -> YulCat eff r b
+-- yulIfThenElse c a b = YulApply <.< YulFork (YulSwitch [(1, a), (0, b)] yulRevert) (c >.> yulSafeCast)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Control and Exceptions

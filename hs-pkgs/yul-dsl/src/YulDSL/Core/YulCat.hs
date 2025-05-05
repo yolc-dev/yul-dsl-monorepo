@@ -1,4 +1,4 @@
-{-# LANGUAGE AllowAmbiguousTypes    #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-|
 Copyright   : (c) 2023-2025 Miao, ZhiCheng
 License     : LGPL-3
@@ -64,6 +64,11 @@ data AnyYulCat = forall eff a b. (YulO2 a b) => MkAnyYulCat (YulCat eff a b)
 -- | Named YulCat morphism.
 type NamedYulCat eff a b = (String, YulCat eff a b)
 
+-- | An exponential object in the YulCat as a cartesian closed category.
+type YulExp eff a b = a -> YulCat eff a b
+
+-- External call parameters:
+
 type YulCallTarget   = ADDR
 type YulCallGasLimit = U256
 type YulCallValue    = U256
@@ -73,7 +78,7 @@ type YulCallValue    = U256
 --  Note: Unlike its moniker name "Cat" may suggest, the constructors of this data type are morphisms of the Yul
 --  category.
 data YulCat eff a b where
-  -- * Type Conversions
+  -- * Type Coercion
   --
   -- ^ Convert from extended yul object to its core yul object.
   YulReduceType :: forall eff a b. (YulO2 a b, ABITypeDerivedOf a ~ b) => YulCat eff a b
@@ -92,25 +97,40 @@ data YulCat eff a b where
   YulId   :: forall eff a.     YulO1 a     => YulCat eff a a
   YulComp :: forall eff a b c. YulO3 a b c => YulCat eff c b -> YulCat eff a c -> YulCat eff a b
   -- ** Monoidal Category
-  YulProd :: forall eff a b c d. YulO4 a b c d => YulCat eff a b -> YulCat eff c d -> YulCat eff (a, c) (b, d)
-  YulSwap :: forall eff a b.     YulO2 a b     => YulCat eff (a, b) (b, a)
+  YulProd :: forall eff a b c d. YulO4 a b c d => YulCat eff a b -> YulCat eff c d -> YulCat eff (a ⊗ c) (b ⊗ d)
+  YulSwap :: forall eff a b.     YulO2 a b     => YulCat eff (a ⊗ b) (b ⊗ a)
   -- ** Cartesian Category
-  YulFork :: forall eff a b c. YulO3 a b c => YulCat eff a b -> YulCat eff a c -> YulCat eff a (b, c)
-  YulExl  :: forall eff a b.   YulO2 a b   => YulCat eff (a, b) a
-  YulExr  :: forall eff a b.   YulO2 a b   => YulCat eff (a, b) b
+  YulFork :: forall eff a b c. YulO3 a b c => YulCat eff a b -> YulCat eff a c -> YulCat eff a (b ⊗ c)
+  YulExl  :: forall eff a b.   YulO2 a b   => YulCat eff (a ⊗ b) a
+  YulExr  :: forall eff a b.   YulO2 a b   => YulCat eff (a ⊗ b) b
   YulDis  :: forall eff a.     YulO1 a     => YulCat eff a ()
-  YulDup  :: forall eff a.     YulO1 a     => YulCat eff a (a, a)
+  YulDup  :: forall eff a.     YulO1 a     => YulCat eff a (a ⊗ a)
+  -- ** Cartesian Closed
+  YulApply :: forall eff a b.   YulO2 a b   => YulCat eff (YulExp eff a b ⊗ a) b
+  YulCurry :: forall eff a b c. YulO3 a b c => YulCat eff (a ⊗ b) c -> YulCat eff a (YulExp eff b c)
   -- ** Co-cartesian Category (incomplete, WIP)
-  -- ^ Embed a constant value @b@ as a new yul value, the duo of "dis".
+  -- ^ Embed a constant value @b@ as a new yul value, the duo of "dis" (if you ignore the irrelevant @r@).
   YulEmb :: forall eff b r. YulO2 b r => b -> YulCat eff r b
 
+
   -- * Control Flow Primitives
+  --
   -- ** Structural Control Flows
+  --
   -- ^ If-then-else expression.
   YulITE :: forall eff a b.
     YulO2 a b =>
-    YulCat eff a b -> YulCat eff a b -> YulCat eff (BOOL, a) b
+    YulCat eff a b -> -- ^ if-branch
+    YulCat eff a b -> -- ^ else-branch
+    YulCat eff (BOOL, a) b
+  -- ^ Switch expression.
+  YulSwitch :: forall eff a b.
+    YulO2 a b =>
+    [(U256, YulCat eff a b)] -> -- ^ switch cases
+    YulCat eff a b ->           -- ^ default case
+    YulCat eff a (YulExp eff U256 b)
   -- ** Call Flows
+  --
   -- ^ Jump to an user-defined morphism.
   YulJmpU :: forall eff a b.
     YulO2 a b =>
@@ -183,6 +203,25 @@ unsafeCoerceNamedYulCat :: forall eff1 eff2 a b. YulO2 a b  =>
 unsafeCoerceNamedYulCat (n, cat) = (n, YulUnsafeCoerceEffect cat)
 
 ------------------------------------------------------------------------------------------------------------------------
+-- Exponential Object as YulCatObj
+------------------------------------------------------------------------------------------------------------------------
+
+instance ABITypeable (YulExp eff a b) where
+  type instance ABITypeDerivedOf (YulExp eff a b) = ()
+  abiDefault = error "cannot instantiate exponential object"
+  abiTypeInfo = []
+  abiToCoreType _ = ()
+  abiFromCoreType = error "cannot instantiate exponential object"
+
+instance ABITypeCodec (YulExp eff a b) where
+
+instance YulO2 a b => Show (YulExp eff a b) where
+  show _ = abiTypeCanonName @a ++ "->" ++ abiTypeCanonName @b
+
+-- instance ABITypeCodec (YulExp eff a b)
+instance YulO2 a b => YulCatObj (YulExp eff a b)
+
+------------------------------------------------------------------------------------------------------------------------
 -- SimpleNP Instances
 ------------------------------------------------------------------------------------------------------------------------
 
@@ -192,16 +231,16 @@ unsafeCoerceNamedYulCat (n, cat) = (n, YulUnsafeCoerceEffect cat)
 
 instance (YulO3 x (NP xs) r, YulCat eff r ~ s) =>
          ConstructibleNP (YulCat eff r) x xs Many where
-  consNP sx sxs = YulCoerceType `YulComp` YulFork sx sxs
+  consNP sx sxs = YulFork sx sxs >.> YulCoerceType
   unconsNP xxs = (x, xs)
-    where xxs' = YulCoerceType `YulComp` xxs
-          x    = YulExl `YulComp` xxs'
-          xs   = YulExr `YulComp` xxs'
+    where xxs' = YulCoerceType <.< xxs
+          x    = YulExl <.< xxs'
+          xs   = YulExr <.< xxs'
 
 instance YulO1 r => TraversableNP (YulCat eff r) '[] where
   sequenceNP _ = Nil
 instance YulO1 r => DistributiveNP (YulCat eff r) '[] where
-  distributeNP _ = YulEmb Nil `YulComp` YulDis
+  distributeNP _ = YulEmb Nil <.< YulDis
 
 instance (YulO3 x (NP xs) r, TraversableNP (YulCat eff r) xs) =>
          TraversableNP (YulCat eff r) (x:xs)
@@ -322,9 +361,9 @@ deriving instance Show AnyYulCat
 
 -- ^ 'Num' instance for INTx.
 instance (YulO1 r, ValidINTx s n) => Num (YulCat eff r (INTx s n)) where
-  a + b = YulJmpB (MkYulBuiltIn @"__checked_add_t_") `YulComp` YulProd a b `YulComp` YulDup
-  a - b = YulJmpB (MkYulBuiltIn @"__checked_sub_t_") `YulComp` YulProd a b `YulComp` YulDup
-  a * b = YulJmpB (MkYulBuiltIn @"__checked_mul_t_") `YulComp` YulProd a b `YulComp` YulDup
+  a + b = YulJmpB (MkYulBuiltIn @"__checked_add_t_") <.< YulProd a b <.< YulDup
+  a - b = YulJmpB (MkYulBuiltIn @"__checked_sub_t_") <.< YulProd a b <.< YulDup
+  a * b = YulJmpB (MkYulBuiltIn @"__checked_mul_t_") <.< YulProd a b <.< YulDup
   abs = YulComp (YulJmpB (MkYulBuiltIn @"__checked_abs_t_"))
   signum = YulComp (YulJmpB (MkYulBuiltIn @"__checked_sig_t_"))
-  fromInteger a = YulEmb (fromInteger a) `YulComp` YulDis
+  fromInteger a = YulEmb (fromInteger a) <.< YulDis
