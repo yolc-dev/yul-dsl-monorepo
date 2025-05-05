@@ -5,7 +5,7 @@ module YulDSL.CodeGens.Yul.Internal.RhsExpr
   , rhs_expr_to_code, spread_rhs, mk_rhs_vars, assign_vars
     -- * Right-hand-side Expression Generator
   , mk_rhs_expr_builder, build_rhs_expr
-  , RhsExprGen (gen_rhs_exprs), NonExpRhsExprGen
+  , CodeGen (MkCodeGen, gen_code), CodeGen'
   , build_rhs_aliases, build_inline_expr, build_code_block
   ) where
 -- text
@@ -58,10 +58,13 @@ assign_vars ind vars rexprs =
 -- RhsExprGen
 ------------------------------------------------------------------------------------------------------------------------
 
-newtype RhsExprBuilder a_ {- contra-variant -} a {- covariant -} = MkTaggedRhsExpr ([RhsExpr] -> [RhsExpr])
+-- | RhsExpr builder that allows contra-variants to build exponential objects.
+newtype RhsExprBuilder a_ {- contra-variant -} a {- covariant -} = MkRhsExprBuilder
+  { build_rhs_expr :: [RhsExpr] -> [RhsExpr] }
 
+-- | Create a RhsExprBuilder with additional assertions based on type information.
 mk_rhs_expr_builder :: forall a_ a. YulO2 a_ a => ([RhsExpr] -> [RhsExpr]) -> RhsExprBuilder a_ a
-mk_rhs_expr_builder g = MkTaggedRhsExpr
+mk_rhs_expr_builder g = MkRhsExprBuilder
   \contras ->
     let contras' = gen_assert_msg
           ("mk_rhs_expr_builder contras: " ++ abiTypeCanonName @a_ ++ " != " ++ show contras)
@@ -74,33 +77,31 @@ mk_rhs_expr_builder g = MkTaggedRhsExpr
           covariants
     in covariants'
 
-build_rhs_expr :: forall a_ a. YulO2 a_ a => RhsExprBuilder a_ a -> [RhsExpr] -> [RhsExpr]
-build_rhs_expr (MkTaggedRhsExpr g) = g -- we assume it's built with assertion-ridden mk_rhs_expr_builder
-
--- | RHS expression generator.
-newtype RhsExprGen a_ a b_ b = MkRhsExprGen
+-- | Generate code with RhsExpr.
+newtype CodeGen a_ a b_ b = MkCodeGen
   { -- ^ Generate new code and transform from @RhsExprBuilder a_ a@ to @RhsExprBuilder b_ b@
-    gen_rhs_exprs  :: Indenter ->
-                      (Code, RhsExprBuilder a_ a) ->
-                      CGState (Code, RhsExprBuilder b_ b)
+    gen_code  ::
+      Indenter ->
+      (Code, RhsExprBuilder a_ a) ->
+      CGState (Code, RhsExprBuilder b_ b)
   }
 
--- | RHS expression generator that doesn't require contravariants (exponential objects).
-type NonExpRhsExprGen a b = RhsExprGen () a () b
+-- | CodeGen that doesn't require contra-variants (exponential objects).
+type CodeGen' a b = CodeGen () a () b
 
 -- | Build RHS expression that are aliases of inputs.
 build_rhs_aliases :: forall a b.
   (HasCallStack, YulO2 a b) =>
-  CGState (RhsExprGen () a () b)
-build_rhs_aliases = pure $ MkRhsExprGen
+  CGState (CodeGen () a () b)
+build_rhs_aliases = pure $ MkCodeGen
    \_ (code, ins) -> pure (code, mk_rhs_expr_builder @() @b $ const (build_rhs_expr ins []))
 
 -- | Build expression from the rhs expression of type @a@ to an inline output expression.
 build_inline_expr :: forall a b.
   (HasCallStack, YulO2 a b) =>
   ([RhsExpr] -> CGState Code) ->
-  CGState (RhsExprGen () a () b)
-build_inline_expr g = pure $ MkRhsExprGen
+  CGState (CodeGen () a () b)
+build_inline_expr g = pure $ MkCodeGen
   \_ (code, ins) -> do
     out <- g (build_rhs_expr ins [])
     pure (code, mk_rhs_expr_builder (const [SimpleExpr out]))
@@ -109,8 +110,8 @@ build_inline_expr g = pure $ MkRhsExprGen
 build_code_block :: forall a b.
   (HasCallStack, YulO2 a b) =>
   (Indenter -> (Code, [RhsExpr]) -> CGState (Code, [RhsExpr])) ->
-  CGState (RhsExprGen () a () b)
-build_code_block g = pure $ MkRhsExprGen
+  CGState (CodeGen () a () b)
+build_code_block g = pure $ MkCodeGen
   \ind (code, ins) -> do
     (code', outs) <- g ind (code, build_rhs_expr ins [])
     pure (code', mk_rhs_expr_builder @() @b (const outs))

@@ -4,7 +4,7 @@ module YulDSL.CodeGens.Yul.Internal.CodeGen
   ( -- $codegen_state
     CodeGenConfig (..)
   , CGState
-  , gen_code
+  , cg_run
   , cg_reset_for_fn
   , cg_reset_for_object
     -- $codegen_vars
@@ -65,8 +65,8 @@ init_cg_state_data config = MkCGStateData
   }
 
 -- | Generate code from the initial CodeGen state.
-gen_code :: CodeGenConfig -> CGState Code -> Code
-gen_code config s = evalState s (init_cg_state_data config)
+cg_run :: CodeGenConfig -> CGState Code -> Code
+cg_run config s = evalState s (init_cg_state_data config)
 
 -- | Reset the CodeGen for new function generation.
 cg_reset_for_fn :: CGState ()
