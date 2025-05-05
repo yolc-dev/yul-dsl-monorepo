@@ -12,7 +12,7 @@ hask category, are provided as well as a convenience.
 module Control.Category
   ( Category (Obj, idₖ, (∘))
   , OpCat (MkOpCat)
-  , HaskObj, HaskVal, mkHaskVal, getHaskVal
+  , HaskObj
   ) where
 -- base
 import Data.Kind (Constraint, Type)
@@ -47,17 +47,6 @@ instance Category cat => Category (OpCat cat) where
 -- All types are hask objects in Haskell.
 class HaskObj a
 instance HaskObj a
-
--- | A hask value is any value from the initial object "()"
-type HaskVal a = () -> a
-
--- | Make a new hask categorical value.
-mkHaskVal :: forall a. a -> HaskVal a
-mkHaskVal = const
-
--- | Get the underlying value of a hask categorical value.
-getHaskVal :: forall a. HaskVal a -> a
-getHaskVal = ($ ())
 
 -- ^ Function arrow in Hask is a category, trivially.
 instance Category (->) where
