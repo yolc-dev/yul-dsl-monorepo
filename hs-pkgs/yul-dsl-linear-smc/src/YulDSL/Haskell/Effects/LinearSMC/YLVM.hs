@@ -402,7 +402,7 @@ ywithuv :: forall f x xs b bs btpl f' v r m1 m1b m2.
   , NP (b:bs) ~ ABITypeDerivedOf btpl
   ) =>
   NPtoTupleN (NP (MapList (Uv r) (x:xs))) ⊸
-  PureY f ->
+  PureYulFn f ->
   YLVM v v r (Ur (NPtoTupleN (NP (MapList (Uv r) (b:bs)))))
 ywithuv xxstpl f = LVM.do
   xxstpl' <- ytkuvN @v @(x:xs) xxstpl
@@ -420,7 +420,7 @@ ywithuv_1 :: forall f x xs b v r m1 m1b m2 f'.
   , YulCat Pure (NP (x:xs)) ~ m2
   ) =>
   NPtoTupleN (NP (MapList (Uv r) (x:xs))) ⊸
-  PureY f ->
+  PureYulFn f ->
   YLVM v v r (Ur (Uv r b))
 ywithuv_1 xxstpl f = LVM.do
   xxstpl' <- ytkuvN @v @(x:xs) xxstpl
@@ -439,7 +439,7 @@ ywithrv :: forall f x xs b bs btpl v r m1 m1b m2 f'.
   , NP (b:bs) ~ ABITypeDerivedOf btpl
   ) =>
   NPtoTupleN (NP (MapList (Rv v r) (x:xs))) ->
-  PureY f ->
+  PureYulFn f ->
   YLVM v v r (Ur (NPtoTupleN (NP (MapList (Rv v r) (b:bs)))))
 ywithrv xxstpl f = LVM.do
   xxstpl' <- ytkrvN @v @(x:xs) xxstpl
@@ -457,7 +457,7 @@ ywithrv_1 :: forall f x xs b v r m1 m1b m2 f'.
   , YulCat Pure (NP (x:xs)) ~ m2
   ) =>
   NPtoTupleN (NP (MapList (Rv v r) (x:xs))) ->
-  PureY f ->
+  PureYulFn f ->
   YLVM v v r (Ur (Rv v r b))
 ywithrv_1 xxstpl f = LVM.do
   xxstpl' <- ytkrvN @v @(x:xs) xxstpl

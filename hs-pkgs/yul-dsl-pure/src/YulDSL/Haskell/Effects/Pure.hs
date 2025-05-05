@@ -16,7 +16,7 @@ module YulDSL.Haskell.Effects.Pure
     -- * Pure Effect Kind
     -- $PureEffectKind
     PureEffectKind (Pure, Total)
-  , YulCat'P, PureY
+  , YulCat'P, YulFn, PureYulFn
     -- $PureFn
     -- * Pure Functions
   , PureFn (MkPureFn), fn', fn, call, call0, callN
@@ -50,8 +50,11 @@ instance KnownYulCatEffect Total
 -- | Pure yul category morphisms.
 type YulCat'P = YulCat Pure
 
--- | Pure 'YulCat' n-ary function form, with each morphism on the arrow sharing the same domain @a@.
-type PureY f = forall a. YulO1 a => LiftFunction f (YulCat Pure a) (YulCat Pure a) Many
+-- | To work with a morphis in yul object-wise.
+type YulFn eff f = forall a. YulO1 a => LiftFunction f (YulCat eff a) (YulCat eff a) Many
+
+-- | YulFn of Pure effect.
+type PureYulFn f = YulFn Pure f
 
 --
 -- UncurriableNP instances
@@ -85,7 +88,7 @@ instance forall b r.
          , LiftFunction b (YulCat'P r) (YulCat'P r) Many ~ YulCat'P r b
          ) =>
          CurriableNP b '[] b (YulCat'P r) (YulCat'P r) Many (YulCat'P r) Many where
-  curryNP fNP = fNP (YulReduceType `YulComp` YulDis)
+  curryNP fNP = fNP (YulReduceType <.< YulDis)
 
 -- ^ Inductive case: @curryingNP (NP (x:xs) -> b) => x -> curryingNP (NP xs -> b)@
 instance forall g x xs b r.

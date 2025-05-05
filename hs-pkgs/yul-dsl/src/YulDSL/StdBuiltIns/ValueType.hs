@@ -275,3 +275,10 @@ max_int_val nbits = T.pack . show . fromJust $
 min_int_val nbits = T.pack . show . fromJust $
   withSomeValidINTx True (toInteger (nbits `div` 8)) $
   \_ (_ :: SNat n) -> toWord (intxUpCast (minBound @(INTx True n)) :: I256)
+
+------------------------------------------------------------------------------------------------------------------------
+-- Safe value casting
+------------------------------------------------------------------------------------------------------------------------
+
+instance ValidINTx s n => YulBuiltInPrefix "__safecast_bool_t_" BOOL (INTx s n) where
+  yulB_eval _ = fromJust . fromWord . toWord

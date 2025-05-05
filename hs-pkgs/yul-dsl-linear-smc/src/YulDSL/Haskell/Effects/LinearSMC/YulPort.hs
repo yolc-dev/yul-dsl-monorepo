@@ -225,7 +225,7 @@ with'l :: forall f x xs b bs r ioe m1 m2 btpl.
   , SingleCasePattern m1 btpl (NPtoTupleN (NP (MapList m1 (b:bs)))) YulCatObj One
   ) =>
   NPtoTupleN (NP (MapList m1 (x:xs))) ⊸
-  PureY f ->
+  PureYulFn f ->
   NPtoTupleN (NP (MapList m1 (b:bs)))
 with'l tpl f =
   let !(x, xs) = splitNonEmptyNP (fromTupleNtoNP tpl)
@@ -273,7 +273,7 @@ withN'l :: forall f x xs b bs r ioe m1 m2 f' btpl.
   , YulO1 btpl
   ) =>
   NPtoTupleN (NP (MapList m1 (x:xs))) ⊸
-  PureY f ->
+  PureYulFn f ->
   NPtoTupleN (NP (MapList m1 (b:bs)))
 withN'l tpl f = fromNPtoTupleN (withNP'l @f' @x @xs @b @bs (fromTupleNtoNP tpl) f')
   where f' txxs = uncurryNP @f @(x:xs) @btpl @m2 @m2 @_ @m2 @m2 @_ f (distributeNP txxs) >.> YulReduceType

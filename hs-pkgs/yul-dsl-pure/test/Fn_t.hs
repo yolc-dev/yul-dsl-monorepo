@@ -23,7 +23,7 @@ import TestCommon                   ()
 constant_fn :: PureFn U256
 constant_fn = $fn $ yulEmb 42
 
-dis_any_y :: forall a. YulO1 a => PureY (a -> ())
+dis_any_y :: forall a. YulO1 a => PureYulFn (a -> ())
 dis_any_y _ = yulEmb ()
 
 dis_any_fn :: forall a. YulO1 a => PureFn (a -> ())
@@ -95,10 +95,10 @@ test_simple_fns = chooseInteger (0, toInteger (maxBound @U32)) <&>
 -- NP Functions
 --------------------------------------------------------------------------------
 
-add2_y :: PureY ((U256, U256) -> U256)
+add2_y :: PureYulFn ((U256, U256) -> U256)
 add2_y (is -> (a, b)) = a + b
 
-add2NP_y :: PureY (NP [U256, U256] -> U256)
+add2NP_y :: PureYulFn (NP [U256, U256] -> U256)
 add2NP_y (is -> (a :* b :* Nil)) = add2_y (be (a, b))
 
 add2NP_fn :: PureFn (U256 -> U256 -> U256)
