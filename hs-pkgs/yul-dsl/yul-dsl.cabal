@@ -26,7 +26,8 @@ build-type:     Simple
 
 common basic-options
   default-language:   GHC2024
-  default-extensions: TemplateHaskell
+  default-extensions: BlockArguments
+                      TemplateHaskell
                       TypeFamilies
                       FunctionalDependencies
                       TypeAbstractions
