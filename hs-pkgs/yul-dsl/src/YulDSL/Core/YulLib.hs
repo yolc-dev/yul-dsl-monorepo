@@ -1,4 +1,3 @@
-{-# LANGUAGE LinearTypes #-}
 module YulDSL.Core.YulLib
   ( -- * Smart Constructors
     (<.<), (>.>)
@@ -27,11 +26,11 @@ import YulDSL.StdBuiltIns.ValueType ()
 ------------------------------------------------------------------------------------------------------------------------
 
 -- | Convenience operator for left to right composition of 'YulCat'.
-(>.>) :: forall eff a b c. YulO3 a b c => YulCat eff a b %1-> YulCat eff b c %1-> YulCat eff a c
+(>.>) :: forall eff a b c. YulO3 a b c => YulCat eff a b -> YulCat eff b c -> YulCat eff a c
 m >.> n = n `YulComp` m
 
 -- | Convenience operator for right-to-left composition of 'YulCat'.
-(<.<) :: forall eff a b c. YulO3 a b c => YulCat eff b c %1-> YulCat eff a b %1-> YulCat eff a c
+(<.<) :: forall eff a b c. YulO3 a b c => YulCat eff b c -> YulCat eff a b -> YulCat eff a c
 (<.<) = YulComp
 
 -- ^ Same precedence as (>>>) (<<<);
@@ -39,16 +38,16 @@ m >.> n = n `YulComp` m
 infixr 1 >.>, <.<
 
 -- | Embed a constant in a yul morphism.
-yulEmb :: forall eff r b. YulO2 r b => b %1 -> YulCat eff r b
+yulEmb :: forall eff r b. YulO2 r b => b -> YulCat eff r b
 yulEmb = YulEmb
 
 -- | Create any no-op morphisms.
 yulNoop :: forall. AnyYulCat
 yulNoop = MkAnyYulCat (YulDis @_ @())
 
--- | Helper function for 'YulITE'.
+-- | Helper function for if-then-else expression in yul.
 yulIfThenElse :: forall eff a r. YulO2 a r =>
-  YulCat eff r BOOL %1 -> YulCat eff r a %1 -> YulCat eff r a %1 -> YulCat eff r a
+  YulCat eff r BOOL -> YulCat eff r a -> YulCat eff r a -> YulCat eff r a
 yulIfThenElse c a b = YulFork c YulId >.> YulITE a b
 
 ------------------------------------------------------------------------------------------------------------------------
