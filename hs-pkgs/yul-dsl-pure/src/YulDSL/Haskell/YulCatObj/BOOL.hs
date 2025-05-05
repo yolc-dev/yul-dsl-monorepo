@@ -22,7 +22,7 @@ import Control.PatternMatchable
 
 -- ^ 'IfThenElse' instance for yul object 'BOOL'.
 instance YulO2 a r => IfThenElse (YulCat eff r BOOL) (YulCat eff r a) where
-  ifThenElse c a b = YulFork c YulId >.> YulITE a b
+  ifThenElse = yulIfThenElse
 
 instance YulO1 r => PatternMatchable (YulCat eff r) BOOL Bool YulCatObj Many where
   match a f = yulIfThenElse a (f True) (f False)
