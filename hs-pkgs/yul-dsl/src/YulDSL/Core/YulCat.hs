@@ -23,23 +23,25 @@ safety to the practice of EVM programming.
 module YulDSL.Core.YulCat
   ( -- * YulCat, the Categorical DSL of Yul
     YulCat (..), AnyYulCat (..)
-  , YulCallTarget, YulCallGasLimit, YulCallValue
   , NamedYulCat, KnownNamedYulCat (withKnownNamedYulCat, classifyKnownNamedYulCat), unsafeCoerceNamedYulCat
+  , YulExp
+  , YulCallTarget, YulCallGasLimit, YulCallValue
+  , (<.<), (>.>)
     -- * YulCat Stringify Functions
   , yulCatCompactShow, yulCatToUntypedLisp, yulCatFingerprint
   ) where
 -- base
-import Data.Kind                    (Constraint, Type)
-import Text.Printf                  (printf)
+import Data.Kind                   (Constraint, Type)
+import Text.Printf                 (printf)
 -- bytestring
-import Data.ByteString              qualified as BS
-import Data.ByteString.Char8        qualified as BS_Char8
+import Data.ByteString             qualified as BS
+import Data.ByteString.Char8       qualified as BS_Char8
 -- memory
-import Data.ByteArray               qualified as BA
+import Data.ByteArray              qualified as BA
 -- crypton
-import Crypto.Hash                  qualified as Hash
+import Crypto.Hash                 qualified as Hash
 -- text
-import Data.Text.Lazy               qualified as T
+import Data.Text.Lazy              qualified as T
 -- eth-abi
 import Ethereum.ContractABI
 --
@@ -47,7 +49,6 @@ import CodeGenUtils.CodeFormatters
 import YulDSL.Core.YulBuiltIn
 import YulDSL.Core.YulCatObj
 import YulDSL.Core.YulEffect
-import YulDSL.StdBuiltIns.ValueType ()
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -141,6 +142,19 @@ data YulCat eff a b where
     , AssertOmniEffect eff
     ) =>
     YulCat eff (B32, a) ()
+
+-- | Convenience operator for left to right composition of 'YulCat'.
+(>.>) :: forall eff a b c. YulO3 a b c => YulCat eff a b -> YulCat eff b c -> YulCat eff a c
+m >.> n = n `YulComp` m
+
+-- | Convenience operator for right-to-left composition of 'YulCat'.
+(<.<) :: forall eff a b c. YulO3 a b c => YulCat eff b c -> YulCat eff a b -> YulCat eff a c
+(<.<) = YulComp
+
+-- ^ Same precedence as (>>>) (<<<);
+-- see https://hackage.haskell.org/package/base-4.20.0.1/docs/Control-Category.html
+infixr 1 >.>, <.<
+
 
 -- | Yul morphisms with classified effect.
 --

@@ -11,8 +11,10 @@ This module defines the objects of the YulCat category.
 
 -}
 module YulDSL.Core.YulCatObj
-  ( YulCatObj (yul_prod_objs), type (⊗)
+  ( YulCatObj (yul_prod_objs)
+  , YulSafeCastable (YulSafeCastBuiltin), YulCastable (YulCastBuiltin)
   , YulO1, YulO2, YulO3, YulO4, YulO5, YulO6
+  , type (⊗)
   ) where
 -- base
 import Control.Monad        (replicateM)
@@ -22,6 +24,9 @@ import Data.Constraint      (Dict (Dict))
 import Language.Haskell.TH  qualified as TH
 -- eth-abi
 import Ethereum.ContractABI
+--
+import YulDSL.Core.YulBuiltIn
+import YulDSL.StdBuiltIns.ValueType ()
 
 
 -- | All objects in the yul category is simply a 'YulCatObj'.
@@ -29,6 +34,18 @@ class (ABITypeable a, ABITypeCodec a, Show a) => YulCatObj a where
   -- | Possible breakdown of the product object of the category.
   yul_prod_objs :: forall b c. a ~ (b, c) => Dict (YulCatObj b, YulCatObj c)
   yul_prod_objs = error "yul_prod_objs should only be implemented by the product of YulCatObj"
+
+class ( YulBuiltInPrefix (YulSafeCastBuiltin a b) a b
+      , IsYulBuiltInNonPure (YulSafeCastBuiltin a b) ~ False
+      ) =>
+      YulSafeCastable a b where
+  type family YulSafeCastBuiltin a b :: Symbol
+
+class ( YulBuiltInPrefix (YulCastBuiltin a b) a (BOOL, b)
+      , IsYulBuiltInNonPure (YulCastBuiltin a (BOOL, b)) ~ False
+      ) =>
+      YulCastable a b where
+  type family YulCastBuiltin a b :: Symbol
 
 --
 -- Shorthand for declaring multi-objects constraint:
@@ -69,6 +86,9 @@ do
 
 -- Value Types
 instance YulCatObj BOOL
+instance ValidINTx s n => YulSafeCastable BOOL (INTx s n) where
+  type instance YulSafeCastBuiltin BOOL (INTx s n) = "__safecast_bool_t_"
+
 instance ValidINTx s n => YulCatObj (INTx s n)
 instance YulCatObj ADDR
 instance ValidINTn n => YulCatObj (BYTESn n)

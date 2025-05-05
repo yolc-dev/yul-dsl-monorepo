@@ -14,6 +14,7 @@ module YulDSL.Core.YulBuiltIn
   ( YulBuiltInPrefix (IsYulBuiltInNonPure, yulB_prefix , yulB_fname, yulB_body, yulB_eval)
   , YulBuiltIn (MkYulBuiltIn), AnyYulBuiltIn (MkAnyYulBuiltIn)
   , yulB_code
+  , Symbol
   ) where
 -- base
 import GHC.TypeLits                (KnownSymbol (symbolSing), Symbol, fromSSymbol)

@@ -20,7 +20,7 @@ import Data.Constraint              (Dict (Dict))
 -- linear-smc
 import Control.Category.Constrained (Cartesian (..), Category (..), Monoidal (..), ProdObj (..))
 --
-import YulDSL.Core.YulCat           (YulCat (..))
+import YulDSL.Core.YulCat           (YulCat (..), (<.<))
 import YulDSL.Core.YulCatObj        (YulCatObj (yul_prod_objs))
 
 -- | Instance for linear-smc 'ProdObj' for the objects in the category.
@@ -32,7 +32,7 @@ instance ProdObj YulCatObj where
 instance Category (YulCat eff) where
   type Obj (YulCat eff) = YulCatObj
   id  = YulId
-  (∘) = YulComp
+  (∘) = (<.<)
 
 instance Monoidal (YulCat eff) where
   (×)     = YulProd

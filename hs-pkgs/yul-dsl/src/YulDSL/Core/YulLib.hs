@@ -1,6 +1,6 @@
 module YulDSL.Core.YulLib
   ( -- * Smart Constructors
-    (<.<), (>.>)
+    yulSafeCast, yulTryCast
   , yulEmb, yulNoop
   , yulIfThenElse
     -- * SimplNP
@@ -21,21 +21,22 @@ import YulDSL.StdBuiltIns.Runtime   ()
 import YulDSL.StdBuiltIns.ValueType ()
 
 
+
 ------------------------------------------------------------------------------------------------------------------------
 -- Smart Constructors
 ------------------------------------------------------------------------------------------------------------------------
 
--- | Convenience operator for left to right composition of 'YulCat'.
-(>.>) :: forall eff a b c. YulO3 a b c => YulCat eff a b -> YulCat eff b c -> YulCat eff a c
-m >.> n = n `YulComp` m
+-- ^ Safe value casting.
+yulSafeCast :: forall eff a b.
+  (YulO2 a b, YulSafeCastable a b, IsYulBuiltInNonPure (YulSafeCastBuiltin a b) ~ False) =>
+  YulCat eff a b
+yulSafeCast = YulJmpB (MkYulBuiltIn @(YulSafeCastBuiltin a b) @a @b)
 
--- | Convenience operator for right-to-left composition of 'YulCat'.
-(<.<) :: forall eff a b c. YulO3 a b c => YulCat eff b c -> YulCat eff a b -> YulCat eff a c
-(<.<) = YulComp
-
--- ^ Same precedence as (>>>) (<<<);
--- see https://hackage.haskell.org/package/base-4.20.0.1/docs/Control-Category.html
-infixr 1 >.>, <.<
+-- ^ Value casting with boolean for capturing casting failures.
+yulTryCast :: forall eff a b.
+  (YulO2 a b, YulCastable a b, IsYulBuiltInNonPure (YulCastBuiltin a b) ~ False) =>
+  YulCat eff a (BOOL, b)
+yulTryCast = YulJmpB (MkYulBuiltIn @(YulCastBuiltin a b) @a @(BOOL, b))
 
 -- | Embed a constant in a yul morphism.
 yulEmb :: forall eff r b. YulO2 r b => b -> YulCat eff r b
@@ -59,8 +60,8 @@ yulRevert :: forall eff a b. (YulO2 a b) => YulCat eff a b
 yulRevert = YulDis >.> YulJmpB (MkYulBuiltIn @"__const_revert0_c_" @() @b)
 
 -- | Wrapper for built-in keccak256 yul function.
-yulKeccak256 :: forall eff a r. YulO2 r a => YulCat eff r a -> YulCat eff r B32
-yulKeccak256 x = x >.> YulJmpB (MkYulBuiltIn @"__keccak_c_" @a @B32)
+yulKeccak256 :: forall eff a. YulO1 a => YulCat eff a B32
+yulKeccak256 = YulJmpB (MkYulBuiltIn @"__keccak_c_" @a @B32)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- SimpleNP Utilities
