@@ -11,7 +11,7 @@ This module defines the objects of the YulCat category.
 
 -}
 module YulDSL.Core.YulCatObj
-  ( YulCatObj (yul_prod_objs)
+  ( YulCatObj (yul_prod_objs), type (⊗)
   , YulO1, YulO2, YulO3, YulO4, YulO5, YulO6
   ) where
 -- base
@@ -53,6 +53,9 @@ instance (YulCatObj x, YulCatObj (NP xs)) => YulCatObj (NP (x:xs))
 instance YulCatObj ()
 instance YulCatObj a => YulCatObj (Solo a)
 instance (YulCatObj a1, YulCatObj a2) => YulCatObj (a1, a2) where yul_prod_objs = Dict
+-- mathy notation for 2-tuple (,)
+type (⊗) = (,)
+infixr 7 ⊗
 do
   insts <- mapM
     (\n -> do
