@@ -281,4 +281,5 @@ min_int_val nbits = T.pack . show . fromJust $
 ------------------------------------------------------------------------------------------------------------------------
 
 instance ValidINTx s n => YulBuiltInPrefix "__safecast_bool_t_" BOOL (INTx s n) where
+  yulB_fname b = yulB_prefix b <> abiTypeCanonName @(INTx s n)
   yulB_eval _ = fromJust . fromWord . toWord
