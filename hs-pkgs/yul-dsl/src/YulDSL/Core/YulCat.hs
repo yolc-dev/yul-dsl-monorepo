@@ -27,10 +27,12 @@ module YulDSL.Core.YulCat
   , YulExp
   , YulCallTarget, YulCallGasLimit, YulCallValue
   , (<.<), (>.>)
+  , yulFlip, yulSwitch
     -- * YulCat Stringify Functions
   , yulCatCompactShow, yulCatToUntypedLisp, yulCatFingerprint
   ) where
 -- base
+import Data.Bifunctor              (first)
 import Data.Kind                   (Constraint, Type)
 import Text.Printf                 (printf)
 -- bytestring
@@ -64,7 +66,7 @@ data AnyYulCat = forall eff a b. (YulO2 a b) => MkAnyYulCat (YulCat eff a b)
 -- | Named YulCat morphism.
 type NamedYulCat eff a b = (String, YulCat eff a b)
 
--- | An exponential object in the YulCat as a cartesian closed category.
+-- | An exponential object /b^a/ in the YulCat as a cartesian closed category.
 type YulExp eff a b = a -> YulCat eff a b
 
 -- External call parameters:
@@ -108,16 +110,23 @@ data YulCat eff a b where
   -- ** Cartesian Closed
   YulApply :: forall eff a b.   YulO2 a b   => YulCat eff (YulExp eff a b ⊗ a) b
   YulCurry :: forall eff a b c. YulO3 a b c => YulCat eff (a ⊗ b) c -> YulCat eff a (YulExp eff b c)
-  -- ** Co-cartesian Category (incomplete, WIP)
-  -- ^ Embed a constant value @b@ as a new yul value, the duo of "dis" (if you ignore the irrelevant @r@).
+  -- ** Co-cartesian: Create New Objects (duo of "dis"; but with "r" inlined for convenience.)
+  --
+  -- ^ Build an absurd value for show related instances.
+  YulAbsurd :: forall eff r b. YulCat eff r b
+  -- ^ Embed a constant value @b@ as a new yul value, the duo of "dis" ().
   YulEmb :: forall eff b r. YulO2 b r => b -> YulCat eff r b
-
 
   -- * Control Flow Primitives
   --
   -- ** Structural Control Flows
   --
-  -- ^ If-then-else expression.
+  -- ^ Map a haskell function between two yul morphisms: /r ~> a -> r ~> b/ to an exponential object /r ~> b^a/.
+  YulMapHask :: forall eff a b r.
+    YulO3 a b r =>
+    (YulCat eff r a -> YulCat eff r b) ->
+    YulCat eff r (YulExp eff a b)
+  -- ^ To be removed: special ff-then-else expression.
   YulITE :: forall eff a b.
     YulO2 a b =>
     YulCat eff a b -> -- ^ if-branch
@@ -126,9 +135,10 @@ data YulCat eff a b where
   -- ^ Switch expression.
   YulSwitch :: forall eff a b.
     YulO2 a b =>
+    YulCat eff a U256 ->        -- ^ case function
     [(U256, YulCat eff a b)] -> -- ^ switch cases
     YulCat eff a b ->           -- ^ default case
-    YulCat eff a (YulExp eff U256 b)
+    YulCat eff a b
   -- ** Call Flows
   --
   -- ^ Jump to an user-defined morphism.
@@ -175,6 +185,21 @@ m >.> n = n `YulComp` m
 -- see https://hackage.haskell.org/package/base-4.20.0.1/docs/Control-Category.html
 infixr 1 >.>, <.<
 
+-- | Flip domains of an exponential object: c ~> a -> b => a ~> c -> b
+yulFlip :: forall eff a b c.
+  YulO3 a b c =>
+  (YulCat eff c a -> YulCat eff c b) ->
+  YulCat eff a (YulExp eff c b)
+yulFlip g = YulMapHask \ac -> YulApply <.< YulFork (ac >.> YulMapHask g) YulId
+
+-- | Build a YulSwitch through object-wise haskell functions.
+yulSwitch :: forall eff a b r.
+  YulO3 a b r =>
+  (YulCat eff r a -> YulCat eff r U256) ->        -- ^ case function
+  [(U256, YulCat eff r a -> YulCat eff r b)] ->   -- ^ switch cases
+  (YulCat eff r a -> YulCat eff r b) ->           -- ^ default case
+  YulCat eff r (YulExp eff a b)
+yulSwitch cf cs cdef = YulMapHask \ra -> YulSwitch (cf ra) (fmap (\(i, c) -> (i, c ra)) cs) (cdef ra)
 
 -- | Yul morphisms with classified effect.
 --
@@ -206,6 +231,9 @@ unsafeCoerceNamedYulCat (n, cat) = (n, YulUnsafeCoerceEffect cat)
 -- Exponential Object as YulCatObj
 ------------------------------------------------------------------------------------------------------------------------
 
+instance YulO2 a b => Show (YulExp eff a b) where
+  show _ = abiTypeCanonName @b ++ "^" ++ abiTypeCanonName @a
+
 instance ABITypeable (YulExp eff a b) where
   type instance ABITypeDerivedOf (YulExp eff a b) = ()
   abiDefault = error "cannot instantiate exponential object"
@@ -213,12 +241,7 @@ instance ABITypeable (YulExp eff a b) where
   abiToCoreType _ = ()
   abiFromCoreType = error "cannot instantiate exponential object"
 
-instance ABITypeCodec (YulExp eff a b) where
-
-instance YulO2 a b => Show (YulExp eff a b) where
-  show _ = abiTypeCanonName @a ++ "->" ++ abiTypeCanonName @b
-
--- instance ABITypeCodec (YulExp eff a b)
+instance ABITypeCodec (YulExp eff a b)
 instance YulO2 a b => YulCatObj (YulExp eff a b)
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -280,9 +303,14 @@ yulCatCompactShow = go
     go (YulDis @_ @a)              = "ε" <> abi_type_name @a
     go (YulDup @_ @a)              = "δ" <> abi_type_name @a
     --
+    go (YulApply @_ @a @b)         = abi_type_name @b ++ "^" ++ abi_type_name @a
+    go (YulCurry ab2c)             = "→" ++ "(" ++ go ab2c ++ ")"
+    --
+    go YulAbsurd                   = "_"
     go (YulEmb @_ @b @r x)         = "{" <> show x <> "}" <> abi_type_name2 @b @r
     --
-    go (YulITE a b)                = "?" <> "(" <> go a <> "):(" <> go b <> ")"
+    go (YulMapHask g)              = go (g YulAbsurd)
+    go (YulSwitch cf cs cdef)      = "?" <> "(" <> go cf <> ")(" <> go_switch_case cs cdef <> ")"
     go (YulJmpU @_ @a @b (cid, _)) = "Ju " <> cid <> abi_type_name2 @a @b
     go (YulJmpB @_ @a @b p)        = "Jb " <> yulB_fname p <> abi_type_name2 @a @b
     go (YulCall @_ @a @b sel)      = "C" <> showSelectorOnly sel <> abi_type_name2 @a @b
@@ -296,6 +324,9 @@ yulCatCompactShow = go
     abi_type_name2 = abi_type_name @a ++ abi_type_name @b
     -- TODO escape the value of x
     -- escape = show
+    go_switch_case cs cdef = foldMap
+      (\(i, c) -> "#" ++ i ++ "(" ++ go c ++ ")")
+      (("_", cdef) : fmap (first show) cs)
 
 yulCatToUntypedLisp :: YulCat eff a b -> Code
 yulCatToUntypedLisp cat = T.pack "(" <> go init_ind cat <> T.pack ")"
@@ -317,9 +348,15 @@ yulCatToUntypedLisp cat = T.pack "(" <> go init_ind cat <> T.pack ")"
     go ind YulExr                    = ind $ T.pack "exr"
     go ind YulDis                    = ind $ T.pack "dis"
     go ind YulDup                    = ind $ T.pack "dup"
+    --
+    go ind YulApply                  = ind $ T.pack "ap"
+    go ind (YulCurry ab2c)           = ind $ T.pack "(curry " <> go ind ab2c <> T.pack ")"
+    --
+    go _ YulAbsurd                   = T.pack "_"
     go ind (YulEmb x)                = ind $ T.pack ("emb {" ++ show x ++ "}")
     --
-    go ind (YulITE a b)              = g2 ind "bool" a b
+    go ind (YulMapHask g)            = go ind (g YulAbsurd)
+    go ind (YulSwitch cf cs cdef)    = ind $ T.pack "(bool " <> go_switch_case ind cf cs cdef <> T.pack ")"
     go ind (YulJmpU (cid, _))        = ind $ T.pack ("(jmpu " ++ cid ++ ")")
     go ind (YulJmpB p)               = ind $ T.pack ("(jmpb " ++ yulB_fname p ++ ")")
     go ind (YulCall sel)             = ind $ T.pack ("(call " ++ showSelectorOnly sel ++ ")")
@@ -344,6 +381,11 @@ yulCatToUntypedLisp cat = T.pack "(" <> go init_ind cat <> T.pack ")"
             | T.null s2 = ind (op' <> T.pack " (") <> s1 <> ind' (T.pack ") id)")
             | otherwise = ind (op' <> T.pack " (") <> s1 <> ind' (T.pack ") (") <> s2 <> ind (T.pack "))")
       in result
+    go_switch_case ind cf cs cdef =
+      T.pack "(" <> go ind cf <> T.pack ")" <>
+      foldMap
+        (\(i, c) -> ind (T.pack ":#" <> i <> T.pack " (" <> go ind c <> T.pack ")"))
+        ((T.pack "_", cdef) : fmap (first (T.pack . show)) cs)
 
 -- | Obtain the sha1 finger print of a 'YulCat'.
 yulCatFingerprint :: YulCat eff a b -> String
@@ -351,6 +393,9 @@ yulCatFingerprint = concatMap (printf "%02x") . BS.unpack . BA.convert . hash . 
   where hash s = Hash.hash (BS_Char8.pack s) :: Hash.Digest Hash.Keccak_256
 
 -- Deriving stock Show instances
+
+instance Show (YulCat eff r a -> YulCat eff r b) where
+  show f = show (f YulAbsurd)
 
 deriving instance Show (YulCat eff a b)
 deriving instance Show AnyYulCat

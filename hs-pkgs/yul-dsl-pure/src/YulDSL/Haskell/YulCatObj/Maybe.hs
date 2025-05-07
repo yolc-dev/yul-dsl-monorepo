@@ -79,6 +79,15 @@ instance YulO2 a r => PatternMatchable (YulCat eff r) (Maybe a) (Maybe (YulCat e
         b  = bn >.> YulExl
         n  = bn >.> YulExr
     in yulIfThenElse b (f (Just n)) (f Nothing)
+    -- let bn pats' = pats' >.> YulReduceType >.> YulExtendType -- :: YulCat eff r (BOOL, INTx s n)
+    -- in YulApply <.<
+    --      yulSwitch
+    --        (\pats' -> bn pats' >.> YulExl >.> yulSafeCast)
+    --        [ (1, \pats' -> f (Just (bn pats' >.> YulExr)))
+    --        , (0, \_ -> f Nothing)]
+    --        (\_ -> yulRevert)
+    --      `YulFork`
+    --      pats
 
 --
 -- YulFunctor instance
