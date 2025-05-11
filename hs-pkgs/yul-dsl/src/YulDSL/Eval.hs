@@ -75,10 +75,10 @@ evalYulCat s_ a_ = evalState (go s_ (pure a_)) initEvalState
     go YulApply mfa = mfa >>= \(a2b, a) -> go (a2b a) (pure a)
     go (YulCurry ab2c) ma = ma >>= \a -> pure \b -> YulEmb a `YulFork` YulEmb b >.> ab2c
     -- co-cartesian category: create "new" objects
-    go YulAbsurd  _ = error "absurd"
     go (YulEmb b) ma = ma >> pure b
-    go (YulMapHask g) mr = mr >>= \r -> pure \a -> YulEmb r >.> g (YulEmb a)
+    go (YulDyn _)  _ = error "YulDyn"
     -- control flow
+    go (YulMapHask g) mra = mra >>= \(r, a) -> go (g (YulEmb a)) (pure r)
     go (YulSwitch cf cs cdef) a = do
       cid <- go cf a
       filter ((cid ==) . fst) cs & \case

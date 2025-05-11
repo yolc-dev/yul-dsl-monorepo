@@ -77,7 +77,7 @@ compile_object ind (MkYulObject { yulObjectName    = oname
   cbracket_m ind ("object \"" <> T.pack oname <> "\"") $ \ind' -> do
     -- object init code
     code_ctor <- cbracket_m ind' "code /* object init code */" $ \ind'' -> do
-      user_ctor <- compile_cat (indent ind'') ctor ([], [])
+      user_ctor <- compile_cat ctor (indent ind'') ([], [])
       pure $
         ind'' "datacopy(0, dataoffset(\"runtime\"), datasize(\"runtime\"))" <>
         ind'' "" <>

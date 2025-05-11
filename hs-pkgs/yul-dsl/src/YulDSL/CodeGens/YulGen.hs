@@ -38,7 +38,7 @@ compileCat :: forall eff a b. YulO2 a b => CodeGenConfig -> YulCat eff a b -> Co
 compileCat config cat =  cg_run config $ do
   vars_a <- cg_create_vars @a
   vars_b <- cg_create_vars @b
-  compile_cat init_ind cat (vars_a, vars_b)
+  compile_cat cat init_ind (vars_a, vars_b)
 
 -- | Compiling a named yul function.
 compileFn :: forall eff a b. YulO2 a b => CodeGenConfig -> NamedYulCat eff a b -> Code

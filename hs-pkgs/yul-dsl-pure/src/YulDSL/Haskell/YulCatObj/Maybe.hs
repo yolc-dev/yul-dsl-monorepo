@@ -75,19 +75,15 @@ instance YulO2 r a => InjectivePattern (YulCat eff r) (Maybe a) (Maybe (YulCat e
 
 instance YulO2 a r => PatternMatchable (YulCat eff r) (Maybe a) (Maybe (YulCat eff r a)) YulCatObj Many where
   match pats f =
-    let bn = pats >.> YulReduceType >.> YulExtendType -- :: YulCat eff r (BOOL, INTx s n)
-        b  = bn >.> YulExl
-        n  = bn >.> YulExr
-    in yulIfThenElse b (f (Just n)) (f Nothing)
-    -- let bn pats' = pats' >.> YulReduceType >.> YulExtendType -- :: YulCat eff r (BOOL, INTx s n)
-    -- in YulApply <.<
-    --      yulSwitch
-    --        (\pats' -> bn pats' >.> YulExl >.> yulSafeCast)
-    --        [ (1, \pats' -> f (Just (bn pats' >.> YulExr)))
-    --        , (0, \_ -> f Nothing)]
-    --        (\_ -> yulRevert)
-    --      `YulFork`
-    --      pats
+    let bn pats' = pats' >.> YulReduceType >.> YulExtendType -- :: YulCat eff r (BOOL, INTx s n)
+    in YulApply <.<
+         yulSwitch
+           (\pats' -> bn pats' >.> YulExl >.> yulSafeCast)
+           [ (1, \pats' -> f (Just (bn pats' >.> YulExr)))
+           , (0, \_ -> f Nothing)]
+           (const yulRevert)
+         `YulFork`
+         pats
 
 --
 -- YulFunctor instance
