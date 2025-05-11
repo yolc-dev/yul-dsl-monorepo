@@ -46,27 +46,27 @@
         ]
       },
       "locked": {
-        "lastModified": 1741770610,
-        "narHash": "sha256-KJisZv9+HLs03cWzPZyrAKIQ3yDFMy+POYNvVVONfkY=",
+        "lastModified": 1746090613,
+        "narHash": "sha256-Si8nvKH31lzwbJ8aSncgQDYxf3IHreNVJVzSvovnLSM=",
         "owner": "shazow",
         "repo": "foundry.nix",
-        "rev": "fe0b55a727a7d13bd6e1969490600013ef29c734",
+        "rev": "2b56cb8bae12b0a0608e5ba6dd4af4a9cf9609b4",
         "type": "github"
       },
       "original": {
         "owner": "shazow",
-        "ref": "main",
+        "ref": "stable",
         "repo": "foundry.nix",
         "type": "github"
       }
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1733581040,
-        "narHash": "sha256-Qn3nPMSopRQJgmvHzVqPcE3I03zJyl8cSbgnnltfFDY=",
+        "lastModified": 1746663147,
+        "narHash": "sha256-Ua0drDHawlzNqJnclTJGf87dBmaO/tn7iZ+TCkTRpRc=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "22c3f2cf41a0e70184334a958e6b124fb0ce3e01",
+        "rev": "dda3dcd3fe03e991015e9a74b22d35950f264a54",
         "type": "github"
       },
       "original": {
@@ -93,11 +93,11 @@
         "solc-macos-amd64-list-json": "solc-macos-amd64-list-json"
       },
       "locked": {
-        "lastModified": 1731758759,
-        "narHash": "sha256-NX4+V6Q8bwopah0oza/Dpf6UsYNGbokW2kE9qT3wdHY=",
+        "lastModified": 1742758229,
+        "narHash": "sha256-FrU9rhab/0vOjjeFoQF+Ej43zRLv3enUIYjgLrH3Gd8=",
         "owner": "hellwolf",
         "repo": "solc.nix",
-        "rev": "0714c24cd521b9eb3ee435818c5d743ac6179176",
+        "rev": "6885b61bac89da19a6e3c70b89fdd592e2cef884",
         "type": "github"
       },
       "original": {
@@ -109,13 +109,13 @@
     "solc-macos-amd64-list-json": {
       "flake": false,
       "locked": {
-        "narHash": "sha256-KBEEpcDeKtVvCeguRP0D499yg9O5Jef9Nxn3yfrmw9g=",
+        "narHash": "sha256-U5ckttxwKO13gIKggel6iybG5oTDbSidPR5nH3Gs+kY=",
         "type": "file",
-        "url": "https://github.com/ethereum/solc-bin/raw/67f45d8/macosx-amd64/list.json"
+        "url": "https://github.com/ethereum/solc-bin/raw/30a3695/macosx-amd64/list.json"
       },
       "original": {
         "type": "file",
-        "url": "https://github.com/ethereum/solc-bin/raw/67f45d8/macosx-amd64/list.json"
+        "url": "https://github.com/ethereum/solc-bin/raw/30a3695/macosx-amd64/list.json"
       }
     },
     "systems": {
