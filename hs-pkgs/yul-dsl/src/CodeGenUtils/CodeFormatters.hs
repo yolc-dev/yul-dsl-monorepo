@@ -1,8 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module CodeGenUtils.CodeFormatters
   ( Code
-  , Indenter
-  , add_indent, indent, init_ind
+  , Indenter, init_ind, add_indent, indent
   , cbracket_m, cbracket, cbracket1
   , HasCallStack, gen_assert_msg
   ) where
@@ -16,8 +15,12 @@ import Data.Text.Lazy        qualified as T
 -- | Code is text.
 type Code = T.Text
 
--- | Indentation formatter.
+-- | Indentation formatter, inspired by ShowS.
 type Indenter = Code -> Code
+
+-- | Initial line indentation.
+init_ind :: Indenter
+init_ind s = s <> "\n"
 
 -- | Add one level of indentation to a text.
 add_indent :: Indenter
@@ -26,10 +29,6 @@ add_indent s = " " <> s
 -- | Add one level of indentation to an indenter.
 indent :: Indenter -> Indenter
 indent ind s = add_indent (ind s)
-
--- | Initial line indentation.
-init_ind :: Indenter
-init_ind s = s <> "\n"
 
 -- | Wrap monadic code gen in a pair of curly brackets.
 cbracket_m :: Monad m => Indenter -> Code -> (Indenter -> m Code) -> m Code
