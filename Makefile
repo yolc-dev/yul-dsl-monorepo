@@ -26,7 +26,9 @@ CABAL_TEST_OPTIONS ?= \
 
 CABAL_PATH= $(CABAL) -v0 --builddir=$(BUILD_DIR)/cabal-path path --output-format=json
 
-GHC_ID = $(shell $(CABAL_PATH) | jq -r .compiler.id)
+GHC = $(shell $(CABAL_PATH) | jq -r .compiler.path)
+GHC_ID = $(shell $(GHC) --info | ghci -e 'readFile "/dev/stdin" >>= putStrLn . snd . last . filter ((== "Project Unit Id") . fst) . (read :: String -> [(String, String)])')
+CABAL_COMPILER_ID = $(shell $(CABAL_PATH) | jq -r .compiler.id)
 
 # Cabal commands
 
@@ -45,7 +47,7 @@ CABAL_COVERAGE = $(CABAL_WITH_OPTIONS) --builddir=$(CABAL_COVERAGE_BUILD_DIR) co
 # Yolc options
 
 export YOLC_DEBUG_LEVEL = 0
-export YOLC_PACKAGE_DB = $(CABAL_DEFAULT_BUILD_DIR)/packagedb/$(GHC_ID)
+export YOLC_PACKAGE_DB = $(CABAL_DEFAULT_BUILD_DIR)/packagedb/$(CABAL_COMPILER_ID)
 
 # Forge options
 
@@ -114,7 +116,7 @@ clean-yol:
 clean-all:
 	rm -rf build cache out dist-*
 
-test: test-all test-yol-suite test-demo
+test: build-dist test-all test-yol-suite test-demo
 
 test-all:
 	$(CABAL_TEST) all

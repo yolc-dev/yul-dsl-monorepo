@@ -50,8 +50,8 @@ die() { echo "$@" >&2; exit 1; }
 debug() { if is_verbose; then echo "$@" >&2; fi }
 
 do_runyol() {
-  local CABAL=(cabal -v0)
-  is_verbose && CABAL=(cabal -v1)
+  local CABAL=(cabal -v1)
+  #is_verbose && CABAL=(cabal -v1)
 
   if [ -n "$opt_force_rebuild" ]; then
     #echo "-- Rebuilding forced at: $(date --iso-8601=seconds)"
@@ -144,7 +144,11 @@ main() {
 
   # locate cabal global package db
   local run_cabal_path=(cabal -v0 --builddir="$out_dir/cabal-path" path --output-format=json)
-  cabal_package_db=$("${run_cabal_path[@]}" | jq -r '."store-dir" + "/" + .compiler.id + "-inplace/package.db"')
+  local GHC
+  local GHC_ID
+  GHC=$("${run_cabal_path[@]}" | jq -r .compiler.path)
+  GHC_ID=$("$GHC" --info | ghci -e 'readFile "/dev/stdin" >>= putStrLn . snd . last . filter ((== "Project Unit Id") . fst) . (read :: String -> [(String, String)])')
+  cabal_package_db=$("${run_cabal_path[@]}" | jq -r '."store-dir" + "/'${GHC_ID}'/package.db"')
 
   {
     debug "YolSuite src dir : $yolsuite_src_dir"
