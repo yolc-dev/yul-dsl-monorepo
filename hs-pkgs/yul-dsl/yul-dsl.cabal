@@ -28,6 +28,7 @@ common basic-options
   default-language:   GHC2024
   default-extensions: BlockArguments
                       TemplateHaskell
+                      ViewPatterns
                       TypeFamilies
                       FunctionalDependencies
                       TypeAbstractions
