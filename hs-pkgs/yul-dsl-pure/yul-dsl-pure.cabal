@@ -14,6 +14,9 @@ author:         Miao, ZhiCheng
 maintainer:     helwolf@yolc.dev
 copyright:      (c) 2023-2025 Miao, ZhiCheng
 
+build-type:     Simple
+tested-with:    GHC==9.10.1, GHC==9.12.2
+
 -- extra-doc-files:  README.md
 -- extra-doc-files:  CHANGELOG.md
 

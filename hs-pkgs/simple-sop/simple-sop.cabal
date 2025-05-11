@@ -20,8 +20,8 @@ author:         Miao, ZhiCheng
 maintainer:     helwolf@yolc.dev
 copyright:      (c) 2024-2025 Miao, ZhiCheng
 
-tested-with:    GHC==9.10.1
 build-type:     Simple
+tested-with:    GHC==9.10.1, GHC==9.12.2
 
 common basic-options
   default-language:   GHC2024

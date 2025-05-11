@@ -15,8 +15,8 @@ copyright:      (c) 2024-2025 Miao, ZhiCheng
 extra-doc-files:  README.md
 -- extra-doc-files:  CHANGELOG.md
 
-tested-with:    GHC==9.10.1
 build-type:     Simple
+tested-with:    GHC==9.10.1, GHC==9.12.2
 
 common basic-options
   default-language:   GHC2024
