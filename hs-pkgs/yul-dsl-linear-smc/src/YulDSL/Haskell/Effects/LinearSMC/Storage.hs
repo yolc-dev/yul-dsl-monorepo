@@ -62,7 +62,7 @@ sget :: forall a b ie r v vref_.
   , VersionableYulVarRef v r a (vref_ a)
   , SReferenceable v r a b
   ) =>
-  vref_ a ⊸ YLVM v v r (Ur (Rv v r b))
+  vref_ a -> YLVM v v r (Ur (Rv v r b))
 sget avar = ytkvarv avar LVM.>>= ymkvar . sget'l
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -70,7 +70,7 @@ sget avar = ytkvarv avar LVM.>>= ymkvar . sget'l
 ------------------------------------------------------------------------------------------------------------------------
 
 class (KnownNat v, YulO1 r) => SGettableNP v r np b where
-  sgetNP :: forall. np ⊸ YLVM v v r b
+  sgetNP :: forall. np -> YLVM v v r b
 
 instance (KnownNat v, YulO1 r) =>
          SGettableNP v r (NP '[]) (Ur (NP '[])) where
@@ -94,7 +94,7 @@ sgetN :: forall tpl_a tpl_b v r.
   ( KnownNat v
   , ConvertibleTupleNtoNP tpl_a, ConvertibleTupleNtoNP tpl_b
   , SGettableNP v r (TupleNtoNP tpl_a) (TupleNtoNP tpl_b)
-  ) => tpl_a ⊸ YLVM v v r tpl_b
+  ) => tpl_a -> YLVM v v r tpl_b
 sgetN tpl_a = let np_a = fromTupleNtoNP tpl_a
                   np_b = sgetNP np_a :: YLVM v v r (TupleNtoNP tpl_b)
               in np_b LVM.>>= LVM.pure . fromNPtoTupleN
@@ -121,7 +121,7 @@ data StorageAssignment v r = forall a b iea ieb vref_a_ vref_b_.
 
 sput :: forall v r.
   (KnownNat (v + 1), v <= v + 1, YulO1 r) =>
-  StorageAssignment v r ⊸ YLVM v (v + 1) r ()
+  StorageAssignment v r -> YLVM v (v + 1) r ()
 sput (aVarM := bVar) = LVM.do
   Ur aVar <- aVarM
   a <- ytkvarv aVar
@@ -131,7 +131,7 @@ sput (aVarM := bVar) = LVM.do
 
 sputs :: forall v r.
   ( KnownNat v, KnownNat (v + 1), v <= v + 1, YulO1 r
-  ) => NonEmpty (StorageAssignment v r) ⊸ YLVM v (v + 1) r ()
+  ) => NonEmpty (StorageAssignment v r) -> YLVM v (v + 1) r ()
 sputs (sa :| []) = sput sa
 sputs (sa :| (sa':sas)) =
   let x  = sput sa            :: YLVM v (v + 1) r ()

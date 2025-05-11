@@ -118,7 +118,7 @@ instance va + vd ~ vb => EncodableYulPortDiagram (VersionedInputOutput vd) (Vers
 unsafe_uncurry_nil :: forall a b r ie oe m1.
   YulO3 a b r =>
   P'x oe r b ⊸
-  (m1 a ⊸ P'x ie r (NP '[])) ->
+  (m1 a ⊸ P'x ie r (NP '[])) ⊸
   (m1 a ⊸ P'x oe r b)
 unsafe_uncurry_nil b h a =
   h a                   -- :: P'x ie v1 (NP '[])
@@ -133,10 +133,10 @@ uncurry_nonnil :: forall m1 m2_ m2b_ m2 mb g x xs b r a ie.
   , P'x ie r ~ m1
   , m1 ~ m2
   ) =>
-  (m1 x ⊸ LiftFunction g m1 mb One) ->    -- ^ f: m1 x ⊸ m1 (xs ⊸...) ⊸ m1b b; the function to be uncurried
-  (m2 a ⊸ m2 (NP (x : xs))) ->             -- ^ h: m2' (a ⊸ NP xxs)
-  ((m2 a ⊸ m2 (NP xs)) ⊸ m2_ a (NP xs)) -> -- ^ mk: m2' (a ⊸ NP xs) ⊸ m2_ a (NP xs)
-  (m2b_ a b ⊸ (m2 a ⊸ mb b)) ->         -- ^ un: m2b_ a b ⊸ (m2' a ⊸ m2b' b)
+  (m1 x ⊸ LiftFunction g m1 mb One) ⊸     -- ^ f: m1 x ⊸ m1 (xs ⊸...) ⊸ m1b b; the function to be uncurried
+  (m2 a ⊸ m2 (NP (x : xs))) ⊸             -- ^ h: m2' (a ⊸ NP xxs)
+  ((m2 a ⊸ m2 (NP xs)) ⊸ m2_ a (NP xs)) ⊸ -- ^ mk: m2' (a ⊸ NP xs) ⊸ m2_ a (NP xs)
+  (m2b_ a b ⊸ (m2 a ⊸ mb b)) ⊸            -- ^ un: m2b_ a b ⊸ (m2' a ⊸ m2b' b)
   (m2 a ⊸ mb b)
 uncurry_nonnil f h mk un a =
   let !(a1, a2) = dup'l a

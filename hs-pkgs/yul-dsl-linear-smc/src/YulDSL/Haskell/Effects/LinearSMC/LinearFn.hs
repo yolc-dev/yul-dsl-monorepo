@@ -208,7 +208,7 @@ ycalluv :: forall f x xs b v g r.
   , YulVarRef v r (P'P r) (Uv r)
   ) =>
   PureFn f ->
-  (Uv r x ⊸ LiftFunction (CurryNP (NP xs) (Ur (Uv r b))) (Uv r) (YLVM v v r) One)
+  (Uv r x -> LiftFunction (CurryNP (NP xs) (Ur (Uv r b))) (Uv r) (YLVM v v r) One)
 ycalluv f xVar =
   curryNP @g @xs @(Ur (Uv r b)) @(YulCat'LPP r ()) @(YLVM v v r) @One @(Uv r)
   \(MkYulCat'LPP fxs) -> LVM.do

@@ -29,8 +29,11 @@ import YulDSL.CodeGens.Yul.Internal.RhsExpr
 --
 -- Note, naming conventions:
 --
+-- _ ind :: Indenter
 -- - _vars :: [Var]
--- - _ins/_outs/_exps :: [RhsExpr]
+-- _ _code :: Code
+-- _ _cat  :: YulCat eff a b
+-- - _ins/_outs :: [RhsExpr]
 -- - _ces :: CodeExprs'
 
 -- Compile a morphism with provided input and output variables.

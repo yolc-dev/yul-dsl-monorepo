@@ -18,15 +18,15 @@ import YulDSL.Core
 
 -- | Multi-parameter equality type class where boolean type is @b@
 class MPEq a b | a -> b where
-  (==) :: forall. a %1-> a %1-> b
-  (/=) :: forall. a %1-> a %1-> b
+  (==) :: forall. a %1 -> a %1 -> b
+  (/=) :: forall. a %1 -> a %1 -> b
 
 -- | Multi-parameter ordering type class where boolean type is @b@
 class MPEq a b => MPOrd a b | a -> b where
-  ( <) :: forall. a %1-> a %1-> b
-  (<=) :: forall. a %1-> a %1-> b
-  ( >) :: forall. a %1-> a %1-> b
-  (>=) :: forall. a %1-> a %1-> b
+  ( <) :: forall. a %1 -> a %1 -> b
+  (<=) :: forall. a %1 -> a %1 -> b
+  ( >) :: forall. a %1 -> a %1 -> b
+  (>=) :: forall. a %1 -> a %1 -> b
 
 -- To be consistent with base library.
 infixr 4 <, <=, >, >=, ==, /=
@@ -37,13 +37,13 @@ infixr 4 <, <=, >, >=, ==, /=
 
 -- ^ 'MPEq' instance for YulCat INTx.
 instance (YulO1 r, ValidINTx s n) => MPEq (YulCat eff r (INTx s n)) (YulCat eff r BOOL) where
-  a == b = YulJmpB (MkYulBuiltIn @"__cmp_eq_t_") <.< YulProd a b <.< YulDup
-  a /= b = YulJmpB (MkYulBuiltIn @"__cmp_ne_t_") <.< YulProd a b <.< YulDup
+  a == b = YulJmpB (MkYulBuiltIn @"__cmp_eq_t_") `YulComp` YulProd a b `YulComp` YulDup
+  a /= b = YulJmpB (MkYulBuiltIn @"__cmp_ne_t_") `YulComp` YulProd a b `YulComp` YulDup
 
 
 -- ^ 'MPOrd' instance for YulCat INTx.
 instance (YulO1 r, ValidINTx s n) => MPOrd (YulCat eff r (INTx s n)) (YulCat eff r BOOL) where
-  a  < b = YulJmpB (MkYulBuiltIn @"__cmp_lt_t_") <.< YulProd a b <.< YulDup
-  a <= b = YulJmpB (MkYulBuiltIn @"__cmp_le_t_") <.< YulProd a b <.< YulDup
-  a  > b = YulJmpB (MkYulBuiltIn @"__cmp_gt_t_") <.< YulProd a b <.< YulDup
-  a >= b = YulJmpB (MkYulBuiltIn @"__cmp_ge_t_") <.< YulProd a b <.< YulDup
+  a  < b = YulJmpB (MkYulBuiltIn @"__cmp_lt_t_") `YulComp` YulProd a b `YulComp` YulDup
+  a <= b = YulJmpB (MkYulBuiltIn @"__cmp_le_t_") `YulComp` YulProd a b `YulComp` YulDup
+  a  > b = YulJmpB (MkYulBuiltIn @"__cmp_gt_t_") `YulComp` YulProd a b `YulComp` YulDup
+  a >= b = YulJmpB (MkYulBuiltIn @"__cmp_ge_t_") `YulComp` YulProd a b `YulComp` YulDup

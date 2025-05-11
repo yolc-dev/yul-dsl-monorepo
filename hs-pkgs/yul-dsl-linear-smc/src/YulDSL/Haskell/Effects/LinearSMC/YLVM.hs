@@ -299,7 +299,7 @@ instance (KnownNat v, YulO1 r) => YulVarRef v r (P'V v r) (Rv v r) where
 
 class (YulVarRef v r port_ vref_, YulO1 (NP xs)) => YulVarRefNP xs v r port_ vref_ where
   ymkvarNP :: forall. NP (MapList port_ xs) ⊸ YLVM v v r (Ur (NP (MapList vref_ xs)))
-  ytkvarNP :: forall. NP (MapList vref_ xs) ⊸ YLVM v v r (NP (MapList port_ xs))
+  ytkvarNP :: forall. NP (MapList vref_ xs) -> YLVM v v r (NP (MapList port_ xs))
 
 instance YulVarRef v r port_ vref_ => YulVarRefNP '[] v r port_ vref_ where
   ymkvarNP Nil = LVM.pure (Ur Nil)
@@ -401,7 +401,7 @@ ywithuv :: forall f x xs b bs btpl f' v r m1 m1b m2.
     -- btpl
   , NP (b:bs) ~ ABITypeDerivedOf btpl
   ) =>
-  NPtoTupleN (NP (MapList (Uv r) (x:xs))) ⊸
+  NPtoTupleN (NP (MapList (Uv r) (x:xs))) ->
   PureYulFn f ->
   YLVM v v r (Ur (NPtoTupleN (NP (MapList (Uv r) (b:bs)))))
 ywithuv xxstpl f = LVM.do
@@ -419,7 +419,7 @@ ywithuv_1 :: forall f x xs b v r m1 m1b m2 f'.
   , Uv r ~ m1b
   , YulCat Pure (NP (x:xs)) ~ m2
   ) =>
-  NPtoTupleN (NP (MapList (Uv r) (x:xs))) ⊸
+  NPtoTupleN (NP (MapList (Uv r) (x:xs))) ->
   PureYulFn f ->
   YLVM v v r (Ur (Uv r b))
 ywithuv_1 xxstpl f = LVM.do
@@ -492,10 +492,10 @@ yuncurry_xs :: forall m1 m2_ m2b_ m2 mb g x xs b r a ie v1 vn.
   , YLVM v1 vn r ~ mb    -- mb
   , P'x ie r ~ m2 -- m2
   ) =>
-  (m1 x -> LiftFunction g m1 mb Many) ->   -- ^ f: m1 x ⊸ m1 (xs ⊸...) ⊸ m1b b; the function to be uncurried
-  (m2 a ⊸ m2 (NP (x : xs))) ->             -- ^ h: m2 (a ⊸ NP xxs)
-  ((m2 a ⊸ m2 (NP xs)) ⊸ m2_ a (NP xs)) -> -- ^ mk: m2 (a ⊸ NP xs) ⊸ m2_ a (NP xs)
-  (m2b_ a b ⊸ (m2 a ⊸ mb b)) ->            -- ^ un: m2b_ a b ⊸ (m2 a ⊸ m2b b)
+  (m1 x -> LiftFunction g m1 mb Many) ⊸    -- ^ f: m1 x ⊸ m1 (xs ⊸...) ⊸ m1b b; the function to be uncurried
+  (m2 a ⊸ m2 (NP (x : xs))) ⊸              -- ^ h: m2 (a ⊸ NP xxs)
+  ((m2 a ⊸ m2 (NP xs)) ⊸ m2_ a (NP xs)) ⊸  -- ^ mk: m2 (a ⊸ NP xs) ⊸ m2_ a (NP xs)
+  (m2b_ a b ⊸ (m2 a ⊸ mb b)) ⊸             -- ^ un: m2b_ a b ⊸ (m2 a ⊸ m2b b)
   (m2 a ⊸ mb b)
 yuncurry_xs f h mk un a =
   let !(a1, a2) = dup'l a

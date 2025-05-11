@@ -129,10 +129,13 @@ initLVMVarRegistry = MkLVMVarRegistry [] []
 -- | Consumes a 'LVMVarRegistry'.
 consumeLVMVarRegistry :: forall ctx v. KnownNat v => LVMVarRegistry ctx ⊸ LVM.LVM ctx v v ()
 consumeLVMVarRegistry (MkLVMVarRegistry uvs vrs) = go1 uvs LVM.>> go2 vrs
-  where go1 ([])                                = LVM.pure ()
-        go1 (MkAnyUvLVMVar (UvLVMVar var) : xs) = LVM.unsafeCoerceLVM (var LVM.>>= eject) LVM.>> go1 xs
-        go2 ([])                                = LVM.pure ()
-        go2 (MkAnyRvLVMVar (RvLVMVar var) : xs) = LVM.veryUnsafeCoerceLVM (var LVM.>>= eject) LVM.>> go2 xs
+  where
+    go1 :: [AnyUvLVMVar ctx] ⊸  LVM.LVM ctx v v ()
+    go1 ([])                                = LVM.pure ()
+    go1 (MkAnyUvLVMVar (UvLVMVar var) : xs) = LVM.unsafeCoerceLVM (var LVM.>>= eject) LVM.>> go1 xs
+    go2 :: [AnyRvLVMVar ctx] ⊸  LVM.LVM ctx v v ()
+    go2 ([])                                = LVM.pure ()
+    go2 (MkAnyRvLVMVar (RvLVMVar var) : xs) = LVM.veryUnsafeCoerceLVM (var LVM.>>= eject) LVM.>> go2 xs
 
 -- | A reference to a variable in the 'LVMVarRegistry'.
 class ( KnownNat v
