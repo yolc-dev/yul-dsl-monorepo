@@ -1,14 +1,6 @@
-import: 3rd-parties/cabal.project
-
-packages:
-  hs-pkgs/simple-sop
-  hs-pkgs/eth-abi
-  hs-pkgs/yul-dsl
-  hs-pkgs/yul-dsl-pure
-  hs-pkgs/yul-dsl-linear-smc
-  hs-pkgs/yol-suite
-  hs-pkgs/yol-suite/testsuite
-  examples/demo
+import: 3rd-parties.cabal.project
+import: yolc.cabal.project
+import: examples.cabal.project
 
 -- doc: https://cabal.readthedocs.io/en/stable/cabal-commands.html#cmdoption-enable-multi-repl
 multi-repl: true

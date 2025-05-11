@@ -24,7 +24,7 @@
           solc.overlay
         ];
       };
-      ghcId = "ghc910";
+      ghcId = "ghc912";
       ghcVer = pkgs.haskell.compiler.${ghcId}.version;
       commonDevInputs = with pkgs; [
         jq

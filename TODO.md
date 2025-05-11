@@ -14,9 +14,9 @@ TODO
 
 ## Bigger Refactoring
 
+- [ ] Compare different sharing approach: https://paste.tomsmeding.com/CFVMMNbL
+- [ ] Recursion issue for show instance of YulCat
 - [ ] Use sop-core; otherwise, the simple-sop doesn't have injectivity for type inferences.
-- [ ] Support Function object, hence closed cartesion; instead of the off-the-band NamedYuCat
-      construct.
 - [ ] Haddock doc cleanup and prettifying.
 - [ ] Use more GHC warning options https://github.com/Kleidukos/print-api/blob/main/print-api.cabal#L39-L43.
 
@@ -48,9 +48,13 @@ TODO
 - YulCat
   - [x] Type conversions for `ABITypeDerivedOf, ABITypeCoercible, NP`
   - [x] SMC
-  - Control flows
+  - [x] Closed cartesian.
+  - [x] Co-cartesian related
+    - [x] `YulAbsurd`, absurd value for building visualization code.
     - [x] `YulEmb`, embed values.
-    - [x] `YulITE`, if-then-else.
+  - Control flows
+    - [x] `YulMapHask`, map haskell function to exponential objects.
+    - [x] `YulSwitch`, switch statement.
     - [x] `YulJmpB`, code jump for built-in yul functions.
     - [x] `YulJmpU`, code jump for user-defined yul functions.
     - [ ] 🟠 `YulArrayLen, YulMapArray`, array length and tight-loop primitives.
@@ -135,7 +139,7 @@ TODO
   - [x] Build pure functions `$fn`.
   - [x] Call pure functions `call`, `call0`, `callN`.
 - Yul Functors
-  - [x] `YulFunctor`
+  - [x] `YulFunctor`, using `HexoFunctor`.
   - [ ] `YulFoldable`
   - [ ] `YulApplicative`
   - [ ] `YulAlternative`
@@ -151,7 +155,6 @@ TODO
   - [x] Process _yul ports_ in pure yul functions: `ywith'l`.
   - [x] VersionThread API: `vtstat{_}, vtstop, vtreturn, vtkmunit, vtgulp, vtseq`.
   - [ ] 🟢 call functions using _yul_ports_: `call'l`.
-  - [ ] 🟠 `(rebound syntax) if` to work with BOOL _yul port_.
 - Working with _yul variables_ using `YLVM`.
   - [x] Build YLVM functions: `$lfn $ ylvm'{pp,pv,vv}`.
   - [x] Call functions in a `YLVM`: `ycall`, `ycall0`.
@@ -175,7 +178,6 @@ TODO
 - LVM
 - LVM combinators: toss{1,N}, pass{1,N},
 - LVMVar
-
 
 ### yol-suite
 

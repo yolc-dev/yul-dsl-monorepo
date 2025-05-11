@@ -1,0 +1,8 @@
+packages:
+  hs-pkgs/simple-sop
+  hs-pkgs/eth-abi
+  hs-pkgs/yul-dsl
+  hs-pkgs/yul-dsl-pure
+  hs-pkgs/yul-dsl-linear-smc
+  hs-pkgs/yol-suite
+  hs-pkgs/yol-suite/testsuite

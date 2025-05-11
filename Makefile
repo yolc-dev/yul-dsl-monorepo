@@ -9,8 +9,6 @@ BUILD_DIR ?= $(PWD)/build
 CABAL ?= cabal
 CABAL_OPTIONS ?= -v1 -O0 -j
 
-CABAL_WITH_OPTIONS = $(CABAL) $(CABAL_OPTIONS)
-
 # Cabal build options
 
 CABAL_BUILD_OPTIONS ?=
@@ -29,6 +27,8 @@ CABAL_PATH= $(CABAL) -v0 --builddir=$(BUILD_DIR)/cabal-path path --output-format
 GHC = $(shell $(CABAL_PATH) | jq -r .compiler.path)
 GHC_ID = $(shell $(GHC) --info | ghci -e 'readFile "/dev/stdin" >>= putStrLn . snd . last . filter ((== "Project Unit Id") . fst) . (read :: String -> [(String, String)])')
 CABAL_COMPILER_ID = $(shell $(CABAL_PATH) | jq -r .compiler.id)
+
+CABAL_WITH_OPTIONS = $(CABAL) $(CABAL_OPTIONS) --project-file=cabal.$(CABAL_COMPILER_ID).project
 
 # Cabal commands
 
@@ -71,6 +71,9 @@ all: lint build test
 lint:
 	hlint --ignore-glob=hs-pkgs/yol-suite/templates/*.hs hs-pkgs/
 	hlint examples/
+
+freeze:
+	$(CABAL_WITH_OPTIONS) freeze
 
 build: build-dist build-docs
 
@@ -146,7 +149,7 @@ dev:
 repl-%:
 	$(CABAL_REPL) $*
 
-.PHONY: all lint build build-* clean clean-* test test-* dev repl-*
+.PHONY: all lint freeze build build-* clean clean-* test test-* dev repl-*
 
 $(LINEAR_SMC_PATH_FILE):
 	[ -d 3rd-parties/linear-smc ] || exit 1
