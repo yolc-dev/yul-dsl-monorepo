@@ -148,7 +148,7 @@ main() {
   local GHC_ID
   GHC=$("${run_cabal_path[@]}" | jq -r .compiler.path)
   GHC_ID=$("$GHC" --info | ghci -e 'readFile "/dev/stdin" >>= putStrLn . snd . last . filter ((== "Project Unit Id") . fst) . (read :: String -> [(String, String)])')
-  cabal_package_db=$("${run_cabal_path[@]}" | jq -r '."store-dir" + "/'${GHC_ID}'/package.db"')
+  cabal_package_db=$("${run_cabal_path[@]}" | jq -r '."store-dir" + "/'"${GHC_ID}"'/package.db"')
 
   {
     debug "YolSuite src dir : $yolsuite_src_dir"

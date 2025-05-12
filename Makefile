@@ -28,7 +28,7 @@ GHC = $(shell $(CABAL_PATH) | jq -r .compiler.path)
 GHC_ID = $(shell $(GHC) --info | ghci -e 'readFile "/dev/stdin" >>= putStrLn . snd . last . filter ((== "Project Unit Id") . fst) . (read :: String -> [(String, String)])')
 CABAL_COMPILER_ID = $(shell $(CABAL_PATH) | jq -r .compiler.id)
 
-CABAL_WITH_OPTIONS = $(CABAL) $(CABAL_OPTIONS) --project-file=cabal.$(CABAL_COMPILER_ID).project
+CABAL_WITH_OPTIONS = $(CABAL) $(CABAL_OPTIONS) --project-file=all.$(CABAL_COMPILER_ID).cabal.project
 
 # Cabal commands
 

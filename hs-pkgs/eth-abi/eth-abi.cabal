@@ -69,7 +69,7 @@ library lib-test
   import:           basic-options
   visibility:       public
   hs-source-dirs:   test/lib
-  build-depends:    QuickCheck >= 2.15,
+  build-depends:    QuickCheck >= 2.14,
                     eth-abi
   -- modules
   exposed-modules:
@@ -79,7 +79,7 @@ Test-Suite test-eth-abi
   import:           basic-options
   ghc-options:      -Wno-missing-signatures
   type:             exitcode-stdio-1.0
-  build-depends:    QuickCheck >= 2.15,
+  build-depends:    QuickCheck >= 2.14,
                     hspec >= 2.11,
                     eth-abi
   hs-source-dirs:   test
