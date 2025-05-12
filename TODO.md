@@ -15,7 +15,6 @@ TODO
 ## Bigger Refactoring
 
 - [ ] Compare different sharing approach: https://paste.tomsmeding.com/CFVMMNbL
-- [ ] Recursion issue for show instance of YulCat
 - [ ] Use sop-core; otherwise, the simple-sop doesn't have injectivity for type inferences.
 - [ ] Haddock doc cleanup and prettifying.
 - [ ] Use more GHC warning options https://github.com/Kleidukos/print-api/blob/main/print-api.cabal#L39-L43.

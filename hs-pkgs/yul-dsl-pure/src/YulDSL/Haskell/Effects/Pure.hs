@@ -110,7 +110,8 @@ data PureFn f where
     ) =>
     NamedYulCat Pure (NP xs) b -> PureFn f
 
-deriving instance Show (PureFn f)
+instance Show (PureFn f) where
+  show (MkPureFn (name, cat)) = "PureFn " <> name <> " {\n  " <> show (cleanYulCat cat) <> "\n}"
 
 instance EquivalentNPOfFunction f xs b => KnownNamedYulCat (PureFn f) PureEffect (NP xs) b where
   withKnownNamedYulCat (MkPureFn f) g = g f

@@ -29,10 +29,10 @@ module YulDSL.Core.YulCat
   , (<.<), (>.>)
   , yulFlip, yulSwitch
     -- * YulCat Stringify Functions
-  , yulCatCompactShow, yulCatToUntypedLisp, yulCatFingerprint
+  , cleanYulCat, yulCatCompactShow, yulCatToUntypedLisp, yulCatFingerprint
   ) where
 -- base
-import Data.Bifunctor              (first)
+import Data.Bifunctor              (first, second)
 import Data.Functor.Const          (Const (Const))
 import Data.Kind                   (Constraint, Type)
 import Data.Typeable               (Typeable)
@@ -391,6 +391,20 @@ yulCatFingerprint = concatMap (printf "%02x") . BS.unpack . BA.convert . hash . 
 
 instance YulO2 r a => Show (YulCat eff r a -> YulCat eff r b) where
   show f = show (f (YulDyn (Const ())))
+
+-- | Clean the yul cat from recursions for its show instance.
+cleanYulCat :: YulCat eff a b -> YulCat eff a b
+cleanYulCat = go
+  where
+    go :: YulCat eff a b -> YulCat eff a b
+    go (YulUnsafeCoerceEffect cat) = YulUnsafeCoerceEffect (go cat)
+    go (YulComp cb ac)             = YulComp (go cb) (go ac)
+    go (YulProd ab cd)             = YulProd (go ab) (go cd)
+    go (YulFork ab ac)             = YulFork (go ab) (go ac)
+    go (YulCurry ab2c)             = YulCurry (go ab2c)
+    go (YulSwitch cf cs cdef)      = YulSwitch (go cf) (map (second go) cs) (go cdef)
+    go (YulJmpU (name, _))         = YulJmpU (name, YulDyn (Const ()))
+    go cat'                        = cat'
 
 deriving instance Show (YulCat eff a b)
 deriving instance Show AnyYulCat

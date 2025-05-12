@@ -59,6 +59,9 @@ data StaticFn f where
                 , EquivalentNPOfFunction f xs b
                 ) => NamedYulCat eff (NP xs) b ⊸ StaticFn f
 
+instance Show (StaticFn f) where
+  show (MkStaticFn (name, cat)) = "StaticFn " <> name <> " {\n  " <> show (cleanYulCat cat) <> "\n}"
+
 instance EquivalentNPOfFunction f xs b =>
          KnownNamedYulCat (StaticFn f) StaticEffect (NP xs) b where
   withKnownNamedYulCat (MkStaticFn f) g = g f
@@ -69,6 +72,9 @@ data OmniFn f where
               , AssertOmniEffect eff
               , EquivalentNPOfFunction f xs b
               ) => NamedYulCat eff (NP xs) b ⊸ OmniFn f
+
+instance Show (OmniFn f) where
+  show (MkOmniFn (name, cat)) = "OmniFn " <> name <> " {\n  " <> show (cleanYulCat cat) <> "\n}"
 
 instance EquivalentNPOfFunction f xs b =>
          KnownNamedYulCat (OmniFn f) OmniEffect (NP xs) b where
