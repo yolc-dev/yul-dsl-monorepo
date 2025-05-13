@@ -35,9 +35,13 @@ common base-mixins-options
 
 library
   import:           yol-module-options
+  ghc-options:
+    -- FIXME: false alarm on base package because of mixins?
+    -Wno-unused-packages
   hs-source-dirs:   src
   exposed-modules:  Project
                     Basic_Tests
                     Num_Tests
-  build-depends:    yul-dsl-linear-smc,
+  build-depends:    text >= 2.0.1,
+                    yul-dsl-linear-smc,
                     yol-suite

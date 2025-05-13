@@ -39,6 +39,10 @@ library
                     YolSuite.YOLC.Templates.SingletonContract
                     YolSuite.YOLC.Builder
                     YolSuite.YOLC.RunYolModes
+                    --
+                    YolSuite.ReplUtils
+                    --
+                    YulDSL.CodeGens.GraphVizGen
   -- other-modules:
   -- other-extensions:
   build-depends:    text >= 2.0.1,
@@ -48,5 +52,7 @@ library
                     lens >= 5.2.0,
                     aeson >= 2.2.0,
                     lens-aeson >= 1.2.2,
+                    graphviz >= 2999.20.0.0,
+                    fgl >= 5.8.0.0,
                     yul-dsl
   hs-source-dirs:   src

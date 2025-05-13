@@ -104,7 +104,7 @@ TODO
     - [ ] 🟢 `revertWithError`
     - [ ] 🟢 (complete testsuite)
 
-- CodeGen
+- CodeGen/YulGen
   - Function Gen:
     - [x] Yul code generator for any YulCat
     - [ ] 🟠 Fix the implementation for all embeddable values.
@@ -165,7 +165,7 @@ TODO
 - Working with storage:
   - [x] Extensible Storage type: `SReferenceable(sget'l, sput'l)`.
   - [ ] 🟢 Storage primitives: `sget, sgetNP, sgetN, sput (<:=), sputM (<<:=), sputMM (<<:=<<)`.
-  - [ ] 🟠 Storage functions working with `Referenceable` types.
+  - [x] 🟠 Storage functions working with `Referenceable` types.
 - Storage Hash Map.
   - [ ] `shmapRef'l, shmapGet'l, shmapPut'l`.
   - [ ] `(.->), shmapRef`
@@ -196,6 +196,8 @@ TODO
           2. a copy of Haskell main source code in a block of solidity comments.
   - CLI
     - [x] ⭐ `yolc`, a MVP in shells script, prepares YOLC project and invoke YOLC builder.
+- [-] CodeGens/GraphVizGen. (Some constructors missing)
+- [x] ReplUtils: printCat, printFn, previewFn, previewCat
 
 ### DevX
 

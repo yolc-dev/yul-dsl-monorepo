@@ -1,0 +1,14 @@
+:set -package base -package yul-dsl
+:module +Prelude
+:set -XNoOverloadedStrings
+
+-- to be used in :setup
+:{
+__import_modules = unlines
+  [ ":module + YolSuite.ReplUtils"
+  , ":module + YulDSL.Core Basic_Tests"
+  ]
+:}
+
+-- define a :setup command for demo purpose:
+:def setup (const . pure $ __import_modules)
