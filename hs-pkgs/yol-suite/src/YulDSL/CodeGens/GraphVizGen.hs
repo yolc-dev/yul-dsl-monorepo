@@ -1,5 +1,5 @@
 module YulDSL.CodeGens.GraphVizGen
-  ( yulCatToGraphiz, yulCatToGraphizVerbose, previewYulCat, previewYulCatVerbose
+  ( yulCatToGraphViz, yulCatToGraphVizVerbose, previewYulCat, previewYulCatVerbose
   ) where
 -- base
 import Data.Bool              (bool)
@@ -47,8 +47,8 @@ data YulCatToGraphvizOptions = MkYulCatToGraphvizOptions
   }
 
 -- | Turn a yul cat into a dot graph.
-yulCatToGraphiz' :: YulCatToGraphvizOptions -> YulCat eff a b -> GV.DotGraph GI.Node
-yulCatToGraphiz' opts cat_ =
+yulCatToGraphViz' :: YulCatToGraphvizOptions -> YulCat eff a b -> GV.DotGraph GI.Node
+yulCatToGraphViz' opts cat_ =
   let ((nid, gr), bu) = go cat_ [] (0, ([], []))
       gr' = ( gr <>
               -- start/stop nodes
@@ -190,22 +190,22 @@ yulCatToGraphiz' opts cat_ =
       YulSGet -> mk_simple_block path nid gr "sget"
       YulSPut -> mk_simple_block path nid gr "sput"
 
-yulCatToGraphiz :: YulCat eff a b -> GV.DotGraph GI.Node
-yulCatToGraphiz = yulCatToGraphiz' MkYulCatToGraphvizOptions
+yulCatToGraphViz :: YulCat eff a b -> GV.DotGraph GI.Node
+yulCatToGraphViz = yulCatToGraphViz' MkYulCatToGraphvizOptions
                   { yulCatGraphvizIgnoreCoercions  = True
                   , yulCatGraphvizIgnoreEdgeLabels = False
                   }
 
-yulCatToGraphizVerbose :: YulCat eff a b -> GV.DotGraph GI.Node
-yulCatToGraphizVerbose = yulCatToGraphiz' MkYulCatToGraphvizOptions
+yulCatToGraphVizVerbose :: YulCat eff a b -> GV.DotGraph GI.Node
+yulCatToGraphVizVerbose = yulCatToGraphViz' MkYulCatToGraphvizOptions
                          { yulCatGraphvizIgnoreCoercions  = False
                          , yulCatGraphvizIgnoreEdgeLabels = False
                          }
 
 -- | Preview a yul cat in a Xlib graphviz canvas.
 previewYulCat :: YulCat eff a b ->  IO ()
-previewYulCat = flip GV.runGraphvizCanvas' GV.Xlib . yulCatToGraphiz
+previewYulCat = flip GV.runGraphvizCanvas' GV.Xlib . yulCatToGraphViz
 
 -- | Preview a yul cat in a Xlib graphviz canvas, in verbose mode.
 previewYulCatVerbose :: YulCat eff a b ->  IO ()
-previewYulCatVerbose = flip GV.runGraphvizCanvas' GV.Xlib . yulCatToGraphizVerbose
+previewYulCatVerbose = flip GV.runGraphvizCanvas' GV.Xlib . yulCatToGraphVizVerbose
