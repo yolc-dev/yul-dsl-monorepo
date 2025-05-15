@@ -23,7 +23,21 @@ transfer = $lfn $ ylvm'pv
   \to amount -> LVM.do
     Ur from <- ycaller
 
-    -- get current balances
+    -- CORRECT CODE:
+
+    -- Ur senderBalance <- ycall balanceOf (ver from)
+    -- Ur newSenderBalance <- ywithrv_1 @(U256 -> U256 -> U256) (ver amount, senderBalance)
+    --   \amount' senderBalance' -> senderBalance' - amount'
+    -- balanceMap .-> from <<:= newSenderBalance
+
+    -- Ur receiverBalance <- ycall balanceOf (ver to)
+    -- Ur newReceiverBalance <- ywithrv_1 @(U256 -> U256 -> U256) (ver amount, receiverBalance)
+    --   \amount' receiverBalance' -> receiverBalance' + amount'
+    -- balanceMap .-> to <<:= newReceiverBalance
+
+
+    -- INCORRECT CODE, CANNOT PASS COMPILATION:
+
     Ur senderBalance <- ycall balanceOf (ver from)
     Ur receiverBalance <- ycall balanceOf (ver to)
 
@@ -36,11 +50,8 @@ transfer = $lfn $ ylvm'pv
 
     -- WARNING: THIS IS WRONG, we shouldn't batch like this, and it violats data freshness.
     -- Have you found the issue?
-    --
-    -- It will be fixed; by removing sputs.
-    sputs $
-      balanceMap .-> from := newSenderBalance   :|
-      balanceMap .-> to   := newReceiverBalance :[]
+    balanceMap .-> from <<:= newSenderBalance
+    balanceMap .-> to   <<:= newReceiverBalance
 
     -- always return true as a silly urban-legendary ERC20 convention
     yembed true
@@ -55,7 +66,7 @@ mint = $lfn $ ylvm'pv
       (balanceBefore, ver amount)
       (\x y -> x + y)
     -- update balance
-    sputs $ balanceMap .-> to := newAmount :|[]
+    balanceMap .-> to <<:= newAmount
     -- call **untrusted** external contract onTokenMinted
     ycall (to @-> onTokenMinted) (ver to) (ver amount)
 

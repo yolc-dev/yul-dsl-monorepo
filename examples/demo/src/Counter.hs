@@ -24,7 +24,7 @@ incGlobalCounter = $lfn $ ylvm'pv
       (currentValue, ver inc)
       (\a b -> a + b)
 
-    sput (ycalluv_0 globalCounterLoc := newValue)
+    ycalluv_0 globalCounterLoc <<:= newValue
 
     yembed ()
 
@@ -52,5 +52,5 @@ incCounter = $lfn $ ylvm'pv
       (currentValue, ver inc)
       (\a b -> a + b)
 
-    sput (counterMap .-> acc := newValue)
+    counterMap .-> acc <<:= newValue
     yembed ()

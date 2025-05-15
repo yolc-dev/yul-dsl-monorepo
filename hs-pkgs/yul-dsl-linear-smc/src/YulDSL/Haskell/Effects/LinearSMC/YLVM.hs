@@ -37,6 +37,7 @@ module YulDSL.Haskell.Effects.LinearSMC.YLVM
   , module Control.LinearlyVersionedMonad.LVMVar
   ) where
 -- base
+import GHC.TypeError                                 qualified as TypeError
 import GHC.TypeLits                                  (type (<=))
 -- linear-base
 import Prelude.Linear
@@ -284,6 +285,12 @@ instance (KnownNat v, YulO1 r) => YulVarRef v r (P'P r) (Uv r) where
   ytkvar (Uv ref) = with_yulvar_registry \rgstr -> LVM.do
     (port, rgstr') <- takeLVMVarRef ref rgstr
     LVM.pure (Just rgstr', port)
+
+instance {-# OVERLAPPABLE #-}
+  ( KnownNat va, YulO1 r
+  , TypeError.Unsatisfiable (TypeError.Text "Outdated data version")
+  ) =>
+  YulVarRef va r (P'V v r) (Rv v r)
 
 instance (KnownNat v, YulO1 r) => YulVarRef v r (P'V v r) (Rv v r) where
   ymkvar x = with_yulvar_registry \rgstr ->
