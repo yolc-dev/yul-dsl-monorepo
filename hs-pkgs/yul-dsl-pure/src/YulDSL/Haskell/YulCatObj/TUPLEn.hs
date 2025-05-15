@@ -45,18 +45,6 @@ instance YulO2 a r =>
          YulCatObj Many where
   be ma = ma >.> YulCoerceType
 
--- instance (YulO2 a r) =>
---          SingleCasePattern (YulCat eff r) (Solo a) (Solo (YulCat eff r a))
---          YulCatObj Many where
---   is ma = MkSolo (ma >.> YulCoerceType)
--- instance (YulO2 a r, YulCat eff r ~ m) =>
---          PatternMatchable (YulCat eff r) (Solo a) (Solo (YulCat eff r a))
---          YulCatObj Many where
--- instance YulO2 a r =>
---          InjectivePattern (YulCat eff r) (Solo a) (Solo (YulCat eff r a))
---          YulCatObj Many where
---   be (MkSolo ma) = ma >.> YulCoerceType
-
 -- Tuple2 is the base case.
 
 instance (YulO3 a1 a2 r) =>
