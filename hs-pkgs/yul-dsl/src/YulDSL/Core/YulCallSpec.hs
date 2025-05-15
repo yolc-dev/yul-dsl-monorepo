@@ -10,24 +10,28 @@ Portability : GHC2024
 
 = Description
 
-This module provides the data types of a selector. A selector encodes the four-bytes identifier of a smart contract
-function.
+This module provides the data types of for defining external call specifications.
 
 -}
-module Ethereum.ContractABI.ExtendedType.SELECTOR
- ( FuncSig (MkFuncSig)
- , SELECTOR (SELECTOR)
+module YulDSL.Core.YulCallSpec
+ ( -- function signature
+   FuncSig (MkFuncSig)
+   -- selector
+ , Selector (MkSelector)
  , mkTypedSelector
  , mkRawSelector
  , showSelectorOnly
+   --
+ , CallTarget
+ , CallGasLimit
+ , CallValue
+ , CallParams
  ) where
 
 -- base
-import Data.List                            (intercalate)
+import Data.List            (intercalate)
 -- eth-abi
-import Ethereum.ContractABI.ABICoreType
-import Ethereum.ContractABI.ABITypeable
-import Ethereum.ContractABI.CoreType.BYTESn
+import Ethereum.ContractABI
 
 
 --
@@ -42,27 +46,38 @@ instance Show FuncSig where
                               in  fname ++ "(" ++ intercalate "," args ++ ")"
 
 --
--- SELECTOR
+-- Selector
 --
 
 -- | Selector value type with the optional function signature tagged.
-newtype SELECTOR = SELECTOR (B4, Maybe FuncSig)
+newtype Selector = MkSelector (B4, Maybe FuncSig)
 
 -- | Create a selector from a function name @fname@ and its input type signature @a@.
-mkTypedSelector :: forall a. ABITypeable a => String -> SELECTOR
-mkTypedSelector fname = SELECTOR (bytesnFromWord8s bs4bytes, Just (MkFuncSig @a fname))
+mkTypedSelector :: forall a. ABITypeable a => String -> Selector
+mkTypedSelector fname = MkSelector (bytesnFromWord8s bs4bytes, Just (MkFuncSig @a fname))
   where
     sig = show (MkFuncSig @a fname)
     bs4bytes = take 4 (bytesnToWords (stringKeccak256 sig))
 
 -- | Create a selector from a raw 'U32' value.
-mkRawSelector :: B4 -> SELECTOR
-mkRawSelector sig = SELECTOR (sig, Nothing)
+mkRawSelector :: B4 -> Selector
+mkRawSelector sig = MkSelector (sig, Nothing)
 
-instance Show SELECTOR where
-  show (SELECTOR (sel, Just sig)) = show sel ++ " /* " ++ show sig ++ " */"
-  show (SELECTOR (sel, Nothing))  = show sel
+instance Show Selector where
+  show (MkSelector (sel, Just sig)) = show sel ++ " /* " ++ show sig ++ " */"
+  show (MkSelector (sel, Nothing))  = show sel
 
 -- | A function shows only the selector value itself without the function signature.
-showSelectorOnly :: SELECTOR -> String
-showSelectorOnly (SELECTOR (sel, _)) = show sel
+showSelectorOnly :: Selector -> String
+showSelectorOnly (MkSelector (sel, _)) = show sel
+
+--
+-- External Call Parameters.
+--
+
+type CallTarget   = ADDR
+type CallGasLimit = U256
+type CallValue    = U256
+
+-- TODO: use ADT
+type CallParams = (CallTarget, CallGasLimit, CallValue)

@@ -12,7 +12,6 @@ module Ethereum.ContractABI
   --
   , module Ethereum.ContractABI.ExtendedType.REF
   , module Ethereum.ContractABI.ExtendedType.TUPLEn
-  , module Ethereum.ContractABI.ExtendedType.SELECTOR
   ) where
 -- type machinery
 import Ethereum.ContractABI.ABICoreType
@@ -27,5 +26,4 @@ import Ethereum.ContractABI.CoreType.INTx
 import Ethereum.ContractABI.CoreType.NP
 -- extended types
 import Ethereum.ContractABI.ExtendedType.REF
-import Ethereum.ContractABI.ExtendedType.SELECTOR
 import Ethereum.ContractABI.ExtendedType.TUPLEn

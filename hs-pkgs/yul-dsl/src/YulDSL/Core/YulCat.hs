@@ -24,20 +24,20 @@ module YulDSL.Core.YulCat
     YulCat (..), AnyYulCat (..)
   , NamedYulCat, KnownNamedYulCat (withKnownNamedYulCat, classifyKnownNamedYulCat), unsafeCoerceNamedYulCat
   , YulExp
-  , YulCallTarget, YulCallGasLimit, YulCallValue
   , (<.<), (>.>)
   , yulFlip, yulSwitch
   , cleanYulCat
   ) where
 -- base
-import Data.Bifunctor         (second)
-import Data.Functor.Const     (Const (Const))
-import Data.Kind              (Constraint, Type)
-import Data.Typeable          (Typeable)
+import Data.Bifunctor          (second)
+import Data.Functor.Const      (Const (Const))
+import Data.Kind               (Constraint, Type)
+import Data.Typeable           (Typeable)
 -- eth-abi
 import Ethereum.ContractABI
 --
 import YulDSL.Core.YulBuiltIn
+import YulDSL.Core.YulCallSpec
 import YulDSL.Core.YulCatObj
 import YulDSL.Core.YulEffect
 
@@ -57,12 +57,6 @@ type NamedYulCat eff a b = (String, YulCat eff a b)
 
 -- | An exponential object /b^a/ in the YulCat as a cartesian closed category.
 type YulExp eff a b = a -> YulCat eff a b
-
--- External call parameters:
-
-type YulCallTarget   = ADDR
-type YulCallGasLimit = U256
-type YulCallValue    = U256
 
 -- | A GADT-style DSL of Yul that constructs morphisms between objects (YulCatObj) of the "Yul Category".
 --
@@ -139,7 +133,7 @@ data YulCat eff a b where
     ( YulO2 a b
     , AssertNonPureEffect eff
     ) =>
-    SELECTOR -> YulCat eff ((YulCallTarget, YulCallValue, YulCallGasLimit), a) b
+    Selector -> YulCat eff (CallParams, a) b
 
   -- * Storage Primitives
   --

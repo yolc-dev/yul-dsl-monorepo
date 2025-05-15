@@ -51,6 +51,7 @@ library
   exposed-modules:
     -- Core
     YulDSL.Core.YulEffect
+    YulDSL.Core.YulCallSpec
     YulDSL.Core.YulCatObj
     YulDSL.Core.YulBuiltIn
     YulDSL.Core.YulCat

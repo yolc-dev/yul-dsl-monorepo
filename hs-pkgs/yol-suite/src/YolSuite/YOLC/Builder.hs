@@ -101,7 +101,7 @@ compile_main_object mo = do
                        errors
 
 ifunc_name :: AnyExportedYulCat -> Maybe T.Text
-ifunc_name (MkAnyExportedYulCat (SELECTOR (_, Just (MkFuncSig fname))) fnEff (_ :: NamedYulCat eff a b))
+ifunc_name (MkAnyExportedYulCat (MkSelector (_, Just (MkFuncSig fname))) fnEff (_ :: NamedYulCat eff a b))
   = Just
     $ "  function " <> T.pack fname
     <> "(" <> T.intercalate ", " argTypes <>") external" <> effect fnEff

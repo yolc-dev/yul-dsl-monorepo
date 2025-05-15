@@ -55,7 +55,6 @@ library
     -- extended types
     Ethereum.ContractABI.ExtendedType.REF
     Ethereum.ContractABI.ExtendedType.TUPLEn
-    Ethereum.ContractABI.ExtendedType.SELECTOR
     -- main export
     Ethereum.ContractABI
   other-modules:

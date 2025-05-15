@@ -339,8 +339,8 @@ go_jmp t fname = do
 
 go_call :: forall a b.
   (HasCallStack, YulO2 a b) =>
-  Char -> SELECTOR ->
-  CGState (CodeGen ((YulCallTarget, YulCallValue, YulCallGasLimit), a) b)
+  Char -> Selector ->
+  CGState (CodeGen ((CallTarget, CallValue, CallGasLimit), a) b)
 go_call effCode sel = pure $ MkCodeGen \ind (get_code_exprs -> (code, a_ins)) -> do
   let title = "cal" ++ effCode:" " ++ abiTypeCompactName @a ++ " ~> " ++ abiTypeCompactName @b
       callTargetExpr = a_ins !! 0

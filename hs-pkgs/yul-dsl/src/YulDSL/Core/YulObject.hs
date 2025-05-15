@@ -19,12 +19,12 @@ module YulDSL.Core.YulObject
   , YulObject (..), mkYulObject
   ) where
 -- base
-import Data.List                                  (intercalate)
+import Data.List                        (intercalate)
 -- eth-abi
-import Ethereum.ContractABI.ABITypeable           (abiTypeCanonName)
+import Ethereum.ContractABI.ABITypeable (abiTypeCanonName)
 import Ethereum.ContractABI.CoreType.NP
-import Ethereum.ContractABI.ExtendedType.SELECTOR
 --
+import YulDSL.Core.YulCallSpec
 import YulDSL.Core.YulCat
 import YulDSL.Core.YulCatObj
 import YulDSL.Core.YulEffect
@@ -36,7 +36,7 @@ import YulDSL.Core.YulEffect
 -- | Existential type wrapper for yul function that is exported.
 data AnyExportedYulCat where
   MkAnyExportedYulCat :: forall k { eff :: k } xs b. YulO2 (NP xs) b
-                      => SELECTOR -> YulCatEffectClass -> NamedYulCat eff (NP xs) b -> AnyExportedYulCat
+                      => Selector -> YulCatEffectClass -> NamedYulCat eff (NP xs) b -> AnyExportedYulCat
 
 -- | The function to process the content of 'AnyExportedYulCat'.
 withAnyExportedYulCat :: AnyExportedYulCat
@@ -71,8 +71,8 @@ instance Show AnyExportedYulCat where
   show (MkAnyExportedYulCat s OmniEffect   cat) = "omni "   <> show_fn_spec s cat
 
 show_fn_spec :: forall xs b eff. YulO2 (NP xs) b
-             => SELECTOR -> NamedYulCat eff (NP xs) b -> String
-show_fn_spec (SELECTOR (sel, fsig)) cat@(cid, _) =
+             => Selector -> NamedYulCat eff (NP xs) b -> String
+show_fn_spec (MkSelector (sel, fsig)) cat@(cid, _) =
   let fspec = case fsig of
                 Just (MkFuncSig fname) -> fname ++ "," ++ show sel ++ "," ++ cid
                 Nothing                -> show sel ++ "," ++ cid

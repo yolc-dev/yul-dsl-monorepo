@@ -82,7 +82,7 @@ instance EquivalentNPOfFunction f xs b =>
 
 -- | External contract functions that can be called via its selector.
 data ExternalOmniFn f where
-  MkExternalOmniFn :: forall f xs b. EquivalentNPOfFunction f xs b => SELECTOR -> ExternalOmniFn f
+  MkExternalOmniFn :: forall f xs b. EquivalentNPOfFunction f xs b => Selector -> ExternalOmniFn f
 
 -- | Create a 'ExternalFn' value by providing its function name function form @f@.
 externalOmniFn :: forall f xs b.
@@ -145,7 +145,7 @@ data BoundMethod ref_contract f xs b where
     EquivalentNPOfFunction f xs b =>
     ( forall v r.
       (KnownNat v, VersionableYulVarRef v r ADDR ref_contract) =>
-      Proxy (SNat v, r) -> (Rv v r ADDR, SELECTOR)
+      Proxy (SNat v, r) -> (Rv v r ADDR, Selector)
     ) ->
     BoundMethod ref_contract f xs b
 

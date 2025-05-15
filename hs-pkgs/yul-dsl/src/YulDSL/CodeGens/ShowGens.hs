@@ -13,6 +13,7 @@ import Ethereum.ContractABI
 --
 import CodeGenUtils.CodeFormatters
 import YulDSL.Core.YulBuiltIn
+import YulDSL.Core.YulCallSpec
 import YulDSL.Core.YulCat
 
 
