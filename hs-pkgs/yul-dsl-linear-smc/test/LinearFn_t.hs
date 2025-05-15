@@ -123,7 +123,7 @@ tuple2_input = $lfn $ yulports'vv
 fooSPut :: OmniFn (B32 -> U256 -> ())
 fooSPut = $lfn $ ylvm'pv
   \slot val -> LVM.do
-    sput (LVM.pure (Ur slot) := val)
+    slot <:= val
     yembed ()
 
 callSPut :: OmniFn (B32 -> U256 -> ())

@@ -10,13 +10,13 @@ Portability : GHC2024
 
 = Description
 
-This module provides yul monads that work with contract storage.
+This module provides VersionThread and YLVM APIs that work with contract storages.
 
 -}
 module YulDSL.Haskell.Effects.LinearSMC.Storage
   ( SReferenceable (sget'l, sput'l)
   , sget, SGettableNP (sgetNP), sgetN
-  , sputM, (<<:=)
+  , sput, (<:=), sputM, (<<:=), sputMM, (<<:=<<)
   ) where
 -- base
 import GHC.TypeLits                             (type (+), type (<=))
@@ -100,17 +100,34 @@ sgetN tpl_a = let np_a = fromTupleNtoNP tpl_a
 -- sput, sputM, sputMM
 ------------------------------------------------------------------------------------------------------------------------
 
-sputM, (<<:=) :: forall v a b r vref_a_ vref_b_ iea ieb.
+sput, (<:=) ::
   ( KnownNat (v + 1), v <= v + 1, YulO1 r
-  , -- ref_a
-    YulVarRef v r (P'x iea r) vref_a_
-  , ReferenciableYulVar v r (vref_a_ a)
-  , DereferenceYulVarRef (vref_a_ a) ~ P'x iea r a
+   -- ref_a
+  , YulVarRef v r (P'x iea r) vref_a_
   , VersionableYulVarRef v r a (vref_a_ a)
     -- ref_b
   , YulVarRef v r (P'x ieb r) vref_b_
-  , ReferenciableYulVar v r (vref_b_ b)
-  , DereferenceYulVarRef (vref_b_ b) ~ P'x ieb r b
+  , VersionableYulVarRef v r b (vref_b_ b)
+    -- b
+  , SReferenceable v r a b
+  ) =>
+  vref_a_ a ->
+  vref_b_ b ->
+  YLVM v (v + 1) r ()
+sput aVar bVar = LVM.do
+  a <- ytkvarv aVar
+  b <- ytkvarv bVar
+  yrunvt (\vt -> sput'l vt a b)
+  LVM.pure ()
+(<:=) = sput
+
+sputM, (<<:=) :: forall v a b r vref_a_ vref_b_ iea ieb.
+  ( KnownNat (v + 1), v <= v + 1, YulO1 r
+    -- ref_a
+  , YulVarRef v r (P'x iea r) vref_a_
+  , VersionableYulVarRef v r a (vref_a_ a)
+    -- ref_b
+  , YulVarRef v r (P'x ieb r) vref_b_
   , VersionableYulVarRef v r b (vref_b_ b)
     -- b
   , SReferenceable v r a b
@@ -125,3 +142,26 @@ sputM aVarM bVar = LVM.do
   yrunvt (\vt -> sput'l vt a b)
   LVM.pure ()
 (<<:=) = sputM
+
+sputMM, (<<:=<<) :: forall v a b r vref_a_ vref_b_ iea ieb.
+  ( KnownNat (v + 1), v <= v + 1, YulO1 r
+    -- ref_a
+  , YulVarRef v r (P'x iea r) vref_a_
+  , VersionableYulVarRef v r a (vref_a_ a)
+    -- ref_b
+  , YulVarRef v r (P'x ieb r) vref_b_
+  , VersionableYulVarRef v r b (vref_b_ b)
+    -- b
+  , SReferenceable v r a b
+  ) =>
+  YLVM v v r (Ur (vref_a_ a)) ->
+  YLVM v v r (Ur (vref_b_ b)) ->
+  YLVM v (v + 1) r ()
+sputMM aVarM bVarM = LVM.do
+  Ur aVar <- aVarM
+  Ur bVar <- bVarM
+  a <- ytkvarv aVar
+  b <- ytkvarv bVar
+  yrunvt (\vt -> sput'l vt a b)
+  LVM.pure ()
+(<<:=<<) = sputMM

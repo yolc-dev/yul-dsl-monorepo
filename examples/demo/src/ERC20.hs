@@ -25,33 +25,32 @@ transfer = $lfn $ ylvm'pv
 
     -- CORRECT CODE:
 
-    -- Ur senderBalance <- ycall balanceOf (ver from)
-    -- Ur newSenderBalance <- ywithrv_1 @(U256 -> U256 -> U256) (ver amount, senderBalance)
-    --   \amount' senderBalance' -> senderBalance' - amount'
-    -- balanceMap .-> from <<:= newSenderBalance
+    Ur senderBalance <- ycall balanceOf (ver from)
+    Ur newSenderBalance <- ywithrv_1 @(U256 -> U256 -> U256) (ver amount, senderBalance)
+      \amount' senderBalance' -> senderBalance' - amount'
+    balanceMap .-> from <<:= newSenderBalance
 
-    -- Ur receiverBalance <- ycall balanceOf (ver to)
-    -- Ur newReceiverBalance <- ywithrv_1 @(U256 -> U256 -> U256) (ver amount, receiverBalance)
-    --   \amount' receiverBalance' -> receiverBalance' + amount'
-    -- balanceMap .-> to <<:= newReceiverBalance
-
+    Ur receiverBalance <- ycall balanceOf (ver to)
+    Ur newReceiverBalance <- ywithrv_1 @(U256 -> U256 -> U256) (ver amount, receiverBalance)
+      \amount' receiverBalance' -> receiverBalance' + amount'
+    balanceMap .-> to <<:= newReceiverBalance
 
     -- INCORRECT CODE, CANNOT PASS COMPILATION:
 
-    Ur senderBalance <- ycall balanceOf (ver from)
-    Ur receiverBalance <- ycall balanceOf (ver to)
+    -- Ur senderBalance <- ycall balanceOf (ver from)
+    -- Ur receiverBalance <- ycall balanceOf (ver to)
 
-    -- calculate new balances
-    Ur (newSenderBalance, newReceiverBalance) <- ywithrv
-      @(U256 -> U256 -> U256 -> (U256, U256))
-      (ver amount, senderBalance, receiverBalance)
-      \amount' senderBalance' receiverBalance' ->
-        be (senderBalance' - amount', receiverBalance' + amount')
+    -- -- calculate new balances
+    -- Ur (newSenderBalance, newReceiverBalance) <- ywithrv
+    --   @(U256 -> U256 -> U256 -> (U256, U256))
+    --   (ver amount, senderBalance, receiverBalance)
+    --   \amount' senderBalance' receiverBalance' ->
+    --     be (senderBalance' - amount', receiverBalance' + amount')
 
-    -- WARNING: THIS IS WRONG, we shouldn't batch like this, and it violats data freshness.
-    -- Have you found the issue?
-    balanceMap .-> from <<:= newSenderBalance
-    balanceMap .-> to   <<:= newReceiverBalance
+    -- -- WARNING: THIS IS WRONG
+    -- -- Have you found the issue?
+    -- balanceMap .-> from <<:= newSenderBalance
+    -- balanceMap .-> to   <<:= newReceiverBalance
 
     -- always return true as a silly urban-legendary ERC20 convention
     yembed true

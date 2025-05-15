@@ -164,7 +164,9 @@ TODO
   - [ ] 🟠 `(rebound syntax) if, ywhen, yunless` to work with BOOL _yul variable_.
 - Working with storage:
   - [x] Extensible Storage type: `SReferenceable(sget'l, sput'l)`.
-  - [ ] 🟢 Storage primitives: `sget, sgetNP, sgetN, sput (<:=), sputM (<<:=), sputMM (<<:=<<)`.
+  - [x] 🟢 Storage primitives:
+    - `sget{NP,N}`
+    - `sput (<:=), sputM (<<:=), sputMM (<<:=<<)`.
   - [x] 🟠 Storage functions working with `Referenceable` types.
 - Storage Hash Map.
   - [ ] `shmapRef'l, shmapGet'l, shmapPut'l`.
