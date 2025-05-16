@@ -53,8 +53,7 @@ sgetTest = $lfn $ ylvm'pv
 shmapGetTest :: StaticFn (ADDR -> U256)
 shmapGetTest = $lfn $ ylvm'pv
   \acc -> LVM.do
-    Ur sslot <- (shmap "shmapGetTest" :: SHMap ADDR U256) .-> acc
-    sget sslot
+    sgetM $ (makeSMap "shmapGetTest" :: SMap (ADDR -> U256)) #-> acc
 
 varSharing :: PureFn (U256 -> U256 -> U256 -> U256)
 varSharing = $fn \a b c ->

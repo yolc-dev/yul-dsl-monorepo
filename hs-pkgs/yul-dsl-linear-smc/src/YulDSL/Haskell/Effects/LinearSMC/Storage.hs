@@ -15,7 +15,7 @@ This module provides VersionThread and YLVM APIs that work with contract storage
 -}
 module YulDSL.Haskell.Effects.LinearSMC.Storage
   ( SReferenceable (sget'l, sput'l)
-  , sget, SGettableNP (sgetNP), sgetN
+  , sget, sgetM, SGettableNP (sgetNP), sgetN
   , sput, (<:=), sputM, (<<:=), sputMM, (<<:=<<)
   ) where
 -- base
@@ -43,13 +43,11 @@ instance ( KnownNat v, v <= v + 1, YulO2 b r
     let !(x1, x2) = dup'l x
     in vtseq vt x1 (unsafeCoerceYulPort (encodeP'x YulSPut (merge'l (ver'l s, x2))))
 
-instance ( KnownNat v, v <= v + 1, YulO2 a r
-         , ABIWordValue a
-         ) => SReferenceable v r (REF a) a where
-  sget'l s = encodeP'x YulSGet (reduceType'l (ver'l s))
-  sput'l vt s x =
-    let !(x1, x2) = dup'l x
-    in vtseq vt x1 (unsafeCoerceYulPort (encodeP'x YulSPut (merge'l (reduceType'l (ver'l s), x2))))
+instance ( KnownNat v, v <= v + 1, YulO2 b r
+         , SReferenceable v r B32 b
+         ) => SReferenceable v r (REF b) b where
+  sget'l s = sget'l (reduceType'l s)
+  sput'l vt s = sput'l vt (reduceType'l s)
 
 -------- ----------------------------------------------------------------------------------------------------------------
 -- sget,sgetNP, sgetN
@@ -65,6 +63,17 @@ sget :: forall a b ie r v vref_.
   ) =>
   vref_ a -> YLVM v v r (Ur (Rv v r b))
 sget avar = ytkvarv avar LVM.>>= ymkvar . sget'l
+
+sgetM :: forall a b ie r v vref_.
+  ( YulO3 r a b
+  , YulVarRef v r (P'x ie r) vref_
+  , ReferenciableYulVar v r (vref_ a)
+  , DereferenceYulVarRef (vref_ a) ~ P'x ie r a
+  , VersionableYulVarRef v r a (vref_ a)
+  , SReferenceable v r a b
+  ) =>
+  YLVM v v r (Ur (vref_ a)) -> YLVM v v r (Ur (Rv v r b))
+sgetM mavar = mavar LVM.>>= \(Ur avar) -> ytkvarv avar LVM.>>= ymkvar . sget'l
 
 class (KnownNat v, YulO1 r) => SGettableNP v r np b where
   sgetNP :: forall. np -> YLVM v v r b

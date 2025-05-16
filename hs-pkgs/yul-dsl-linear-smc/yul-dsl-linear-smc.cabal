@@ -69,7 +69,7 @@ library
     YulDSL.Haskell.Effects.LinearSMC
     -- YulDSL/Haskell's Utils
     YulDSL.Haskell.LibLinearSMC
-    YulDSL.Haskell.Data.SHMap
+    YulDSL.Haskell.Data.SMap
     -- Prelude
     Prelude.YulDSL
   reexported-modules:

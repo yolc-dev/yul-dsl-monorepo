@@ -10,12 +10,16 @@ object = mkYulObject "ERC20" yulNoop
   ]
 
 -- | Storage map of account balances
-balanceMap :: SHMap ADDR U256
-balanceMap = shmap "Yolc.Demo.ERC20.Storage.AccountBalance"
+balances :: SMap (ADDR -> U256)
+balances = makeSMap "Yolc.Demo.ERC20.Storage.AccountBalances"
+
+-- | Storage map of allowances
+allowances :: SMap (ADDR {- Owner -} -> ADDR {- spender -} -> U256)
+allowances = makeSMap "Yolc.Demo.ERC20.Storage.Allowances"
 
 -- | ERC20 balance of the account.
 balanceOf :: StaticFn (ADDR -> U256)
-balanceOf = $lfn $ ylvm'pv \owner -> shmapGet balanceMap owner
+balanceOf = $lfn $ ylvm'pv \owner -> sgetM $ balances #-> owner
 
 -- | ERC20 transfer function.
 transfer :: OmniFn (ADDR -> U256 -> BOOL)
@@ -28,14 +32,14 @@ transfer = $lfn $ ylvm'pv
     Ur senderBalance <- ycall balanceOf (ver from)
     Ur newSenderBalance <- ywithrv_1 @(U256 -> U256 -> U256) (ver amount, senderBalance)
       \amount' senderBalance' -> senderBalance' - amount'
-    balanceMap .-> from <<:= newSenderBalance
+    balances #-> from <<:= newSenderBalance
 
     Ur receiverBalance <- ycall balanceOf (ver to)
     Ur newReceiverBalance <- ywithrv_1 @(U256 -> U256 -> U256) (ver amount, receiverBalance)
       \amount' receiverBalance' -> receiverBalance' + amount'
-    balanceMap .-> to <<:= newReceiverBalance
+    balances #-> to <<:= newReceiverBalance
 
-    -- INCORRECT CODE, CANNOT PASS COMPILATION:
+    -- ⛔ INCORRECT CODE, CANNOT PASS COMPILATION:
 
     -- Ur senderBalance <- ycall balanceOf (ver from)
     -- Ur receiverBalance <- ycall balanceOf (ver to)
@@ -49,8 +53,8 @@ transfer = $lfn $ ylvm'pv
 
     -- -- WARNING: THIS IS WRONG
     -- -- Have you found the issue?
-    -- balanceMap .-> from <<:= newSenderBalance
-    -- balanceMap .-> to   <<:= newReceiverBalance
+    -- balances #-> from <<:= newSenderBalance
+    -- balances #-> to   <<:= newReceiverBalance
 
     -- always return true as a silly urban-legendary ERC20 convention
     yembed true
@@ -64,8 +68,12 @@ mint = $lfn $ ylvm'pv
     Ur newAmount <- ywithrv_1 @(U256 -> U256 -> U256)
       (balanceBefore, ver amount)
       (\x y -> x + y)
+
+    -- ⚠️ NOTE: swap the following code blocks will not compile, because there can be reentrance!
+
     -- update balance
-    balanceMap .-> to <<:= newAmount
+    balances #-> to <<:= newAmount
+
     -- call **untrusted** external contract onTokenMinted
     ycall (to @-> onTokenMinted) (ver to) (ver amount)
 

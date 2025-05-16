@@ -13,7 +13,7 @@ This module packages all the goodies prelude-worthy for programming "YulDSL" in 
 module Prelude.YulDSL
   ( -- * YulDSL/Haskell/LinearSMC
     module YulDSL.Haskell.LibLinearSMC
-  , module YulDSL.Haskell.Data.SHMap
+  , module YulDSL.Haskell.Data.SMap
     -- TODO: - Fixed inability to re-export the ``Data.Tuple.MkSolo`` constructor (:ghc-ticket:`25182`)
   , Solo (MkSolo)
   ) where
@@ -21,4 +21,4 @@ import Data.Tuple                  (Solo (MkSolo))
 --
 import YulDSL.Haskell.LibLinearSMC
 --
-import YulDSL.Haskell.Data.SHMap
+import YulDSL.Haskell.Data.SMap
