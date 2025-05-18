@@ -21,7 +21,7 @@ module YulDSL.Haskell.Effects.LinearSMC.Storage
 -- base
 import GHC.TypeLits                             (type (+), type (<=))
 -- linear-base
-import Prelude.Linear                           (type (~), ($), (.))
+import Prelude.Linear                           (($), (.))
 -- yul-dsl
 import YulDSL.Core
 -- linearly-versioned-monad
@@ -33,9 +33,9 @@ import YulDSL.Haskell.Effects.LinearSMC.YulPort
 
 class (KnownNat v, YulO3 a b r) => SReferenceable v r a b where
   sget'l :: forall. P'V v r a ⊸ P'V v r b
-  sput'l :: forall. VersionThread r ⊸ P'V v r a ⊸ P'V v r b ⊸ (VersionThread r, P'V (v + 1) r ())
+  sput'l :: forall. v <= v + 1 => VersionThread r ⊸ P'V v r a ⊸ P'V v r b ⊸ (VersionThread r, P'V (v + 1) r ())
 
-instance ( KnownNat v, v <= v + 1, YulO2 b r
+instance ( KnownNat v, YulO2 b r
          , ABIWordValue b
          ) => SReferenceable v r B32 b where
   sget'l s = encodeP'x YulSGet (ver'l s)
@@ -43,7 +43,7 @@ instance ( KnownNat v, v <= v + 1, YulO2 b r
     let !(x1, x2) = dup'l x
     in vtseq vt x1 (unsafeCoerceYulPort (encodeP'x YulSPut (merge'l (ver'l s, x2))))
 
-instance ( KnownNat v, v <= v + 1, YulO2 b r
+instance ( KnownNat v, YulO2 b r
          , SReferenceable v r B32 b
          ) => SReferenceable v r (REF b) b where
   sget'l s = sget'l (reduceType'l s)
@@ -56,23 +56,25 @@ instance ( KnownNat v, v <= v + 1, YulO2 b r
 sget :: forall a b ie r v vref_.
   ( YulO3 r a b
   , YulVarRef v r (P'x ie r) vref_
-  , ReferenciableYulVar v r (vref_ a)
-  , DereferenceYulVarRef (vref_ a) ~ P'x ie r a
-  , VersionableYulVarRef v r a (vref_ a)
   , SReferenceable v r a b
   ) =>
   vref_ a -> YLVM v v r (Ur (Rv v r b))
 sget avar = ytkvarv avar LVM.>>= ymkvar . sget'l
 
-sgetM :: forall a b ie r v vref_.
+-- sgetM :: forall a b ie r v vref_.
+--   ( YulO3 r a b
+--   , YulVarRef v r (P'x ie r) vref_
+--   , SReferenceable v r a b
+--   ) =>
+--   YLVM v v r (Ur (vref_ a)) -> YLVM v v r (Ur (Rv v r b))
+-- sgetM mavar = mavar LVM.>>= \(Ur avar) -> ytkvarv avar LVM.>>= ymkvar . sget'l
+
+sgetM :: forall a b r v.
   ( YulO3 r a b
-  , YulVarRef v r (P'x ie r) vref_
-  , ReferenciableYulVar v r (vref_ a)
-  , DereferenceYulVarRef (vref_ a) ~ P'x ie r a
-  , VersionableYulVarRef v r a (vref_ a)
+  -- , YulVarRef v r (P'x ie r) vref_
   , SReferenceable v r a b
   ) =>
-  YLVM v v r (Ur (vref_ a)) -> YLVM v v r (Ur (Rv v r b))
+  YLVM v v r (Ur (Rv v r a)) -> YLVM v v r (Ur (Rv v r b))
 sgetM mavar = mavar LVM.>>= \(Ur avar) -> ytkvarv avar LVM.>>= ymkvar . sget'l
 
 class (KnownNat v, YulO1 r) => SGettableNP v r np b where
@@ -84,9 +86,6 @@ instance (KnownNat v, YulO1 r) =>
 
 instance ( YulO3 r a b
          , YulVarRef v r (P'x ie r) vref_
-         , ReferenciableYulVar v r (vref_ a)
-         , DereferenceYulVarRef (vref_ a) ~ P'x ie r a
-         , VersionableYulVarRef v r a (vref_ a)
          , SReferenceable v r a b
          , SGettableNP v r (NP as) (Ur (NP bs))
          ) =>
@@ -111,13 +110,8 @@ sgetN tpl_a = let np_a = fromTupleNtoNP tpl_a
 
 sput, (<:=) ::
   ( KnownNat (v + 1), v <= v + 1, YulO1 r
-   -- ref_a
   , YulVarRef v r (P'x iea r) vref_a_
-  , VersionableYulVarRef v r a (vref_a_ a)
-    -- ref_b
   , YulVarRef v r (P'x ieb r) vref_b_
-  , VersionableYulVarRef v r b (vref_b_ b)
-    -- b
   , SReferenceable v r a b
   ) =>
   vref_a_ a ->
@@ -130,14 +124,12 @@ sput aVar bVar = LVM.do
   LVM.pure ()
 (<:=) = sput
 
+infix 0 <:=, <<:=, <<:=<<
+
 sputM, (<<:=) :: forall v a b r vref_a_ vref_b_ iea ieb.
   ( KnownNat (v + 1), v <= v + 1, YulO1 r
-    -- ref_a
   , YulVarRef v r (P'x iea r) vref_a_
-  , VersionableYulVarRef v r a (vref_a_ a)
-    -- ref_b
   , YulVarRef v r (P'x ieb r) vref_b_
-  , VersionableYulVarRef v r b (vref_b_ b)
     -- b
   , SReferenceable v r a b
   ) =>
@@ -154,12 +146,8 @@ sputM aVarM bVar = LVM.do
 
 sputMM, (<<:=<<) :: forall v a b r vref_a_ vref_b_ iea ieb.
   ( KnownNat (v + 1), v <= v + 1, YulO1 r
-    -- ref_a
   , YulVarRef v r (P'x iea r) vref_a_
-  , VersionableYulVarRef v r a (vref_a_ a)
-    -- ref_b
   , YulVarRef v r (P'x ieb r) vref_b_
-  , VersionableYulVarRef v r b (vref_b_ b)
     -- b
   , SReferenceable v r a b
   ) =>

@@ -246,34 +246,29 @@ instance (KnownNat v, YulO2 r a) => ReferenciableLVMVar v (Rv v r a) (YLVMCtx r)
 -- VersionableYulVar (ver)
 --
 
-class VersionableYulVarRef v r a vref | vref -> a r where
-  ver :: forall. vref -> Rv v r a
+class (KnownNat v, YulO1 r) => VersionableYulVarRef v r vref_ | vref_ -> r where
+  ver :: forall a. YulO1 a => vref_ a -> Rv v r a
 
-instance (KnownNat v, YulO2 r a) => VersionableYulVarRef v r a (Uv r a) where
+instance (KnownNat v, YulO1 r) => VersionableYulVarRef v r (Uv r) where
   ver (Uv uvref) = Rv (VerUvLVMVarRef uvref)
 
-instance (KnownNat v, YulO2 r a) => VersionableYulVarRef v r a (Rv v r a) where
+instance (KnownNat v, YulO1 r) => VersionableYulVarRef v r (Rv v r) where
   ver = id
-
-instance (KnownNat v, YulO2 r a) => VersionableYulVarRef v r a (UvYulVarRef r a) where
-  ver uvref = Rv (VerUvLVMVarRef uvref)
-
-instance VersionableYulVarRef v r a (RvYulVarRef v r a) where
-  ver = Rv
 
 --
 -- YulVarRef
 --
 
 -- | A unified interface to work with both 'Uv' and 'Rv'.
-class (KnownNat v, YulO1 r) => YulVarRef v r port_ vref_ | v port_ -> vref_, vref_ -> port_ where
+class VersionableYulVarRef v r vref_ =>
+      YulVarRef v r port_ vref_ | v port_ -> vref_, vref_ -> port_ where
   -- | Make a variable reference from a yul port.
   ymkvar :: forall a. YulO1 a => port_ a ⊸ YLVM v v r (Ur (vref_ a))
   -- | Take a yul port from a variable reference.
   ytkvar :: forall a. YulO1 a => vref_ a -> YLVM v v r (port_ a)
   -- | Take a version-restricted yul port from a variable reference.
   ytkvarv :: forall a.
-    (YulO1 a, VersionableYulVarRef v r a (vref_ a)) =>
+    (YulO1 a) =>
     vref_ a ->
     YLVM v v r (P'V v r a)
   ytkvarv var = ytkvar (ver var)

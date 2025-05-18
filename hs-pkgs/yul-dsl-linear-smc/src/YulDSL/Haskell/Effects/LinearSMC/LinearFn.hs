@@ -1,7 +1,6 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# LANGUAGE AllowAmbiguousTypes    #-}
 {-# LANGUAGE DefaultSignatures      #-}
-{-# LANGUAGE PatternSynonyms        #-}
 {-# LANGUAGE UndecidableInstances   #-}
 {-|
 
@@ -140,21 +139,21 @@ lfn = [e| lfn' ("$lfn_" ++ $fnLocId) |]
 -- = Binding Methods of Contracts
 ------------------------------------------------------------------------------------------------------------------------
 
-data BoundMethod ref_contract f xs b where
-  MkBoundMethod :: forall ref_contract f xs b.
+data BoundMethod vref_tgt f xs b where
+  MkBoundMethod :: forall vref_tgt f xs b.
     EquivalentNPOfFunction f xs b =>
     ( forall v r.
-      (KnownNat v, VersionableYulVarRef v r ADDR ref_contract) =>
+      (KnownNat v, VersionableYulVarRef v r vref_tgt) =>
       Proxy (SNat v, r) -> (Rv v r ADDR, Selector)
     ) ->
-    BoundMethod ref_contract f xs b
+    BoundMethod vref_tgt f xs b
 
-(@->), bindMethod :: forall ref_contract f xs b.
+(@->), bindMethod :: forall vref_tgt f xs b.
   ( EquivalentNPOfFunction f xs b
   ) =>
-  ref_contract ->
+  vref_tgt ADDR ->
   ExternalOmniFn f ->
-  BoundMethod ref_contract f xs b
+  BoundMethod vref_tgt f xs b
 bindMethod c (MkExternalOmniFn sel) = MkBoundMethod \(_ :: Proxy (SNat v, r)) -> (ver c, sel)
 (@->) = bindMethod
 
@@ -291,9 +290,9 @@ instance YCallableFunctionNil (OmniFn b) b va 1 r
 --
 
 instance ( KnownNat va, YulO2 (NP xs) b, EquivalentNPOfFunction f xs b
-         , VersionableYulVarRef va r ADDR ref_contract
+         , VersionableYulVarRef va r vref_tgt
          ) =>
-         EncodableFn (BoundMethod ref_contract f xs b) (VersionedInputOutput 1) va r f xs b where
+         EncodableFn (BoundMethod vref_tgt f xs b) (VersionedInputOutput 1) va r f xs b where
   encodeFnWith'l (MkBoundMethod getMethod) cont = LVM.do
     let !(contractVar, sel) = getMethod (Proxy @(SNat va, r))
     contract <- ytkvar contractVar
@@ -302,12 +301,12 @@ instance ( KnownNat va, YulO2 (NP xs) b, EquivalentNPOfFunction f xs b
     LVM.pure $ \xs -> encodeWith'l @(VersionedInputOutput 1)
                       (YulCall sel) cont (merge'l (be (unsafeCoerceYulPort contract, gasLimit, value), xs))
 
-instance YCallableFunctionNonNil (BoundMethod ref_contract f (x:xs) b) f x xs b va 1 r
+instance YCallableFunctionNonNil (BoundMethod vref_tgt f (x:xs) b) f x xs b va 1 r
 
 instance {-# OVERLAPPABLE #-}
          TypeError.Unsatisfiable (TypeError.Text "You are using ycall0 with a non-nullary function") =>
-         YCallableFunctionNil (BoundMethod ref_contract f xs b) f va vd r where
-instance YCallableFunctionNil (BoundMethod ref_contract b '[] b) b va 1 r where
+         YCallableFunctionNil (BoundMethod vref_tgt f xs b) f va vd r where
+instance YCallableFunctionNil (BoundMethod vref_tgt b '[] b) b va 1 r where
 
 --
 -- ycallN (FIXME)
