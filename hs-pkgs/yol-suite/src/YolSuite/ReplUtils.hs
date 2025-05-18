@@ -1,9 +1,8 @@
 module YolSuite.ReplUtils
   ( module YulDSL.CodeGens.GraphVizGen
-  , printCat
-  , printFn
+  , printCat, printFn
   , module YulDSL.CodeGens.YulGen
-  , previewFn
+  , previewFn, previewFnVerbose
   ) where
 -- text
 import Data.Text.Lazy              qualified as T
@@ -38,3 +37,11 @@ previewFn :: forall fn efc xs b.
   ) =>
   fn -> IO ()
 previewFn fn = withKnownNamedYulCat fn (previewYulCat . snd)
+
+-- | Preview a function in a display window.
+previewFnVerbose :: forall fn efc xs b.
+  ( KnownNamedYulCat fn efc (NP xs) b
+  , YulO2 (NP xs) b
+  ) =>
+  fn -> IO ()
+previewFnVerbose fn = withKnownNamedYulCat fn (previewYulCatVerbose . snd)
