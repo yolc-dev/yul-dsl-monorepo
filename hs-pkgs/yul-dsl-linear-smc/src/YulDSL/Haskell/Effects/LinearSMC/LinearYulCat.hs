@@ -1,5 +1,4 @@
-{-# LANGUAGE AllowAmbiguousTypes    #-}
-{-# LANGUAGE UndecidableInstances   #-}
+{-# LANGUAGE UndecidableInstances #-}
 module YulDSL.Haskell.Effects.LinearSMC.LinearYulCat
   ( -- $LinearEffectKind
     LinearEffectKind (PureInputPureOutput, PureInputVersionedOutput, VersionedInputOutput)
@@ -106,8 +105,10 @@ class EncodableYulPortDiagram eff ie oe | eff ie -> oe where
   encodeWith'l c f x = f (unsafeCoerceYulPort (encodeP'x (YulUnsafeCoerceEffect c) x))
 
 instance EncodableYulPortDiagram Pure PurePort PurePort
+instance EncodableYulPortDiagram Pure (VersionedPort va) (VersionedPort va)
 
 instance EncodableYulPortDiagram PureInputPureOutput PurePort PurePort
+instance EncodableYulPortDiagram PureInputPureOutput (VersionedPort va) (VersionedPort va)
 
 instance va + vd ~ vb => EncodableYulPortDiagram (PureInputVersionedOutput vd) (VersionedPort va) (VersionedPort vd)
 
