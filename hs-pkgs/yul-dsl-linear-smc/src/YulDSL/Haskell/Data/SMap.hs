@@ -1,10 +1,10 @@
 {-# LANGUAGE UndecidableInstances #-}
 module YulDSL.Haskell.Data.SMap
   ( SMap, makeSMap
-  , MagicHashMapReader ((#->))
+  , SMapMagicHashReader ((#->))
   ) where
 -- base
-import GHC.TypeLits                       (type (+), type (<=))
+import Data.Kind                          (Type)
 -- yul-dsl
 import YulDSL.Core
 --
@@ -12,60 +12,73 @@ import Control.LinearlyVersionedMonad.LVM qualified as LVM
 import YulDSL.Haskell.LibLinearSMC
 
 
-newtype HMapNP as b = MkHMapNP
-  (forall v r {a'} {as'}. ((a':as') ~ as, YulO3 a' b r) => P'V v r a' ⊸ P'V v r B32)
+type SMap path = SMap' (UncurryNP'Fst path) (UncurryNP'Snd path)
 
-type SMap path = HMapNP (UncurryNP'Fst path) (UncurryNP'Snd path)
+type SMap' :: [Type] -> Type -> Type
+newtype SMap' as b = MkSMap B32
+type role SMap' nominal nominal
 
-makeSMap :: forall path a as b.
-  ( EquivalentNPOfFunction path (a:as) b
-  , SMap path ~ HMapNP (a:as) b
+makeSMap :: forall path as b.
+  ( EquivalentNPOfFunction path as b
+  , SMap path ~ SMap' as b
   ) =>
   String -> SMap path
-makeSMap key = MkHMapNP \a ->
-  let !(a', u) = mkunit'l a
-      key' = emb'l (fromInteger (bytesnToInteger (stringKeccak256 key)) :: U256) u
-      bslot = extendType'l (keccak256'l (merge'l (key', a')))
-  in bslot
+makeSMap key = MkSMap (stringKeccak256 key)
 
-class MagicHashMapReader hmap vref_a result v r | hmap vref_a v r -> result where
-  (#->) :: forall.
-    (KnownNat v, v <= v + 1 , YulO1 r) =>
-    hmap -> vref_a -> YLVM v v r result
+class SMapMagicHashReader p q b v r | p -> b where
+  (#->) :: forall. (KnownNat v, YulO2 b r) => p -> q -> YLVM v v r (Ur (Rv v r (REF b)))
 
-instance ( YulO2 a b
-         , YulVarRef v r (P'x ie r) ref_a_
-         , VersionableYulVarRef v r a (ref_a_ a)
+instance ( YulO1 a
+         , YulVarRef v r (P'x ioe r) vref_a_
          ) =>
-         MagicHashMapReader
-         (YLVM v v r (Ur (HMapNP '[a] b)))
-         (ref_a_ a)
-         (Ur (Rv v r (REF b)))
-         v r where
-  mhmap #-> aVar = mhmap LVM.>>= \(Ur hmap) -> hmap #-> aVar
+         SMapMagicHashReader
+         (SMap' '[a] b)
+         (vref_a_ a)
+         b v r where
+  (MkSMap key) #-> aVar = LVM.do
+    a <- ytkvarv aVar
+    let !(a', u) = mkunit'l a
+    let key1 = keccak256'l (merge'l (emb'l key u, a'))
+    ymkvar (extendType'l key1)
 
-instance ( YulO2 a b
-         , YulVarRef v r (P'x ie r) ref_a_
-         , VersionableYulVarRef v r a (ref_a_ a)
-         ) =>
-         MagicHashMapReader
-         (HMapNP (a:a':as') b)
-         (ref_a_ a)
-         (Ur (HMapNP (a':as') b))
-         v r where
-  -- (MkHMapNP h) #-> aVar = ytkvarv aVar LVM.>>= \a -> LVM.pure $ Ur $ MkHMapNP \a' ->
-  --   let key = h @v @r a
-  --       bslot = extendType'l (keccak256'l (merge'l (key, a')))
-  --   in bslot
-    -- g (h (\key_a -> extendType'l (keccak256'l (merge'l (key_a, a')))) a)
+-- TODO, inductive implementation
 
-instance ( YulO2 a b
-         , YulVarRef v r (P'x ie r) ref_a_
-         , VersionableYulVarRef v r a (ref_a_ a)
+instance ( YulO2 a1 a2
+         , YulVarRef v r (P'x ioe r) vref_a1_
+         , YulVarRef v r (P'x ioe r) vref_a2_
          ) =>
-         MagicHashMapReader
-         (HMapNP '[a] b)
-         (ref_a_ a)
-         (Ur (Rv v r (REF b)))
-         v r where
-  (MkHMapNP h) #-> aVar = ytkvarv aVar LVM.>>= ymkvar . extendType'l . h
+         SMapMagicHashReader
+         (SMap' '[a1, a2] b)
+         (vref_a1_ a1, vref_a2_ a2)
+         b v r where
+  (MkSMap key) #-> (a1Var, a2Var) = LVM.do
+    a1 <- ytkvarv a1Var
+    let !(a1', u) = mkunit'l a1
+    let key1 = keccak256'l (merge'l (emb'l key u, a1'))
+
+    a2 <- ytkvarv a2Var
+    let key2 = keccak256'l (merge'l (key1, a2))
+
+    ymkvar (extendType'l key2)
+
+instance ( YulO3 a1 a2 a3
+         , YulVarRef v r (P'x ioe r) vref_a1_
+         , YulVarRef v r (P'x ioe r) vref_a2_
+         , YulVarRef v r (P'x ioe r) vref_a3_
+         ) =>
+         SMapMagicHashReader
+         (SMap' '[a1, a2, a3] b)
+         (vref_a1_ a1, vref_a2_ a2, vref_a3_ a3)
+         b v r where
+  (MkSMap key) #-> (a1Var, a2Var, a3Var) = LVM.do
+    a1 <- ytkvarv a1Var
+    let !(a1', u) = mkunit'l a1
+    let key1 = keccak256'l (merge'l (emb'l key u, a1'))
+
+    a2 <- ytkvarv a2Var
+    let key2 = keccak256'l (merge'l (key1, a2))
+
+    a3 <- ytkvarv a3Var
+    let key3 = keccak256'l (merge'l (key2, a3))
+
+    ymkvar (extendType'l key3)
