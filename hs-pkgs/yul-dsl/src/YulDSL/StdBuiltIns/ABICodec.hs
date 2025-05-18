@@ -102,12 +102,14 @@ abidec_from_calldata_builtin_f t = case t of
   INTx' @s @n _ _ -> MkAnyYulBuiltIn (MkYulBuiltIn @"__abidec_from_calldata_t_" @(U256, U256) @(INTx s n))
   BOOL'           -> MkAnyYulBuiltIn (MkYulBuiltIn @"__abidec_from_calldata_t_" @(U256, U256) @BOOL)
   ADDR'           -> MkAnyYulBuiltIn (MkYulBuiltIn @"__abidec_from_calldata_t_" @(U256, U256) @ADDR)
+  BYTESn' @n _    -> MkAnyYulBuiltIn (MkYulBuiltIn @"__abidec_from_calldata_t_" @(U256, U256) @(BYTESn n))
   _               -> error ("abidec_from_calldata_builtin_f unsupported: " <> show t)
 
 abidec_from_memory_builtin_f t = case t of
   INTx' @s @n _ _ -> MkAnyYulBuiltIn (MkYulBuiltIn @"__abidec_from_memory_t_" @(U256, U256) @(INTx s n))
   BOOL'           -> MkAnyYulBuiltIn (MkYulBuiltIn @"__abidec_from_memory_t_" @(U256, U256) @BOOL)
   ADDR'           -> MkAnyYulBuiltIn (MkYulBuiltIn @"__abidec_from_memory_t_" @(U256, U256) @ADDR)
+  BYTESn' @n _    -> MkAnyYulBuiltIn (MkYulBuiltIn @"__abidec_from_memory_t_" @(U256, U256) @(BYTESn n))
   _               -> error ("abidec_from_memory_builtin_f unsupported: " <> show t)
 
 abidec_main_body :: (ABICoreType -> AnyYulBuiltIn) -> [ABICoreType] -> [Var] -> [Code]
@@ -130,10 +132,11 @@ abidec_main_body builtin_f types vars =
 
 -- encoder
 
-abienc_from_stack_builtin_f t = case t of -- "__abienc_from_stack_c1_" ++ abiCoreTypeCompactName t
+abienc_from_stack_builtin_f t = case t of
   INTx' @s @n _ _ -> MkAnyYulBuiltIn (MkYulBuiltIn @"__abienc_from_stack_t_" @(U256, INTx s n) @())
   BOOL'           -> MkAnyYulBuiltIn (MkYulBuiltIn @"__abienc_from_stack_t_" @(U256, BOOL) @())
   ADDR'           -> MkAnyYulBuiltIn (MkYulBuiltIn @"__abienc_from_stack_t_" @(U256, ADDR) @())
+  BYTESn' @n _    -> MkAnyYulBuiltIn (MkYulBuiltIn @"__abienc_from_stack_t_" @(U256, BYTESn n) @())
   _               -> error ("abienc_from_stack_builtin_f unsupported: " <> show t)
 
 abienc_main_body :: (ABICoreType -> AnyYulBuiltIn) -> [ABICoreType] -> [Var] -> [Code]

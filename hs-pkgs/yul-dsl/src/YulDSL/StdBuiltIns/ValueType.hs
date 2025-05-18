@@ -16,7 +16,7 @@ import CodeGenUtils.Variable
 import YulDSL.Core.YulBuiltIn
 
 ------------------------------------------------------------------------------------------------------------------------
--- Value cleanup, validation functions
+-- Value cleanup
 ------------------------------------------------------------------------------------------------------------------------
 
 instance YulBuiltInPrefix "__cleanup_t_" U256 BOOL where
@@ -26,7 +26,8 @@ instance YulBuiltInPrefix "__cleanup_t_" U256 BOOL where
                 , [])
   yulB_eval b = error ("NoImpl: yulB_eval " ++ yulB_prefix b)
 
-instance ValidINTx s n => YulBuiltInPrefix "__cleanup_t_" U256 (INTx s n) where
+instance ValidINTx s n =>
+         YulBuiltInPrefix "__cleanup_t_" U256 (INTx s n) where
   yulB_fname b = yulB_prefix b <> abiTypeCanonName @(INTx s n)
   yulB_body _ =
     let nbits = intxNBits @(INTx s n)
@@ -51,7 +52,21 @@ instance YulBuiltInPrefix "__cleanup_t_" U256 ADDR where
     where cleanup_f = MkYulBuiltIn @"__cleanup_t_" @U256 @U160
   yulB_eval b = error ("NoImpl: yulB_eval " ++ yulB_prefix b)
 
-instance (ABITypeable a, YulBuiltInPrefix "__cleanup_t_" U256 a) => YulBuiltInPrefix "__validate_t_" a () where
+instance ValidINTn n =>
+         YulBuiltInPrefix "__cleanup_t_" U256 (BYTESn n) where
+  yulB_fname b = yulB_prefix b <> abiTypeCanonName @(BYTESn n)
+  yulB_body _ = ( [MkVar "value"], [MkVar "cleaned"]
+                , [ "cleaned := " <> T.pack (yulB_fname cleanup_f) <> "(value)" ]
+                , [MkAnyYulBuiltIn cleanup_f])
+    where cleanup_f = MkYulBuiltIn @"__cleanup_t_" @U256 @(INTx False n)
+  yulB_eval b = error ("NoImpl: yulB_eval " ++ yulB_prefix b)
+
+------------------------------------------------------------------------------------------------------------------------
+-- Validation functions
+------------------------------------------------------------------------------------------------------------------------
+
+instance (ABITypeable a, YulBuiltInPrefix "__cleanup_t_" U256 a) =>
+         YulBuiltInPrefix "__validate_t_" a () where
   yulB_fname b = yulB_prefix b ++ abiTypeCanonName @a
   yulB_body _ = ( [MkVar "value"], []
                 , [ "if neq(value, " <> T.pack (yulB_fname cleanup_f) <> "(value)) { revert(0, 0) }" ]
