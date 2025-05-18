@@ -193,7 +193,7 @@ yulCatToGraphViz' opts cat_ =
 yulCatToGraphViz :: YulCat eff a b -> GV.DotGraph GI.Node
 yulCatToGraphViz = yulCatToGraphViz' MkYulCatToGraphvizOptions
                   { yulCatGraphvizIgnoreCoercions  = True
-                  , yulCatGraphvizIgnoreEdgeLabels = False
+                  , yulCatGraphvizIgnoreEdgeLabels = True
                   }
 
 yulCatToGraphVizVerbose :: YulCat eff a b -> GV.DotGraph GI.Node
