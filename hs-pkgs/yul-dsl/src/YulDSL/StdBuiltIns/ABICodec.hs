@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -Wno-orphans -Wno-missing-signatures #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 {-# LANGUAGE OverloadedStrings #-}
 module YulDSL.StdBuiltIns.ABICodec where
 -- eth-abi
@@ -14,9 +14,33 @@ import YulDSL.Core.YulBuiltIn
 import YulDSL.StdBuiltIns.ValueType ()
 
 
-------------------------------------------------------------------------------------------------------------------------
+--
+-- __abidec_from_calldata_t_, abidec_from_calldata_builtin_f
+--
 
-instance ABITypeable b => YulBuiltInPrefix "__abidec_dispatcher_c_" (U256, U256) b where
+instance (ABITypeable b, YulBuiltInPrefix "__cleanup_t_" U256 b) =>
+         YulBuiltInPrefix "__abidec_from_calldata_t_" (U256, U256) b where
+  yulB_fname b = yulB_prefix b <> abiTypeCanonName @b
+  yulB_body _ = ( MkVar <$> ["offset", "end"], [ MkVar "value" ]
+                , [ "value := " <> T.pack (yulB_fname cleanup_f) <> "(calldataload(offset))" ]
+                , [ MkAnyYulBuiltIn cleanup_f ])
+    where cleanup_f = MkYulBuiltIn @"__cleanup_t_" @U256 @b
+  yulB_eval b = error ("NoImpl: yulB_eval " ++ yulB_prefix b)
+
+abidec_from_calldata_builtin_f :: forall btn. btn ~ "__abidec_from_calldata_t_" => ABICoreType -> AnyYulBuiltIn
+abidec_from_calldata_builtin_f t = case t of
+  INTx' @s @n _ _ -> MkAnyYulBuiltIn (MkYulBuiltIn @btn @(U256, U256) @(INTx s n))
+  BOOL'           -> MkAnyYulBuiltIn (MkYulBuiltIn @btn @(U256, U256) @BOOL)
+  ADDR'           -> MkAnyYulBuiltIn (MkYulBuiltIn @btn @(U256, U256) @ADDR)
+  BYTESn' @n _    -> MkAnyYulBuiltIn (MkYulBuiltIn @btn @(U256, U256) @(BYTESn n))
+  _               -> error ("abidec_from_calldata_builtin_f unsupported: " <> show t)
+
+--
+-- __abidec_dispatcher_c_ -> abidec_from_calldata_builtin_f
+--
+
+instance ABITypeable b =>
+         YulBuiltInPrefix "__abidec_dispatcher_c_" (U256, U256) b where
   yulB_fname b = yulB_prefix b <> abiTypeCompactName @b
   yulB_body _ =
     let types = abiTypeInfo @b
@@ -26,18 +50,33 @@ instance ABITypeable b => YulBuiltInPrefix "__abidec_dispatcher_c_" (U256, U256)
          fmap abidec_from_calldata_builtin_f types)
   yulB_eval b = error ("NoImpl: yulB_eval " ++ yulB_prefix b)
 
-instance ( ABITypeable b, YulBuiltInPrefix "__cleanup_t_" U256 b
-         ) => YulBuiltInPrefix "__abidec_from_calldata_t_" (U256, U256) b where
+--
+-- __abidec_from_memory_t_, abidec_from_memory_builtin_f
+--
+
+instance (ABITypeable b, YulBuiltInPrefix "__cleanup_t_" U256 b) =>
+         YulBuiltInPrefix "__abidec_from_memory_t_" (U256, U256) b where
   yulB_fname b = yulB_prefix b <> abiTypeCanonName @b
   yulB_body _ = ( MkVar <$> ["offset", "end"], [ MkVar "value" ]
-                , [ "value := " <> T.pack (yulB_fname cleanup_f) <> "(calldataload(offset))" ]
+                , [ "value := " <> T.pack (yulB_fname cleanup_f) <> "(mload(offset))" ]
                 , [ MkAnyYulBuiltIn cleanup_f ])
     where cleanup_f = MkYulBuiltIn @"__cleanup_t_" @U256 @b
   yulB_eval b = error ("NoImpl: yulB_eval " ++ yulB_prefix b)
 
-------------------------------------------------------------------------------------------------------------------------
+abidec_from_memory_builtin_f :: forall btn. btn ~ "__abidec_from_memory_t_" => ABICoreType -> AnyYulBuiltIn
+abidec_from_memory_builtin_f t = case t of
+  INTx' @s @n _ _ -> MkAnyYulBuiltIn (MkYulBuiltIn @btn @(U256, U256) @(INTx s n))
+  BOOL'           -> MkAnyYulBuiltIn (MkYulBuiltIn @btn @(U256, U256) @BOOL)
+  ADDR'           -> MkAnyYulBuiltIn (MkYulBuiltIn @btn @(U256, U256) @ADDR)
+  BYTESn' @n _    -> MkAnyYulBuiltIn (MkYulBuiltIn @btn @(U256, U256) @(BYTESn n))
+  _               -> error ("abidec_from_memory_builtin_f unsupported: " <> show t)
 
-instance ABITypeable b => YulBuiltInPrefix "__abidec_from_memory_c_" (U256, U256) b where
+--
+-- __abidec_from_memory_c_ -> abidec_from_memory_builtin_f
+--
+
+instance ABITypeable b =>
+         YulBuiltInPrefix "__abidec_from_memory_c_" (U256, U256) b where
   yulB_fname b = yulB_prefix b <> abiTypeCompactName @b
   yulB_body _ =
     let types = abiTypeInfo @b
@@ -47,18 +86,33 @@ instance ABITypeable b => YulBuiltInPrefix "__abidec_from_memory_c_" (U256, U256
          fmap abidec_from_memory_builtin_f types)
   yulB_eval b = error ("NoImpl: yulB_eval " ++ yulB_prefix b)
 
-instance ( ABITypeable b, YulBuiltInPrefix "__cleanup_t_" U256 b
-         ) => YulBuiltInPrefix "__abidec_from_memory_t_" (U256, U256) b where
-  yulB_fname b = yulB_prefix b <> abiTypeCanonName @b
-  yulB_body _ = ( MkVar <$> ["offset", "end"], [ MkVar "value" ]
-                , [ "value := " <> T.pack (yulB_fname cleanup_f) <> "(mload(offset))" ]
+--
+-- __abienc_from_stack_t_, abienc_from_stack_builtin_f
+--
+
+instance (ABITypeable a, YulBuiltInPrefix "__cleanup_t_" U256 a) =>
+         YulBuiltInPrefix "__abienc_from_stack_t_" (U256, a) () where
+  yulB_fname b = yulB_prefix b <> abiTypeCanonName @a
+  yulB_body _ = ( MkVar <$> ["pos", "value"], []
+                , [ "mstore(pos, " <> T.pack (yulB_fname cleanup_f) <> "(value))" ]
                 , [ MkAnyYulBuiltIn cleanup_f ])
-    where cleanup_f = MkYulBuiltIn @"__cleanup_t_" @U256 @b
+    where cleanup_f = MkYulBuiltIn @"__cleanup_t_" @U256 @a
   yulB_eval b = error ("NoImpl: yulB_eval " ++ yulB_prefix b)
 
-------------------------------------------------------------------------------------------------------------------------
+abienc_from_stack_builtin_f :: forall btn. btn ~ "__abienc_from_stack_t_" => ABICoreType -> AnyYulBuiltIn
+abienc_from_stack_builtin_f t = case t of
+  INTx' @s @n _ _ -> MkAnyYulBuiltIn (MkYulBuiltIn @btn @(U256, INTx s n) @())
+  BOOL'           -> MkAnyYulBuiltIn (MkYulBuiltIn @btn @(U256, BOOL) @())
+  ADDR'           -> MkAnyYulBuiltIn (MkYulBuiltIn @btn @(U256, ADDR) @())
+  BYTESn' @n _    -> MkAnyYulBuiltIn (MkYulBuiltIn @btn @(U256, BYTESn n) @())
+  _               -> error ("abienc_from_stack_builtin_f unsupported: " <> show t)
 
-instance ABITypeable a => YulBuiltInPrefix "__abienc_from_stack_c_" (U256, a) U256 where
+--
+-- __abienc_from_stack_c_ -> abienc_from_stack_builtin_f
+--
+
+instance ABITypeable a =>
+         YulBuiltInPrefix "__abienc_from_stack_c_" (U256, a) U256 where
   yulB_fname b = yulB_prefix b <> abiTypeCompactName @a
   yulB_body _ =
     let types = abiTypeInfo @a
@@ -68,16 +122,12 @@ instance ABITypeable a => YulBuiltInPrefix "__abienc_from_stack_c_" (U256, a) U2
        , fmap abienc_from_stack_builtin_f types)
   yulB_eval b = error ("NoImpl: yulB_eval " ++ yulB_prefix b)
 
-instance ( ABITypeable a, YulBuiltInPrefix "__cleanup_t_" U256 a
-         ) => YulBuiltInPrefix "__abienc_from_stack_t_" (U256, a) () where
-  yulB_fname b = yulB_prefix b <> abiTypeCanonName @a
-  yulB_body _ = ( MkVar <$> ["pos", "value"], []
-                , [ "mstore(pos, " <> T.pack (yulB_fname cleanup_f) <> "(value))" ]
-                , [ MkAnyYulBuiltIn cleanup_f ])
-    where cleanup_f = MkYulBuiltIn @"__cleanup_t_" @U256 @a
-  yulB_eval b = error ("NoImpl: yulB_eval " ++ yulB_prefix b)
+--
+-- __keccak_c_ -> __abienc_from_stack_c_
+--
 
-instance ABITypeable a => YulBuiltInPrefix "__keccak_c_" a B32 where
+instance ABITypeable a =>
+         YulBuiltInPrefix "__keccak_c_" a B32 where
   yulB_fname b = yulB_prefix b <> abiTypeCompactName @a
   yulB_body _ =
     let inVars = gen_vars (length (abiTypeInfo @a))
@@ -90,27 +140,9 @@ instance ABITypeable a => YulBuiltInPrefix "__keccak_c_" a B32 where
        , [ MkAnyYulBuiltIn abienc_builtin ])
   yulB_eval b = error ("TODO: yulB_eval " ++ yulB_prefix b)
 
-------------------------------------------------------------------------------------------------------------------------
-
 --
 -- internal functions
 --
-
--- decoder
-
-abidec_from_calldata_builtin_f t = case t of
-  INTx' @s @n _ _ -> MkAnyYulBuiltIn (MkYulBuiltIn @"__abidec_from_calldata_t_" @(U256, U256) @(INTx s n))
-  BOOL'           -> MkAnyYulBuiltIn (MkYulBuiltIn @"__abidec_from_calldata_t_" @(U256, U256) @BOOL)
-  ADDR'           -> MkAnyYulBuiltIn (MkYulBuiltIn @"__abidec_from_calldata_t_" @(U256, U256) @ADDR)
-  BYTESn' @n _    -> MkAnyYulBuiltIn (MkYulBuiltIn @"__abidec_from_calldata_t_" @(U256, U256) @(BYTESn n))
-  _               -> error ("abidec_from_calldata_builtin_f unsupported: " <> show t)
-
-abidec_from_memory_builtin_f t = case t of
-  INTx' @s @n _ _ -> MkAnyYulBuiltIn (MkYulBuiltIn @"__abidec_from_memory_t_" @(U256, U256) @(INTx s n))
-  BOOL'           -> MkAnyYulBuiltIn (MkYulBuiltIn @"__abidec_from_memory_t_" @(U256, U256) @BOOL)
-  ADDR'           -> MkAnyYulBuiltIn (MkYulBuiltIn @"__abidec_from_memory_t_" @(U256, U256) @ADDR)
-  BYTESn' @n _    -> MkAnyYulBuiltIn (MkYulBuiltIn @"__abidec_from_memory_t_" @(U256, U256) @(BYTESn n))
-  _               -> error ("abidec_from_memory_builtin_f unsupported: " <> show t)
 
 abidec_main_body :: (ABICoreType -> AnyYulBuiltIn) -> [ABICoreType] -> [Var] -> [Code]
 abidec_main_body builtin_f types vars =
@@ -129,15 +161,6 @@ abidec_main_body builtin_f types vars =
       ++ go ns (slot + 1)
     go [] _ = []
     dataSize = length types * 32
-
--- encoder
-
-abienc_from_stack_builtin_f t = case t of
-  INTx' @s @n _ _ -> MkAnyYulBuiltIn (MkYulBuiltIn @"__abienc_from_stack_t_" @(U256, INTx s n) @())
-  BOOL'           -> MkAnyYulBuiltIn (MkYulBuiltIn @"__abienc_from_stack_t_" @(U256, BOOL) @())
-  ADDR'           -> MkAnyYulBuiltIn (MkYulBuiltIn @"__abienc_from_stack_t_" @(U256, ADDR) @())
-  BYTESn' @n _    -> MkAnyYulBuiltIn (MkYulBuiltIn @"__abienc_from_stack_t_" @(U256, BYTESn n) @())
-  _               -> error ("abienc_from_stack_builtin_f unsupported: " <> show t)
 
 abienc_main_body :: (ABICoreType -> AnyYulBuiltIn) -> [ABICoreType] -> [Var] -> [Code]
 abienc_main_body builtin_f types vars =
