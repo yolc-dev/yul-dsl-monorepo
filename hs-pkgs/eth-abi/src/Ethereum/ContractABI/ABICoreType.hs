@@ -64,22 +64,30 @@ data ABICoreType where
   -- ^ Ethereum addresses
   ADDR'   :: ABICoreType
   -- ^ Fixed-size byte arrays
-  BYTESn' :: forall n. (ValidINTn n) => SNat n -> ABICoreType
-  -- ^ Arrays of values of the same ABI core type
+  BYTESn' :: forall n. ValidINTn n => SNat n -> ABICoreType
+  -- ^ Dynamic-size byte array.
+  BYTES'  :: ABICoreType
+  -- ^ Fixed-size array of values of the same ABI core type.
+  ARRAYn' :: forall n. KnownNat n => SNat n -> ABICoreType -> ABICoreType
+  -- ^ Dynamic-size array of values of the same ABI core type.
   ARRAY'  :: ABICoreType -> ABICoreType
 
 instance Eq ABICoreType where
-  BOOL'       == BOOL'         = True
-  (INTx' s n) == (INTx' s' n') = fromSBool s == fromSBool s' && fromSNat n == fromSNat n'
-  ADDR'       == ADDR'         = True
-  (BYTESn' n) == (BYTESn' n')  = fromSNat n == fromSNat n'
-  (ARRAY' a)  == (ARRAY' b)    = a == b
+  BOOL'       == BOOL'             = True
+  (INTx' s n) == (INTx' s' n')     = fromSBool s == fromSBool s' && fromSNat n == fromSNat n'
+  ADDR'       == ADDR'             = True
+  (BYTESn' n) == (BYTESn' n')      = fromSNat n == fromSNat n'
+  BYTES'      == BYTES'            = True
+  (ARRAYn' n a) == (ARRAYn' n' a') = fromSNat n == fromSNat n' && a == a'
+  (ARRAY' a)  == (ARRAY' a')       = a == a'
   -- not using _ == _ in order to let GHC do exhaustive checks on cases above
-  BOOL'       == _             = False
-  (INTx' _ _) == _             = False
-  ADDR'       == _             = False
-  (BYTESn' _) == _             = False
-  (ARRAY' _)  == _             = False
+  BOOL'       == _                 = False
+  (INTx' _ _) == _                 = False
+  ADDR'       == _                 = False
+  (BYTESn' _) == _                 = False
+  BYTES' == _                      = False
+  (ARRAYn' _ _) == _               = False
+  (ARRAY' _)  == _                 = False
 
 -- | A constraint that restricts what Nat values are valid for 'INTx' and 'BYTESn'.
 --   Note: It is valid from 1 to 32.
@@ -111,19 +119,23 @@ withSomeValidINTx sval nval f =
 
 -- | Canonical names for the core types used for computing the function selectors.
 abiCoreTypeCanonName :: ABICoreType -> String
-abiCoreTypeCanonName BOOL'       = "bool"
-abiCoreTypeCanonName (INTx' s n) = (if fromSBool s then "int" else "uint") <> show (natVal n * 8)
-abiCoreTypeCanonName ADDR'       = "address"
-abiCoreTypeCanonName (BYTESn' n) = "bytes" ++ show (natVal n)
-abiCoreTypeCanonName (ARRAY' a)  = abiCoreTypeCanonName a ++ "[]"
+abiCoreTypeCanonName BOOL'         = "bool"
+abiCoreTypeCanonName (INTx' s n)   = (if fromSBool s then "int" else "uint") <> show (natVal n * 8)
+abiCoreTypeCanonName ADDR'         = "address"
+abiCoreTypeCanonName (BYTESn' n)   = "bytes" ++ show (natVal n)
+abiCoreTypeCanonName BYTES'        = "bytes"
+abiCoreTypeCanonName (ARRAYn' n a) = abiCoreTypeCanonName a ++ "[" ++ show (natVal n) ++ "]"
+abiCoreTypeCanonName (ARRAY' a)    = abiCoreTypeCanonName a ++ "[]"
 
 -- | Compact but unambiguous names for the core types..
 abiCoreTypeCompactName :: ABICoreType -> String
-abiCoreTypeCompactName BOOL'       = "b"
-abiCoreTypeCompactName (INTx' s n) = (if fromSBool s then "i" else "u") <> show (natVal n)
-abiCoreTypeCompactName ADDR'       = "a"
-abiCoreTypeCompactName (BYTESn' n) = "B" ++ show (natVal n)
-abiCoreTypeCompactName (ARRAY' a)  = "[" ++ abiCoreTypeCompactName a ++ "]"
+abiCoreTypeCompactName BOOL'         = "b"
+abiCoreTypeCompactName (INTx' s n)   = (if fromSBool s then "i" else "u") <> show (natVal n)
+abiCoreTypeCompactName ADDR'         = "a"
+abiCoreTypeCompactName (BYTESn' n)   = "B" ++ show (natVal n)
+abiCoreTypeCompactName BYTES'        = "Bs"
+abiCoreTypeCompactName (ARRAYn' n a) = abiCoreTypeCompactName a ++ "[" ++ show (natVal n) ++ "]"
+abiCoreTypeCompactName (ARRAY' a)    = "[" ++ abiCoreTypeCompactName a ++ "]"
 
 -- | Decode result from 'abiCoreTypeCompactName'.
 decodeAbiCoreTypeCompactName :: String -> [ABICoreType]
