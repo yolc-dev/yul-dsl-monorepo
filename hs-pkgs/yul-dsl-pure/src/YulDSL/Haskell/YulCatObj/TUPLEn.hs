@@ -25,8 +25,8 @@ import YulDSL.Core
 import Control.PatternMatchable
 
 
--- | Linear arrow version of the getSolo.
-getSolo :: Solo a %1 -> a
+-- | Arrow-polymorphic version of the getSolo.
+getSolo :: forall a p. Solo a %p -> a
 getSolo (MkSolo a) = a
 
 -- Tuple1 is Solo and special.
