@@ -27,47 +27,50 @@ TODO
   - [x] NP (N-ary Product, type-level recursive-friendly alternative to tuple type)
   - [x] BOOL
   - [x] INTx s n
-  - [x] BYTESn
   - [x] ADDR
-  - [ ] 🟠 ARRAY a
+  - [x] BYTESn
   - [ ] 🟠 BYTES
+  - [ ] 🟠 ARRAY a
+  - [ ] 🟠 ARRAYn n a
   - [ ] 🟠 STRING
 - ExtendedType
   - [x] TUPLEn
-  - [ ] 🟠 REF, storage or memory raw reference with `constRef, keyRef`.
-    - SREF for strarage.
-    - Recursive `REF a b` type.
-    - MREF family for memory: IMREF (immutable), LMREF (locked), and MMREF (mutable).
-  - [ ] 🟢 SELECTOR
+  - [x] REF, storage or memory raw reference with `constRef, keyRef`.
 - ABICodec
   - [ ] 🟢 Compatibility with the solidity abi-spec
 
 ### yul-dsl
 
+- YulEffect
+  - purity classification: `IsEffectNotPure, MayEffectWorld`.
+
 - YulCat
-  - [x] Type conversions for `ABITypeDerivedOf, ABITypeCoercible, NP`
-  - [x] SMC
-  - [x] Closed cartesian.
-  - [x] Co-cartesian related
-    - [x] `YulAbsurd`, absurd value for building visualization code.
+  - [x] Type conversions: reduce, extend, coerce, unsafeCoerceEffect.
+    - [ ] ⚠️ Some extend are unsafe; make B32 -> REF32 cast unsafe.
+  - [x] SMC: ×, σ.
+  - [x] Cartesian: ▵, π1, π2, δ, ε.
+  - [x] Closed cartesian: YulApply, YulCurry.
+z  - [x] Co-cartesian related
     - [x] `YulEmb`, embed values.
+    - [x] `YulDyn`, absurd value for building visualization code.
   - Control flows
     - [x] `YulMapHask`, map haskell function to exponential objects.
     - [x] `YulSwitch`, switch statement.
-    - [x] `YulJmpB`, code jump for built-in yul functions.
     - [x] `YulJmpU`, code jump for user-defined yul functions.
-    - [ ] 🟠 `YulArrayLen, YulMapArray`, array length and tight-loop primitives.
-  - Side Effects
+    - [x] `YulJmpB`, code jump for built-in yul functions.
+    - [ ] 🟠 `YulLen, YulFold`, array length and tight-loop primitives.
     - [x] `YulSGet`, `YulSPut` for raw storage operations.
       - [ ] 🟢 Support storage offset.
     - [x] `YulCall`, external function calls.
-      - [ ] Call spec: Selector, Static, Delegated, Gas.
-      - [ ] 🟢 external function specification: `declareExternalFn`.
-  - Yul Object
-    - [x] Function export modifiers resembling solidity: `pureFn, staticFn, omniFn`.
-    - [x] mkYulObject
-  - Type Safety
-    - [x] Effect purity classification: `IsEffectNotPure, MayEffectWorld`.
+      - Call spec: Selector, Static, Delegated, Gas.
+      - [x] message calls (OmniFn)
+      - [ ] 🟢 static calls
+      - [ ] 🟢 delegate calls
+
+- YulObject
+  - [x] Function export modifiers resembling solidity: `pureFn, staticFn, omniFn`.
+  - [x] mkYulObject
+    - [ ] 🟢 Constructor support
 
 - Standard Built-in Yul Functions:
   - [x] Built-in extension infrastructure
@@ -81,8 +84,8 @@ TODO
   - Safe integer arithmetic
     - [x] Safe number operation wrappers for checked numbers and maybe numbers.
     - [x] add, mull, sub, abs
-    - [ ] 🟢 sig, abs
     - [ ] 🟢 divMod, quotRem
+    - [ ] 🟢 sig, abs
     - [ ] 🟢 (complete testsuite)
   - Safe value casting
     - [ ] 🟢 Casting integers
@@ -98,10 +101,11 @@ TODO
     - [ ] 🟢 support dispatcher decoding tuples
     - [ ] 🟢 complete testsuite
   - Runtime
-    - [x] `__caller`, equivalent of `msg.sender`.
     - [x] `__const_revert0_c_`, equivalent of `revert()`.
     - [ ] 🟢 `revertWithMessage`
     - [ ] 🟢 `revertWithError`
+    - [x] `__caller`, equivalent of `msg.sender`.
+    - [ ] `__msgvalue`, equivalent of `msg.value`.
     - [ ] 🟢 (complete testsuite)
 
 - CodeGen/YulGen
@@ -114,6 +118,8 @@ TODO
 
 - Eval
   - [x] `evalFn` to evaluate `Fn` (single YulCat value styled as a function) value.
+  - [ ] 🟢 Support user-defined calls
+  - [ ] 🟢 Support external calls
   - [ ] 🟢 handling revert
   - [ ] 🟢 testsuite
 
@@ -128,10 +134,14 @@ TODO
   - [x] Num class with checked integer operations.
   - [x] ⭐ Maybe Num with optional integer operations and Pattern matching of support.
   - [ ] Type-safe `upCast`, and `safeCast` for down-casting to `Maybe` values.
-- Additional yul objects
+- ADT Support:
+  - [ ] makeYulCatObj
+  - [ ] 🟠 makeYulCatObjWithLenses
+  - [ ] 🟠 makeYulCatObjWithConfig
+- Additional Built-in Yul Objects
   - [x] BOOL. Instances: 'IfThenElse', 'PatternMatchable', 'InjectivePattern'.
   - [x] Maybe a
-    - [ ] ⚠️ Expand beyond `Maybe (INTx s n)`
+    - [ ] ⚠️ Expand beyond `Maybe (INTx s n)` using makeYulCatObj
   - [x] NP
   - [x] TUPLEn
 - Pure Effect:
@@ -159,19 +169,26 @@ TODO
   - [x] Call functions in a `YLVM`: `ycall`, `ycall0`.
   - [x] Yul variables: `Uv, Rv, ver`.
   - [x] Yul variables <-> yul ports: `ymkvar{NP}, ytkvar{NP}, ytkvarv, ytakeuvN, ytkrvN`;
-  - [x] `yembed`, `yreturn`.
+  - [x] `yembed` embeds a constant value.
+  - [x] `yreturn` returns a YLVM var.
   - [x] Process _yul variables_ in pure yul functions: `ywith{ur,rv}N{_1}`.
   - [ ] 🟠 `(rebound syntax) if, ywhen, yunless` to work with BOOL _yul variable_.
 - Working with storage:
-  - [x] Extensible Storage type: `SReferenceable(sget'l, sput'l)`.
+  - [x] Extensible Storage type: `Referenceable(sget'l, sput'l)`.
   - [x] 🟢 Storage primitives:
     - `sget{NP,N}`
     - `sput (<:=), sputM (<<:=), sputMM (<<:=<<)`.
-  - [x] 🟠 Storage functions working with `Referenceable` types.
-- Storage Hash Map.
-  - [ ] `shmapRef'l, shmapGet'l, shmapPut'l`.
-  - [ ] `(.->), shmapRef`
-  - [ ] `shmapGet`
+  - [x] Storage functions working with `Referenceable` types.
+  - [ ] SREF for storage.
+  - [ ] 🟢 reduce to StorageMagicHashWriter `(<:=)`.
+- Working with memory using MREF:
+  - [ ] MREF family for memory
+    - IMREF: immutable,
+    - LMREF: locked,
+    - and MMREF (mutable).
+- Storage map support `SMap`:
+  - [x] `SMapMagicHashReader (#->)`
+  - [ ] 🟢 make an inductive re-write.
 
 **internal: lvm (linearly-versioned-monad)**
 

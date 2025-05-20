@@ -24,7 +24,8 @@ allowances = makeSMap "Yolc.Demo.ERC20.Storage.Allowances"
 
 -- | ERC20 allowance function.
 allowance :: StaticFn (ADDR -> ADDR -> U256)
-allowance = $lfn $ ylvm'pv \owner spender -> sgetM $ allowances #-> (owner, spender)
+allowance = $lfn $ ylvm'pv
+  \owner spender -> sgetM $ allowances #-> (owner, spender)
 
 -- | ERC20 transfer function.
 transfer :: OmniFn (ADDR -> U256 -> BOOL)
@@ -32,7 +33,7 @@ transfer = $lfn $ ylvm'pv
   \to amount -> LVM.do
     Ur from <- ycaller
 
-    -- CORRECT CODE:
+    -- ✅ CORRECT CODE:
 
     Ur senderBalance <- ycall balanceOf (ver from)
     Ur newSenderBalance <- ywithrv_1 @(U256 -> U256 -> U256) (ver amount, senderBalance)
