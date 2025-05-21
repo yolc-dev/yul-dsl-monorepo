@@ -56,27 +56,29 @@ class KnownNat v =>  LinearlyVersionRestrictable v ctx a where
 -- Version-unrestricted LVM Var (Uv)
 --
 
-data UvLVMVar ctx a where
-  UvLVMVar :: forall ctx a.
-    ( ContextualDupable ctx a
-    , ContextualSeqable ctx a a
-    , ContextualConsumable ctx a
+data UvLVMVar ctx m a where
+  UvLVMVar :: forall ctx m a.
+    ( ContextualDupable ctx m a
+    , ContextualSeqable ctx m a m a
+    , ContextualConsumable ctx m a
     ) =>
-    (forall v_. KnownNat v_ => LVM.LVM ctx v_ v_ a) ⊸ UvLVMVar ctx a
+    (forall v_. KnownNat v_ => LVM.LVM ctx v_ v_ a) ⊸ UvLVMVar ctx m a
 
-data AnyUvLVMVar ctx where MkAnyUvLVMVar :: forall ctx a. UvLVMVar ctx a ⊸ AnyUvLVMVar ctx
+data AnyUvLVMVar ctx where MkAnyUvLVMVar :: forall ctx m a. UvLVMVar ctx m a ⊸ AnyUvLVMVar ctx
 
-mkUvLVMVar :: forall ctx a.
-  ( ContextualDupable ctx a
-  , ContextualSeqable ctx a a
-  , ContextualConsumable ctx a
+mkUvLVMVar :: forall ctx a m.
+  ( ContextualDupable ctx m (m a)
+  , ContextualSeqable ctx m (m a) m (m a)
+  , ContextualConsumable ctx m (m a)
   ) =>
-  a ⊸ UvLVMVar ctx a
+  m a ⊸ UvLVMVar ctx m (m a)
 mkUvLVMVar a = UvLVMVar (LVM.MkLVM (Dict, , a))
 
-copyUvLVMVar :: forall a ctx v. KnownNat v => UvLVMVar ctx a ⊸ LVM.LVM ctx v v (UvLVMVar ctx a, a)
+copyUvLVMVar :: forall a ctx m v.
+  KnownNat v =>
+  UvLVMVar ctx m (m a) ⊸ LVM.LVM ctx v v (UvLVMVar ctx m (m a), m a)
 copyUvLVMVar (UvLVMVar var) = LVM.do
-  a <- LVM.unsafeCoerceLVM var
+  a <- LVM.unsafeCoerceLVM var :: LVM.LVM ctx v v (m a)
   (a', a'') <- pass1 a LVM.pure
   LVM.pure (mkUvLVMVar a', a'')
 
@@ -84,27 +86,30 @@ copyUvLVMVar (UvLVMVar var) = LVM.do
 -- Linearly version-restricted LVM Variable (Rv)
 --
 
-data RvLVMVar ctx v a where
-  RvLVMVar :: forall ctx v a.
+data RvLVMVar ctx m v a where
+  RvLVMVar :: forall ctx m v a.
     ( KnownNat v
-    , ContextualDupable ctx a
-    , ContextualSeqable ctx a a
+    , ContextualDupable ctx m a
+    , ContextualSeqable ctx m a m a
     , LinearlyVersionRestrictable v ctx a
     ) =>
-    LVM.LVM ctx v v a ⊸ RvLVMVar ctx v a
+    LVM.LVM ctx v v a ⊸ RvLVMVar ctx m v a
 
-data AnyRvLVMVar ctx where MkAnyRvLVMVar :: forall ctx v_ a. RvLVMVar ctx v_ a ⊸ AnyRvLVMVar ctx
+data AnyRvLVMVar ctx where
+  MkAnyRvLVMVar :: forall ctx m v_ a. RvLVMVar ctx m v_ a ⊸ AnyRvLVMVar ctx
 
-mkRvLVMVar :: forall ctx v a.
+mkRvLVMVar :: forall ctx m v a.
   ( KnownNat v
-  , ContextualDupable ctx a
-  , ContextualSeqable ctx a a
-  , LinearlyVersionRestrictable v ctx a
+  , ContextualDupable ctx m (m a)
+  , ContextualSeqable ctx m (m a) m (m a)
+  , LinearlyVersionRestrictable v ctx (m a)
   ) =>
-  a ⊸ RvLVMVar ctx v a
-mkRvLVMVar a = RvLVMVar (LVM.MkLVM (Dict, , a) :: LVM.LVM ctx v v a)
+  m a ⊸ RvLVMVar ctx m v (m a)
+mkRvLVMVar a = RvLVMVar (LVM.MkLVM (Dict, , a) :: LVM.LVM ctx v v (m a))
 
-copyRvLVMVar :: forall a ctx v. KnownNat v => RvLVMVar ctx v a ⊸ LVM.LVM ctx v v (RvLVMVar ctx v a, a)
+copyRvLVMVar :: forall a ctx m v.
+  KnownNat v =>
+  RvLVMVar ctx m v (m a) ⊸ LVM.LVM ctx v v (RvLVMVar ctx m v (m a), m a)
 copyRvLVMVar (RvLVMVar var) = LVM.do
   a <- var
   (a', a'') <- pass1 a LVM.pure
@@ -127,14 +132,14 @@ initLVMVarRegistry :: LVMVarRegistry ctx
 initLVMVarRegistry = MkLVMVarRegistry [] []
 
 -- | Consumes a 'LVMVarRegistry'.
-consumeLVMVarRegistry :: forall ctx v. KnownNat v => LVMVarRegistry ctx ⊸ LVM.LVM ctx v v ()
+consumeLVMVarRegistry :: forall ctx v. KnownNat v => LVMVarRegistry ctx ⊸ LVM.LVM ctx v v (L.Ur ())
 consumeLVMVarRegistry (MkLVMVarRegistry uvs vrs) = go1 uvs LVM.>> go2 vrs
   where
-    go1 :: [AnyUvLVMVar ctx] ⊸  LVM.LVM ctx v v ()
-    go1 ([])                                = LVM.pure ()
+    go1 :: [AnyUvLVMVar ctx] ⊸  LVM.LVM ctx v v (L.Ur ())
+    go1 ([])                                = LVM.pure (L.Ur ())
     go1 (MkAnyUvLVMVar (UvLVMVar var) : xs) = LVM.unsafeCoerceLVM (var LVM.>>= eject) LVM.>> go1 xs
-    go2 :: [AnyRvLVMVar ctx] ⊸  LVM.LVM ctx v v ()
-    go2 ([])                                = LVM.pure ()
+    go2 :: [AnyRvLVMVar ctx] ⊸  LVM.LVM ctx v v (L.Ur ())
+    go2 ([])                                = LVM.pure (L.Ur ())
     go2 (MkAnyRvLVMVar (RvLVMVar var) : xs) = LVM.veryUnsafeCoerceLVM (var LVM.>>= eject) LVM.>> go2 xs
 
 -- | A reference to a variable in the 'LVMVarRegistry'.
@@ -159,35 +164,35 @@ class ( KnownNat v
 --
 
 -- | A reference to 'UvLVMVar' in the 'LVMVarRegistry'.
-data UvLVMVarRef ctx a where
-  MkUvLVMVarRef :: Int -> UvLVMVarRef ctx a
-type role UvLVMVarRef nominal nominal
+data UvLVMVarRef ctx m a where
+  MkUvLVMVarRef :: Int -> UvLVMVarRef ctx m a
+type role UvLVMVarRef nominal nominal nominal
 
 -- | Register a 'UvLVMVar' in the 'LVMVarRegistry' and get the reference to it.
-registerUvLVMVar :: forall ctx a.
-  ( ContextualConsumable ctx a
-  , ContextualDupable ctx a
-  , ContextualSeqable ctx a a
+registerUvLVMVar :: forall ctx a m.
+  ( ContextualConsumable ctx m (m a)
+  , ContextualDupable ctx m (m a)
+  , ContextualSeqable ctx m (m a) m (m a)
   ) =>
-  a ⊸
+  m a ⊸
   LVMVarRegistry ctx ⊸
-  (L.Ur (UvLVMVarRef ctx a), LVMVarRegistry ctx)
+  (L.Ur (UvLVMVarRef ctx m (m a)), LVMVarRegistry ctx)
 registerUvLVMVar a (MkLVMVarRegistry uvs vrs) =
-  let var = mkUvLVMVar a :: UvLVMVar ctx a
+  let var = mkUvLVMVar a :: UvLVMVar ctx m (m a)
       !(L.Ur ridx, uvs') = L.length uvs
   in (L.Ur (MkUvLVMVarRef ridx), MkLVMVarRegistry (MkAnyUvLVMVar var : uvs') vrs)
 
 instance ( KnownNat v
-         , LinearlyVersionRestrictable v ctx a
+         , LinearlyVersionRestrictable v ctx (m a)
          ) =>
-         ReferenciableLVMVar v (UvLVMVarRef ctx a) ctx a where
+         ReferenciableLVMVar v (UvLVMVarRef ctx m (m a)) ctx (m a) where
   takeLVMVarRef (MkUvLVMVarRef ridx) (MkLVMVarRegistry uvs vrs) =
     let !(L.Ur len, uvs') = L.length uvs
         !(ys, zzs) = L.splitAt (len - ridx - 1) uvs'
-        !(var :: UvLVMVar ctx a, zs') = case L.uncons zzs of
+        !(var :: UvLVMVar ctx m (m a), zs') = case L.uncons zzs of
           -- It is safe to assume that @a_ ~ a@.
-          Just (MkAnyUvLVMVar (var_ :: UvLVMVar ctx a_), zs) -> (UnsafeLinear.coerce var_, zs)
-          Nothing                                            -> L.error "Bad UvLVMVarRef index"
+          Just (MkAnyUvLVMVar var_, zs) -> (UnsafeLinear.coerce var_, zs)
+          Nothing                       -> L.error "Bad UvLVMVarRef index"
     in LVM.do
          (var', a) <- copyUvLVMVar var
          LVM.pure (a, MkLVMVarRegistry (ys L.++ (MkAnyUvLVMVar var' : zs')) vrs)
@@ -197,45 +202,45 @@ instance ( KnownNat v
 --
 
 -- | A reference to 'RvLVMVar' or version-restricted 'UvLVMVarRef' in the 'LVMVarRegistry'.
-data RvLVMVarRef ctx v a where
+data RvLVMVarRef ctx m v a where
   -- ^ Restricted version variable reference.
-  MkRvLVMVarRef :: forall v ctx a.
+  MkRvLVMVarRef :: forall v ctx m a.
     KnownNat v =>
     Int ->
-    RvLVMVarRef ctx v a
+    RvLVMVarRef ctx m v (m a)
   -- ^ 'UvLVMVarRef' that got restricted.
-  VerUvLVMVarRef :: forall v ctx ua.
-    (KnownNat v, LinearlyVersionRestrictable v ctx ua) =>
-    UvLVMVarRef ctx ua ->
-    RvLVMVarRef ctx v (VersionRestrictedData v ctx ua)
-type role RvLVMVarRef nominal nominal nominal
+  VerUvLVMVarRef :: forall v ctx m um ua.
+    (KnownNat v, LinearlyVersionRestrictable v ctx (um ua)) =>
+    UvLVMVarRef ctx um (um ua) ->
+    RvLVMVarRef ctx m v (VersionRestrictedData v ctx (um ua))
+type role RvLVMVarRef nominal nominal nominal nominal
 
 -- | Register a 'RvLVMVar' in the 'LVMVarRegistry' and get the reference to it.
-registerRvLVMVar :: forall v ctx a.
+registerRvLVMVar :: forall v ctx a m.
   ( KnownNat v
-  , LinearlyVersionRestrictable v ctx a
-  , ContextualDupable ctx a
-  , ContextualSeqable ctx a a
+  , LinearlyVersionRestrictable v ctx (m a)
+  , ContextualDupable ctx m (m a)
+  , ContextualSeqable ctx m (m a) m (m a)
   ) =>
-  a ⊸
+  m a ⊸
   LVMVarRegistry ctx ⊸
-  (L.Ur (RvLVMVarRef ctx v a), LVMVarRegistry ctx)
+  (L.Ur (RvLVMVarRef ctx m v (m a)), LVMVarRegistry ctx)
 registerRvLVMVar a (MkLVMVarRegistry vurs vrs) =
-  let !(var :: RvLVMVar ctx v a) = mkRvLVMVar a
+  let !(var :: RvLVMVar ctx m v (m a)) = mkRvLVMVar a
       !(L.Ur ridx, xs') = L.length vrs
   in (L.Ur (MkRvLVMVarRef ridx), MkLVMVarRegistry vurs (MkAnyRvLVMVar var : xs'))
 
 instance ( KnownNat v
-         , LinearlyVersionRestrictable v ctx a
+         , LinearlyVersionRestrictable v ctx (m a)
          ) =>
-         ReferenciableLVMVar v (RvLVMVarRef ctx v a) ctx a where
+         ReferenciableLVMVar v (RvLVMVarRef ctx m v (m a)) ctx (m a) where
   takeLVMVarRef (MkRvLVMVarRef ridx) (MkLVMVarRegistry vurs vrs) =
     let !(L.Ur len, vrs') = L.length vrs
         !(ys, zzs) = L.splitAt (len - ridx - 1) vrs'
-        !(var :: RvLVMVar ctx v a, zs') = case L.uncons zzs of
+        !(var :: RvLVMVar ctx m v (m a), zs') = case L.uncons zzs of
           -- It is safe to assume that @a_ ~ a, v_ ~ v@.
-          Just (MkAnyRvLVMVar (var_ :: RvLVMVar ctx v_ a_), zs) -> (UnsafeLinear.coerce var_, zs)
-          Nothing                                               -> L.error "Bad RvLVMVarRef index"
+          Just (MkAnyRvLVMVar var_, zs) -> (UnsafeLinear.coerce var_, zs)
+          Nothing                       -> L.error "Bad RvLVMVarRef index"
     in LVM.do
          (var', a) <- copyRvLVMVar var
          LVM.pure (a, MkLVMVarRegistry vurs (ys L.++ (MkAnyRvLVMVar var' : zs')))

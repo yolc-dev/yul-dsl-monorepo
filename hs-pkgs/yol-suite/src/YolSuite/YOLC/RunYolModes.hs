@@ -15,8 +15,8 @@ type RunYolResult = Either T.Text T.Text
 -- yul modes
 
 yulFnMode :: forall fn efc xs b.
-  ( KnownNamedYulCat fn efc (NP xs) b
-  , YulO2 (NP xs) b
+  ( KnownNamedYulCat fn efc (NP I xs) b
+  , YulO2 (NP I xs) b
   ) =>
   fn -> IO RunYolResult
 yulFnMode fn = do
@@ -34,7 +34,7 @@ yulProjectMode = YOLCBuilder.buildManifest
 -- show modes
 
 showFnMode ::
-  ( KnownNamedYulCat fn efc (NP xs) b
+  ( KnownNamedYulCat fn efc (NP I xs) b
   , Show fn
   ) => fn -> IO RunYolResult
 showFnMode = pure . Right . T.pack . show
@@ -48,13 +48,13 @@ showProjectMode = pure . Right . T.pack . show
 -- show compact modes
 
 showCompactFnMode ::
-  KnownNamedYulCat fn efc (NP xs) b =>
+  KnownNamedYulCat fn efc (NP I xs) b =>
   fn -> IO RunYolResult
 showCompactFnMode fn = withKnownNamedYulCat fn (pure . Right . T.pack . CodeGens.yulCatCompactShow . snd)
 
 -- lisp modes
 
 showLispFnMode :: forall fn efc xs b.
-  KnownNamedYulCat fn efc (NP xs) b =>
+  KnownNamedYulCat fn efc (NP I xs) b =>
   fn -> IO RunYolResult
 showLispFnMode fn = withKnownNamedYulCat fn (pure . Right . CodeGens.yulCatToUntypedLisp . snd)

@@ -58,15 +58,15 @@ type family UncurryNP'Multiplicity f :: Multiplicity where
   UncurryNP'Multiplicity         (b) = Many
 
 -- | Uncurry a function to its NP form whose multiplicity of the last arrow is preserved.
-type UncurryNP f = NP (UncurryNP'Fst f) %(UncurryNP'Multiplicity f)-> UncurryNP'Snd f
+type UncurryNP m f = NP m (UncurryNP'Fst f) %(UncurryNP'Multiplicity f) -> UncurryNP'Snd f
 
 -- | Convert a function in ts NP form @np -> b@ to a curried function with multiplicity arrows in @p@.
 --
 --   Note: To add multiplicity-polymorphic arrows or to decorate arguments with additional type function, use
 --   'LiftFunction'.
 type family CurryNP np b where
-  CurryNP (NP    '[]) b = b
-  CurryNP (NP (x:xs)) b = x -> CurryNP (NP xs) b
+  CurryNP (NP _    '[]) b = b
+  CurryNP (NP m (x:xs)) b = x -> CurryNP (NP m xs) b
 
 -- | The type of the head of arguments of an currying function.
 type family CurryNP'Head f where
@@ -80,7 +80,7 @@ type family CurryNP'Tail f where
 
 -- | Declare the equivalence between a currying function form @f@ and @NP xs -> b@.
 type EquivalentNPOfFunction f xs b =
-  ( CurryNP (NP xs) b ~ f
+  ( CurryNP (NP I xs) b ~ f
   , UncurryNP'Fst f ~ xs
   , UncurryNP'Snd f ~ b
   )
@@ -89,32 +89,32 @@ type EquivalentNPOfFunction f xs b =
 class ( EquivalentNPOfFunction f xs b
       , LiftFunction b m1 m1b p1 ~ m1b b
       -- rewrite the second lift function into its one-arity form
-      , LiftFunction (NP xs -> b) m2 m2b p2 ~ (m2 (NP xs) %p2 -> m2b b)
+      , LiftFunction (NP I xs -> b) m2 m2b p2 ~ (m2 (NP I xs) %p2 -> m2b b)
       ) =>
       UncurriableNP f xs b m1 m1b p1 m2 m2b p2 | m1 m1b -> p1, m2 -> p2 where
   uncurryNP :: forall.
-    LiftFunction           f  m1 m1b p1 %p2 -> -- ^ from this lifted function. NOTE: using p2 to be consumed by m2.
-    LiftFunction (NP xs -> b) m2 m2b p2        -- ^ to this lifted function
+    LiftFunction             f  m1 m1b p1 %p2 -> -- ^ from this lifted function. NOTE: using p2 to be consumed by m2.
+    LiftFunction (NP I xs -> b) m2 m2b p2        -- ^ to this lifted function
 
 -- | Curry a function of @NP xs@ to @b@.
 class ( EquivalentNPOfFunction f xs b
       , LiftFunction b m1 mb p1 ~ mb b
       -- rewrite the first lift function into its one-arity form
-      , LiftFunction (NP xs -> b) m2 mb p1 ~ (m2 (NP xs) %p1 -> mb b)
+      , LiftFunction (NP I xs -> b) m2 mb p1 ~ (m2 (NP I xs) %p1 -> mb b)
       ) =>
       CurriableNP f xs b m2 mb p2 m1 p1 | m2 mb -> p2, m1 -> p1 where
   curryNP :: forall.
-    LiftFunction (NP xs -> b) m2 mb p2 %p1 -> -- ^ from this lifted function. NOTE: using p1 to be consumed by m1.
-    LiftFunction           f  m1 mb p1        -- ^ to this lifted function
+    LiftFunction (NP I xs -> b) m2 mb p2 %p1 -> -- ^ from this lifted function. NOTE: using p1 to be consumed by m1.
+    LiftFunction           f  m1 mb p1          -- ^ to this lifted function
 
 class ( EquivalentNPOfFunction f (x:xs) b
       ) =>
       CallableFunctionNP fn f x xs b m mb p | fn m -> mb p where
-  call :: forall. fn f -> (m x %p -> LiftFunction (CurryNP (NP xs) b) m mb p)
+  call :: forall. fn f -> (m x %p -> LiftFunction (CurryNP (NP I xs) b) m mb p)
 
 class ( EquivalentNPOfFunction f xs b
-      , ConvertibleNPtoTupleN (NP (MapList m xs))
+      , ConvertibleNPtoTupleN m (NP m xs)
       ) =>
       CallableFunctionN fn f xs b m mb p | fn mb -> m p where
-  callN, (<$*>) :: forall. fn f -> NPtoTupleN (NP (MapList m xs)) %p -> mb b
+  callN, (<$*>) :: forall. fn f -> NPtoTupleN m (NP m xs) %p -> mb b
   (<$*>) = callN

@@ -35,9 +35,9 @@ instance forall a b c. ABITypeCoercible ((a, b), c) (a, (b, c))
 instance forall a b c. ABITypeCoercible (a, (b, c)) ((a, b), c)
 
 -- NP coercion instances
-instance ABITypeCoercible (NP '[]) ()
-instance ABITypeCoercible () (NP '[])
-instance forall x xs. ABITypeCoercible (NP (x:xs)) (x, NP xs)
+instance forall f. ABITypeCoercible (NP f '[]) ()
+instance forall f. ABITypeCoercible () (NP f '[])
+instance forall x xs f. ABITypeCoercible (NP f (x:xs)) (x, NP f xs)
 --
-instance forall x. ABITypeCoercible x (NP '[x])
-instance forall x xs. ABITypeCoercible (x, NP xs) (NP (x:xs))
+instance forall x f. ABITypeCoercible x (NP f '[x])
+instance forall x xs f. ABITypeCoercible (x, NP f xs) (NP f (x:xs))

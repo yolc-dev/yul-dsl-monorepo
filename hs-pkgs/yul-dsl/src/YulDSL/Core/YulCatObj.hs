@@ -62,24 +62,31 @@ type YulO6 a b c d e g = (YulCatObj a, YulO5 b c d e g)
 -- Enumerate known YulCat objects:
 --
 
--- NP
-instance YulCatObj (NP '[])
-instance (YulCatObj x, YulCatObj (NP xs)) => YulCatObj (NP (x:xs))
+instance YulCatObj a => YulCatObj (I a)
 
--- TupleN (3..15)
+-- NP
+instance YulCatObj (NP f '[])
+instance (YulCatObj x, YulCatObj (NP I xs)) => YulCatObj (NP I (x:xs))
+
+-- Unit / Terminal Object
 instance YulCatObj ()
+
+-- Solo tuple
 instance YulCatObj a => YulCatObj (Solo a)
+
+-- Tuple2
 instance (YulCatObj a1, YulCatObj a2) => YulCatObj (a1, a2) where yul_prod_objs = Dict
--- mathy notation for 2-tuple (,)
-type (⊗) = (,)
+type (⊗) a b = (a, b)
 infixr 7 ⊗
+
+-- Tuple 3..16
 do
   insts <- mapM
     (\n -> do
       as <- replicateM n (TH.newName "a")
       -- NOTE! Haskell2010 only demands the Show instance to support up to Tuple15
       [d| instance $(tupleNFromVarsTWith (TH.conT ''YulCatObj `TH.appT`) as) =>
-                   YulCatObj $(tupleNFromVarsT as)
+                   YulCatObj $(tupleNFromVarsTWith (TH.conT ''I `TH.appT`) as)
         |]
     ) [3..15]
   pure (concat insts)

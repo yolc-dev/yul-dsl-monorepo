@@ -35,48 +35,48 @@ import YulDSL.Core.YulEffect
 
 -- | Existential type wrapper for yul function that is exported.
 data AnyExportedYulCat where
-  MkAnyExportedYulCat :: forall k { eff :: k } xs b. YulO2 (NP xs) b
-                      => Selector -> YulCatEffectClass -> NamedYulCat eff (NP xs) b -> AnyExportedYulCat
+  MkAnyExportedYulCat :: forall k { eff :: k } xs b. YulO2 (NP I xs) b
+                      => Selector -> YulCatEffectClass -> NamedYulCat eff (NP I xs) b -> AnyExportedYulCat
 
 -- | The function to process the content of 'AnyExportedYulCat'.
 withAnyExportedYulCat :: AnyExportedYulCat
-  -> (forall k { eff :: k } xs b. (YulO2 (NP xs) b ) => NamedYulCat eff (NP xs) b -> a)
+  -> (forall k { eff :: k } xs b. (YulO2 (NP I xs) b ) => NamedYulCat eff (NP I xs) b -> a)
   -> a
 withAnyExportedYulCat (MkAnyExportedYulCat _ _ f) g = g f
 
 pureFn :: forall fn efc xs b.
-  ( KnownNamedYulCat fn efc (NP xs) b
+  ( KnownNamedYulCat fn efc (NP I xs) b
   , efc ~ PureEffect
-  , YulO2 (NP xs) b
+  , YulO2 (NP I xs) b
   ) => String -> fn -> AnyExportedYulCat
-pureFn fname fn = withKnownNamedYulCat fn (MkAnyExportedYulCat (mkTypedSelector @(NP xs) fname) PureEffect)
+pureFn fname fn = withKnownNamedYulCat fn (MkAnyExportedYulCat (mkTypedSelector @(NP I xs) fname) PureEffect)
 
 staticFn :: forall fn efc xs b.
-  ( KnownNamedYulCat fn efc (NP xs) b
+  ( KnownNamedYulCat fn efc (NP I xs) b
   , efc ~ StaticEffect
-  , YulO2 (NP xs) b
+  , YulO2 (NP I xs) b
   ) => String -> fn -> AnyExportedYulCat
-staticFn fname fn = withKnownNamedYulCat fn (MkAnyExportedYulCat (mkTypedSelector @(NP xs) fname) StaticEffect)
+staticFn fname fn = withKnownNamedYulCat fn (MkAnyExportedYulCat (mkTypedSelector @(NP I xs) fname) StaticEffect)
 
 omniFn :: forall fn efc xs b.
-  ( KnownNamedYulCat fn efc (NP xs) b
+  ( KnownNamedYulCat fn efc (NP I xs) b
   , efc ~ OmniEffect
-  , YulO2 (NP xs) b
+  , YulO2 (NP I xs) b
   ) => String -> fn -> AnyExportedYulCat
-omniFn fname fn = withKnownNamedYulCat fn (MkAnyExportedYulCat (mkTypedSelector @(NP xs) fname) OmniEffect)
+omniFn fname fn = withKnownNamedYulCat fn (MkAnyExportedYulCat (mkTypedSelector @(NP I xs) fname) OmniEffect)
 
 instance Show AnyExportedYulCat where
   show (MkAnyExportedYulCat s PureEffect   cat) = "pure "   <> show_fn_spec s cat
   show (MkAnyExportedYulCat s StaticEffect cat) = "static " <> show_fn_spec s cat
   show (MkAnyExportedYulCat s OmniEffect   cat) = "omni "   <> show_fn_spec s cat
 
-show_fn_spec :: forall xs b eff. YulO2 (NP xs) b
-             => Selector -> NamedYulCat eff (NP xs) b -> String
+show_fn_spec :: forall xs b eff. YulO2 (NP I xs) b
+             => Selector -> NamedYulCat eff (NP I xs) b -> String
 show_fn_spec (MkSelector (sel, fsig)) cat@(cid, _) =
   let fspec = case fsig of
                 Just (MkFuncSig fname) -> fname ++ "," ++ show sel ++ "," ++ cid
                 Nothing                -> show sel ++ "," ++ cid
-  in "fn " <> fspec <> "(" <> abiTypeCanonName @(NP xs) <> ") -> " <> abiTypeCanonName @b <> "\n" <>
+  in "fn " <> fspec <> "(" <> abiTypeCanonName @(NP I xs) <> ") -> " <> abiTypeCanonName @b <> "\n" <>
      show cat
 
 ------------------------------------------------------------------------------------------------------------------------

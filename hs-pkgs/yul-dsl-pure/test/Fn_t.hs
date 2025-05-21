@@ -32,8 +32,8 @@ dis_any_fn = fn' "dis_any" dis_any_y
 test_trvial_fns :: Bool
 test_trvial_fns = and
   [ evalFn constant_fn Nil == 42
-  , evalFn dis_any_fn (() :* Nil) == ()
-  , evalFn (dis_any_fn @U32) (42 :* Nil) == ()
+  , evalFn dis_any_fn (I () :* Nil) == ()
+  , evalFn (dis_any_fn @U32) (I 42 :* Nil) == ()
   ]
 
 --------------------------------------------------------------------------------
@@ -57,12 +57,7 @@ def_fn4 = $fn \a b c d -> f a b + f c d
   where f a b = a + b
 
 call_fn0 :: PureFn (U256)
-call_fn0 = $fn
-  do def_fn0 <$*> ()
-
-call_fn0' :: PureFn (U256)
-call_fn0' = $fn
-  do call0 def_fn0
+call_fn0 = $fn do call0 def_fn0
 
 call_fn1 :: PureFn (U256 -> U256)
 call_fn1 = $fn
@@ -84,10 +79,10 @@ test_simple_fns :: Gen Bool
 test_simple_fns = chooseInteger (0, toInteger (maxBound @U32)) <&>
   (\x -> and
     [ evalFn call_fn0 Nil        == 42
-    , evalFn call_fn1 (x :* Nil) == x
-    , evalFn call_fn2 (x :* Nil) == x + x
-    , evalFn call_fn3 (x :* Nil) == x + x + x
-    , evalFn call_fn4 (x :* Nil) == x + x + x + x
+    , evalFn call_fn1 (I x :* Nil) == x
+    , evalFn call_fn2 (I x :* Nil) == x + x
+    , evalFn call_fn3 (I x :* Nil) == x + x + x
+    , evalFn call_fn4 (I x :* Nil) == x + x + x + x
     ]
   ) . fromInteger
 
@@ -98,7 +93,7 @@ test_simple_fns = chooseInteger (0, toInteger (maxBound @U32)) <&>
 add2_y :: PureYulFn ((U256, U256) -> U256)
 add2_y (is -> (a, b)) = a + b
 
-add2NP_y :: PureYulFn (NP [U256, U256] -> U256)
+add2NP_y :: PureYulFn (NP I [U256, U256] -> U256)
 add2NP_y (is -> (a :* b :* Nil)) = add2_y (be (a, b))
 
 add2NP_fn :: PureFn (U256 -> U256 -> U256)
@@ -113,9 +108,9 @@ add2NP_fn'' = $fn \a b -> add2NP_y (couldBe (a :* b :* Nil))
 test_np_fns :: Gen Bool
 test_np_fns =
   (\x y ->
-     and [ evalFn add2NP_fn (x :* y :* Nil) == x + y
-         , evalFn add2NP_fn' (x :* y :* Nil) == x + y
-         , evalFn add2NP_fn'' (x :* y :* Nil) == x + y
+     and [ evalFn add2NP_fn   (I x :* I y :* Nil) == x + y
+         , evalFn add2NP_fn'  (I x :* I y :* Nil) == x + y
+         , evalFn add2NP_fn'' (I x :* I y :* Nil) == x + y
          ]
   )
   <$> (chooseInteger (0, toInteger (maxBound @U32)) <&> fromInteger)
@@ -132,9 +127,9 @@ poly_foo = $fn \x y -> x * 2 + y
 
 test_poly_foo :: Bool
 test_poly_foo = and
-  [ evalFn (poly_foo @U8) (4 :* 2 :* Nil)   == 10
-  , evalFn (poly_foo @I32) (4 :* 2 :* Nil)  == 10
-  , evalFn (poly_foo @U256) (4 :* 2 :* Nil) == 10
+  [ evalFn (poly_foo @U8)   (I 4 :* I 2 :* Nil)   == 10
+  , evalFn (poly_foo @I32)  (I 4 :* I 2 :* Nil)  == 10
+  , evalFn (poly_foo @U256) (I 4 :* I 2 :* Nil) == 10
   ]
 
 --------------------------------------------------------------------------------
@@ -151,10 +146,10 @@ bool_fn2 = $fn
 
 test_bool_fns :: Bool
 test_bool_fns = and
-  [ evalFn bool_fn1 (true :* 42 :* 69 :* Nil) == 42
-  , evalFn bool_fn1 (false :* 42 :* 69 :* Nil) == 69
-  , evalFn bool_fn2 (true :* 42 :* 69 :* Nil) == 42
-  , evalFn bool_fn2 (false :* 42 :* 69 :* Nil) == 69
+  [ evalFn bool_fn1 (I true  :* I 42 :* I 69 :* Nil) == 42
+  , evalFn bool_fn1 (I false :* I 42 :* I 69 :* Nil) == 69
+  , evalFn bool_fn2 (I true  :* I 42 :* I 69 :* Nil) == 42
+  , evalFn bool_fn2 (I false :* I 42 :* I 69 :* Nil) == 69
   ]
 
 --------------------------------------------------------------------------------
@@ -180,16 +175,16 @@ maybe_functor_fn2 = $fn \a b -> (+ b) <$$> a
 {- HLint ignore test_maybe_fn "Use isNothing" -}
 test_maybe_fn :: Bool
 test_maybe_fn = and
-  [ evalFn maybe_num_fn1 (30 :* Nil) == 102
-  , evalFn maybe_num_fn1 (150 :* Nil) == 0
-  , evalFn maybe_num_fn2 (Just 42 :* Just 69 :* Nil)   == 111
-  , evalFn maybe_num_fn2 (Just 255 :* Just 0 :* Nil)   == 255
-  , evalFn maybe_num_fn2 (Just 255 :* Just 1 :* Nil)   == 0
-  , evalFn maybe_num_fn2 (Just 128 :* Just 128 :* Nil) == 0
-  , evalFn maybe_functor_fn1 (30 :* Nil)  == Just 72
-  , evalFn maybe_functor_fn1 (Nothing :* Nil) == Nothing
-  , evalFn maybe_functor_fn2 (Just 30 :* 40 :* Nil)  == Just 70
-  , evalFn maybe_functor_fn2 (Nothing :* 20 :* Nil) == Nothing
+  [ evalFn maybe_num_fn1 (I 30 :* Nil) == 102
+  , evalFn maybe_num_fn1 (I 150 :* Nil) == 0
+  , evalFn maybe_num_fn2 (I (Just 42)  :* I (Just 69) :* Nil)   == 111
+  , evalFn maybe_num_fn2 (I (Just 255) :* I (Just 0)  :* Nil)   == 255
+  , evalFn maybe_num_fn2 (I (Just 255) :* I (Just 1)  :* Nil)   == 0
+  , evalFn maybe_num_fn2 (I (Just 128) :* I (Just 128) :* Nil) == 0
+  , evalFn maybe_functor_fn1 (I 30 :* Nil)  == Just 72
+  , evalFn maybe_functor_fn1 (I Nothing   :* Nil) == Nothing
+  , evalFn maybe_functor_fn2 (I (Just 30) :* I 40 :* Nil)  == Just 70
+  , evalFn maybe_functor_fn2 (I Nothing   :* I 20 :* Nil) == Nothing
   ]
 
 --------------------------------------------------------------------------------

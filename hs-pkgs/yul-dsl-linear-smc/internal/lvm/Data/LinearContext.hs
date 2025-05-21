@@ -19,7 +19,7 @@ module Data.LinearContext
   , ContextualEmbeddable (contextualEmbed)
   ) where
 -- linear-base
-import Prelude.Linear (lseq)
+import Prelude.Linear (Ur (Ur))
 -- eth-abi
 import Data.SimpleNP  (NP (..))
 import Data.TupleN
@@ -30,19 +30,19 @@ import Data.TupleN
 --------------------------------------------------------------------------------
 
 -- | Providing a linear context @ctx@ for consuming @a@.
-class ContextualConsumable ctx a where
+class ContextualConsumable ctx m a | a -> m where
   -- | Consume @a@ linearly.
   contextualConsume :: forall. ctx ⊸ a ⊸ ctx
 
-instance ContextualConsumable ctx () where
-  contextualConsume ctx u = lseq u ctx
+instance ContextualConsumable ctx Ur (Ur a) where
+  contextualConsume ctx (Ur _) = ctx
 
-instance ContextualConsumable ctx (NP '[]) where
+instance ContextualConsumable ctx m (NP m '[]) where
   contextualConsume ctx Nil = ctx
 
-instance ( ContextualConsumable ctx x
-         , ContextualConsumable ctx (NP xs)
-         ) => ContextualConsumable ctx (NP (x:xs)) where
+instance ( ContextualConsumable ctx m (m x)
+         , ContextualConsumable ctx m (NP m xs)
+         ) => ContextualConsumable ctx m (NP m (x:xs)) where
   contextualConsume ctx (x :* xs) = let ctx' = contextualConsume ctx x
                                         ctx'' = contextualConsume ctx' xs
                                     in ctx''
@@ -52,25 +52,25 @@ instance ( ContextualConsumable ctx x
 --------------------------------------------------------------------------------
 
 -- | Providing a linear context @ctx@ for duplicate=ing @a@.
-class ContextualDupable ctx a where
+class ContextualDupable ctx m a | a -> m where
   -- | Duplicate @a@ linearly.
   contextualDup :: ctx ⊸ a ⊸ (ctx, (a, a))
 
-instance ContextualDupable ctx (NP '[]) where
+instance ContextualDupable ctx m (NP m '[]) where
   contextualDup ctx Nil = (ctx, (Nil, Nil))
 
-instance ( ContextualDupable ctx x
-         , ContextualDupable ctx (NP xs)
-         ) => ContextualDupable ctx (NP (x:xs)) where
+instance ( ContextualDupable ctx m (m x)
+         , ContextualDupable ctx m (NP m xs)
+         ) => ContextualDupable ctx m (NP m (x:xs)) where
   contextualDup ctx (x :* xs) =
     let !(ctx', (x', x'')) = contextualDup ctx x
         !(ctx'', (xs', xs'')) = contextualDup ctx' xs
     in (ctx'', (x' :* xs', x'' :* xs''))
 
 -- | Utility function to contextually duplicate a TupleN.
-contextualDupTupleN :: forall ctx aN.
-  ( ConvertibleTupleNtoNP aN
-  , ContextualDupable ctx (TupleNtoNP (aN))
+contextualDupTupleN :: forall ctx m aN.
+  ( ConvertibleTupleNtoNP m aN
+  , ContextualDupable ctx m (TupleNtoNP m (aN))
   ) => ctx ⊸ aN ⊸ (ctx, (aN, aN))
 contextualDupTupleN ctx aN = let aNP = fromTupleNtoNP aN
                                  !(ctx', (aNP1, aNP2)) = contextualDup ctx aNP
@@ -80,28 +80,31 @@ contextualDupTupleN ctx aN = let aNP = fromTupleNtoNP aN
 -- ContextualSeqable
 --------------------------------------------------------------------------------
 
-class ContextualConsumable ctx a => ContextualSeqable ctx a b where
+class ContextualConsumable ctx ma a => ContextualSeqable ctx ma a mb b | b -> mb where
   contextualSeq :: ctx ⊸ a ⊸ b ⊸ (ctx, b)
 
-instance ContextualConsumable ctx a => ContextualSeqable ctx a () where
-  contextualSeq ctx a b = (contextualConsume ctx a, b)
+instance ContextualConsumable ctx Ur a =>
+         ContextualSeqable ctx Ur a Ur (Ur ()) where
+  contextualSeq ctx a u = (contextualConsume ctx a, u)
 
-instance ContextualConsumable ctx a => ContextualSeqable ctx a (NP '[]) where
+instance ContextualConsumable ctx ma a =>
+         ContextualSeqable ctx ma a mb (NP mb '[]) where
   contextualSeq ctx a Nil = (contextualConsume ctx a, Nil)
 
-instance ( ContextualDupable ctx a
-         , ContextualSeqable ctx a x
-         , ContextualSeqable ctx a (NP xs)
-         ) => ContextualSeqable ctx a (NP (x:xs)) where
+instance ( ContextualDupable ctx ma a
+         , ContextualSeqable ctx ma a mb (mb x)
+         , ContextualSeqable ctx ma a mb (NP mb xs)
+         ) =>
+         ContextualSeqable ctx ma a mb (NP mb (x:xs)) where
   contextualSeq ctx a (x :* xs) =
     let !(ctx', (a1, a2)) = contextualDup ctx a
         !(ctx'', x') = contextualSeq ctx' a1 x
         !(ctx''', xs') = contextualSeq ctx'' a2 xs
     in (ctx''', x' :* xs')
 
-contextualSeqN :: forall ctx a bN.
-  ( ConvertibleTupleNtoNP bN
-  , ContextualSeqable ctx a (TupleNtoNP (bN))
+contextualSeqN :: forall ctx ma a mb bN.
+  ( ConvertibleTupleNtoNP mb bN
+  , ContextualSeqable ctx ma a mb (TupleNtoNP mb bN)
   ) => ctx ⊸ a ⊸ bN ⊸ (ctx, bN)
 contextualSeqN ctx a bN =
   let bNP = fromTupleNtoNP bN

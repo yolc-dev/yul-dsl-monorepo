@@ -68,15 +68,15 @@ yulKeccak256 = YulJmpB (MkYulBuiltIn @"__keccak_c_" @a @B32)
 ------------------------------------------------------------------------------------------------------------------------
 
 -- | Embed a NP Nil yul morphism.
-yulNil :: forall eff a. YulO1 a => YulCat eff a (NP '[])
+yulNil :: forall eff a. YulO1 a => YulCat eff a (NP I '[])
 yulNil = yulEmb Nil
 
 -- | Construct a NP yul morphism.
 yulCons :: forall x xs eff r m.
-  ( YulO3 x (NP xs) r
+  ( YulO3 x (NP I xs) r
   , YulCat eff r ~ m
   ) =>
-  m x -> m (NP xs) -> m (NP (x:xs))
+  m x -> m (NP I xs) -> m (NP I (x:xs))
 yulCons mx mxs = YulFork mx mxs >.> YulCoerceType
 
 -- same as (:) or (:*)

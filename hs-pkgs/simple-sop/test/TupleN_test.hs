@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -Wno-type-defaults #-}
+{-# OPTIONS_GHC -Wno-type-defaults -Wno-orphans #-}
 module TupleN_test where
 
 -- base
@@ -6,40 +6,43 @@ import Data.Type.Equality (type (==))
 -- hspec
 import Test.Hspec
 --
-import Data.SimpleNP      (NP (..))
+import Data.SimpleNP      (I (I), NP (..))
 import Data.TupleN        (NPtoTupleN, Solo (MkSolo), TupleNtoNP, fromNPtoTupleN, fromTupleNtoNP)
 import KnownBool
 
+default (Int)
+
+deriving instance Eq a => Eq (I a)
 
 test_tf_tuple_to_np = and
-  [ fromBoolKind @(TupleNtoNP () == NP '[])
-  , fromBoolKind @(TupleNtoNP (Solo Int) == NP '[Int])
-  , fromBoolKind @(TupleNtoNP (Int, Float) == NP '[Int, Float])
+  [ fromBoolKind @(TupleNtoNP I () == NP I '[])
+  , fromBoolKind @(TupleNtoNP I (Solo (I Int)) == NP I '[Int])
+  , fromBoolKind @(TupleNtoNP I (I Int, I Float) == NP I '[Int, Float])
   ]
 
 test_tf_np_to_tuple = and
-  [ fromBoolKind @(NPtoTupleN (NP '[]) == ())
-  , fromBoolKind @(NPtoTupleN (NP '[Int]) == Solo Int)
-  , fromBoolKind @(NPtoTupleN (NP '[Int, Float]) == (Int, Float))
-  , fromBoolKind @(NPtoTupleN (NP '[Int, Float, Double]) == (Int, Float, Double))
+  [ -- fromBoolKind @(NPtoTupleN (NP I '[]) == ())
+    fromBoolKind @(NPtoTupleN I (NP I '[Int]) == Solo (I Int))
+  , fromBoolKind @(NPtoTupleN I (NP I '[Int, Float]) == (I Int, I Float))
+  , fromBoolKind @(NPtoTupleN I (NP I '[Int, Float, Double]) == (I Int, I Float, I Double))
   ]
 
 test_from_tuple_to_np = and
-  [ fromTupleNtoNP () == Nil
-  , fromTupleNtoNP (MkSolo "hi") == "hi" :* Nil
-  , fromTupleNtoNP (1, 2) == 1 :* 2 :* Nil
-  , fromTupleNtoNP (1, 2) /= 2 :* 1 :* Nil
-  , fromTupleNtoNP (1, 2, ("hello" :* Nil)) == 1 :* 2 :* ("hello" :* Nil) :* Nil
-  , fromTupleNtoNP (1, 2, 3) /= 3 :* 2 :* 1 :* Nil
+  [ -- fromTupleNtoNP () == Nil
+    fromTupleNtoNP (MkSolo (I "hi")) == I "hi" :* Nil
+  , fromTupleNtoNP (I 1, I 2) == I 1 :* I 2 :* Nil
+  , fromTupleNtoNP (I 1, I 2) /= I 2 :* I 1 :* Nil
+  , fromTupleNtoNP (I 1, I 2, I (I "hello" :* Nil)) == I 1 :* I 2 :* I (I "hello" :* Nil) :* Nil
+  , fromTupleNtoNP (I 1, I 2, I 3) /= I 3 :* I 2 :* I 1 :* Nil
   ]
 
 test_from_np_to_tuple = and
-  [ fromNPtoTupleN Nil == ()
-  , fromNPtoTupleN ("nihao" :* Nil) == (MkSolo "nihao")
-  , fromNPtoTupleN (1 :* 2 :* Nil) == (1, 2)
-  , fromNPtoTupleN (1 :* 2 :* Nil) /= (2, 1)
-  , fromNPtoTupleN (1 :* 2 :* ("konijiwa" :* Nil) :* Nil) == (1, 2, "konijiwa" :* Nil)
-  , fromNPtoTupleN (1 :* 2 :* ("konijiwa" :* Nil) :* Nil) /= (1, 2, "nani" :* Nil)
+  [ -- fromNPtoTupleN Nil == ()
+    fromNPtoTupleN ("nihao" :* Nil) == (MkSolo "nihao")
+  , fromNPtoTupleN (I 1 :* I 2 :* Nil) == (I 1, I 2)
+  , fromNPtoTupleN (I 1 :* I 2 :* Nil) /= (I 2, I 1)
+  , fromNPtoTupleN (I 1 :* I 2 :* I (I "konijiwa" :* Nil) :* Nil) == (I 1, I 2, I (I "konijiwa" :* Nil))
+  , fromNPtoTupleN (I 1 :* I 2 :* I (I "konijiwa" :* Nil) :* Nil) /= (I 1, I 2, I (I "nani" :* Nil))
   ]
 
 tests = describe "Data.TupleN" $ do

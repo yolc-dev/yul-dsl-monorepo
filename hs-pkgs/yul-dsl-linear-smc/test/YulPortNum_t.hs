@@ -28,9 +28,9 @@ test_2op = do
   x <- fromInteger <$> chooseInteger (0, toInteger (maxBound @U32))
   y <- fromInteger <$> chooseInteger (0, toInteger (maxBound @U32))
   pure $ and
-    [ evalFn num_add (x :* y :* Nil) == x + y
-    , evalFn num_sub (x :* y :* Nil) == x - y
-    , evalFn num_mul (x :* y :* Nil) == x * y
+    [ evalFn num_add (I x :* I y :* Nil) == x + y
+    , evalFn num_sub (I x :* I y :* Nil) == x - y
+    , evalFn num_mul (I x :* I y :* Nil) == x * y
     ]
 
 tests = describe "YulPort Num Class" $ do

@@ -1,5 +1,4 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
-{-# LANGUAGE UndecidableInstances #-}
 {-|
 
 Copyright   : (c) 2023-2025 Miao, ZhiCheng
@@ -23,34 +22,30 @@ import Control.PatternMatchable
 -- SingleCasePattern instances
 --
 
-instance YulO1 r => SingleCasePattern (YulCat eff r) (NP '[]) (NP '[]) YulCatObj Many where
+instance YulO1 r  =>
+         SingleCasePattern (YulCat eff r) (NP I '[]) (NP (YulCat eff r) '[]) YulCatObj Many where
   is _ =  Nil
 
-instance ( YulO3 x (NP xs) r
-         , YulCat eff r ~ m
-         , MapList m xs ~ mxs
-         , MapList m (x:xs) ~ mxxs
-         , TraversableNP m (x:xs)
-         , DistributiveNP m (x:xs)
-         , SingleCasePattern m (NP xs) (NP mxs) YulCatObj Many
+instance ( YulO3 x (NP I xs) r
+         , TraversableNP (YulCat eff r) (x:xs)
+         , DistributiveNP (YulCat eff r) (x:xs)
+         , SingleCasePattern (YulCat eff r) (NP I xs) (NP (YulCat eff r) xs) YulCatObj Many
          ) =>
-         SingleCasePattern (YulCat eff r) (NP (x:xs)) (NP mxxs) YulCatObj Many where
+         SingleCasePattern (YulCat eff r) (NP I (x:xs)) (NP (YulCat eff r) (x:xs)) YulCatObj Many where
   is = sequenceNP
 
 --
 -- PatternMatchable instances
 --
 
-instance YulO1 r => PatternMatchable (YulCat eff r) (NP '[]) (NP '[]) YulCatObj Many where
+instance YulO1 r =>
+         PatternMatchable (YulCat eff r) (NP I '[]) (NP (YulCat eff r) '[]) YulCatObj Many where
   couldBe = distributeNP
 
-instance ( YulO3 x (NP xs) r
-         , YulCat eff r ~ m
-         , MapList m xs ~ mxs
-         , MapList m (x:xs) ~ mxxs
-         , DistributiveNP m (x:xs)
-         , TraversableNP m (x:xs)
-         , SingleCasePattern m (NP xs) (NP mxs) YulCatObj Many
+instance ( YulO3 x (NP I xs) r
+         , DistributiveNP (YulCat eff r) (x:xs)
+         , TraversableNP (YulCat eff r) (x:xs)
+         , SingleCasePattern (YulCat eff r) (NP I xs) (NP (YulCat eff r) xs) YulCatObj Many
          ) =>
-         PatternMatchable (YulCat eff r) (NP (x:xs)) (NP mxxs) YulCatObj Many where
+         PatternMatchable (YulCat eff r) (NP I (x:xs)) (NP (YulCat eff r) (x:xs)) YulCatObj Many where
   couldBe = distributeNP

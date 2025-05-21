@@ -24,19 +24,19 @@ test_tf_lift_function_examples = and
   ]
 
 test_tf_uncurry_examples = and
-  [ fromBoolKind @(UncurryNP (Bool) == (NP '[] -> Bool))
-  , fromBoolKind @(UncurryNP (Int -> Bool) == (NP '[Int] -> Bool))
-  , fromBoolKind @(UncurryNP (Int -> Float -> Bool) == (NP '[Int, Float] -> Bool))
-  , fromBoolKind @(UncurryNP (Int -> Float -> String -> Bool) == (NP '[Int, Float, String] -> Bool))
-  , fromBoolKind @(UncurryNP (Int %1-> Float %1-> String %1-> Bool) == (NP '[Int, Float, String] %1-> Bool))
-  , fromBoolKind @(UncurryNP (Int %1-> Float -> String -> Bool) == (NP '[Int, Float, String] %1-> Bool)) -- tolerated
+  [ fromBoolKind @(UncurryNP I (Bool) == (NP I '[] -> Bool))
+  , fromBoolKind @(UncurryNP I (Int -> Bool) == (NP I '[Int] -> Bool))
+  , fromBoolKind @(UncurryNP I (Int -> Float -> Bool) == (NP I '[Int, Float] -> Bool))
+  , fromBoolKind @(UncurryNP I (Int -> Float -> String -> Bool) == (NP I '[Int, Float, String] -> Bool))
+  , fromBoolKind @(UncurryNP I (Int %1-> Float %1-> String %1-> Bool) == (NP I '[Int, Float, String] %1-> Bool))
+  , fromBoolKind @(UncurryNP I (Int %1-> Float -> String -> Bool) == (NP I '[Int, Float, String] %1-> Bool)) -- tolerated
   ]
 
 test_tf_ncurry_examples = and
-  [ fromBoolKind @(CurryNP (NP '[]) Int == Int)
-  , fromBoolKind @(CurryNP (NP '[Char]) Bool == (Char -> Bool))
-  , fromBoolKind @(CurryNP (NP '[Char, Double]) Bool == (Char -> Double -> Bool))
-  , fromBoolKind @(CurryNP (NP '[Char, Char, Double]) Bool == (Char -> Char -> Double -> Bool))
+  [ fromBoolKind @(CurryNP (NP I '[]) Int == Int)
+  , fromBoolKind @(CurryNP (NP I '[Char]) Bool == (Char -> Bool))
+  , fromBoolKind @(CurryNP (NP I '[Char, Double]) Bool == (Char -> Double -> Bool))
+  , fromBoolKind @(CurryNP (NP I '[Char, Char, Double]) Bool == (Char -> Char -> Double -> Bool))
   ]
 
 test_tf_uncurrying_head_examples = and

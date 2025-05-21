@@ -22,8 +22,8 @@ printCat cat = do
 
 -- | Generate yul code of a function and print it to the screen.
 printFn :: forall fn efc xs b.
-  ( KnownNamedYulCat fn efc (NP xs) b
-  , YulO2 (NP xs) b
+  ( KnownNamedYulCat fn efc (NP I xs) b
+  , YulO2 (NP I xs) b
   ) =>
   fn -> IO ()
 printFn fn = do
@@ -32,16 +32,16 @@ printFn fn = do
 
 -- | Preview a function in a display window.
 previewFn :: forall fn efc xs b.
-  ( KnownNamedYulCat fn efc (NP xs) b
-  , YulO2 (NP xs) b
+  ( KnownNamedYulCat fn efc (NP I xs) b
+  , YulO2 (NP I xs) b
   ) =>
   fn -> IO ()
 previewFn fn = withKnownNamedYulCat fn (previewYulCat . snd)
 
 -- | Preview a function in a display window.
 previewFnVerbose :: forall fn efc xs b.
-  ( KnownNamedYulCat fn efc (NP xs) b
-  , YulO2 (NP xs) b
+  ( KnownNamedYulCat fn efc (NP I xs) b
+  , YulO2 (NP I xs) b
   ) =>
   fn -> IO ()
 previewFnVerbose fn = withKnownNamedYulCat fn (previewYulCatVerbose . snd)

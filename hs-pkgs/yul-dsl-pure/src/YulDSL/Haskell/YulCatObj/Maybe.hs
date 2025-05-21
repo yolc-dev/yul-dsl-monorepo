@@ -27,7 +27,7 @@ import Data.ExoFunctor
 --
 
 instance {-# OVERLAPPABLE #-} ABITypeable a => ABITypeable (Maybe a) where
-  type instance ABITypeDerivedOf (Maybe a) = NP [BOOL, a]
+  type instance ABITypeDerivedOf (Maybe a) = NP I [BOOL, a]
   abiDefault = Nothing
   abiToCoreType = error "to be implemented"
   abiFromCoreType = error "to be implemented"
@@ -35,12 +35,12 @@ instance {-# OVERLAPPABLE #-} ABITypeable a => ABITypeable (Maybe a) where
 -- only support "Maybe (INTx s n)" for now:
 
 instance ValidINTx s n => ABITypeable (Maybe (INTx s n)) where
-  type instance ABITypeDerivedOf (Maybe (INTx s n)) = NP [BOOL, INTx s n]
+  type instance ABITypeDerivedOf (Maybe (INTx s n)) = NP I [BOOL, INTx s n]
   abiDefault = Nothing
-  abiToCoreType (Just x) = true :* abiToCoreType x :* Nil
-  abiToCoreType Nothing  = false :* 0 :* Nil
+  abiToCoreType (Just x) = I true :* I (abiToCoreType x) :* Nil
+  abiToCoreType Nothing  = I false :* I 0 :* Nil
 
-  abiFromCoreType (b :* x :* Nil) = case b of
+  abiFromCoreType (I b :* I x :* Nil) = case b of
     BOOL True  -> Just (abiFromCoreType x)
     BOOL False -> Nothing
 

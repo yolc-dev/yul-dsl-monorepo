@@ -94,8 +94,8 @@ evalYulCat s_ a_ = evalState (go s_ (pure a_)) initEvalState
 
 -- | Evaluate a known named yul category morphism with NP-typed inputs.
 evalFn :: forall fn efc xs b.
-  ( YulO2 (NP xs) b
-  , KnownNamedYulCat fn efc (NP xs) b
+  ( YulO2 (NP I xs) b
+  , KnownNamedYulCat fn efc (NP I xs) b
   ) =>
-  fn -> NP xs -> b
+  fn -> NP I xs -> b
 evalFn fn = withKnownNamedYulCat fn (evalYulCat . snd)

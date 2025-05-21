@@ -96,12 +96,13 @@ ma >>= f = MkLVM \ctx -> let !(aleb, ctx', a) = unLVM ma ctx
 (=<<) = flip (>>=)
 
 -- | Monad bind & discard operator, working with the QualifiedDo syntax.
-(>>) :: forall ctx va vb vc a b.
+(>>) :: forall ctx va vb vc a b m.
   ( KnownNat va, KnownNat vb, KnownNat vc
-  , ContextualConsumable ctx a) =>
+  , ContextualConsumable ctx m a) =>
   LVM ctx va vb a ⊸ LVM ctx vb vc b ⊸ LVM ctx va vc b
-ma >> mb = ma >>= \a -> MkLVM \ctx -> let !(bltec, ctx', b) = unLVM mb ctx
-                                      in (bltec, contextualConsume ctx' a, b)
+ma >> mb = ma >>= \a -> MkLVM \ctx ->
+  let !(bltec, ctx', b) = unLVM mb ctx
+  in (bltec, contextualConsume ctx' a, b)
 
 -- | This is to handle pattern matching failures in the LVM.do notation. For now we propagate the error as GHC pleases.
 fail :: String -> LVM ctx va vb b

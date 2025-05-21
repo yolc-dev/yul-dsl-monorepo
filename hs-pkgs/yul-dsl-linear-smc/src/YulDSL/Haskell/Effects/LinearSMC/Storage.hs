@@ -1,4 +1,3 @@
-{-# LANGUAGE UndecidableInstances #-}
 {-|
 
 Copyright   : (c) 2024-2025 Miao, ZhiCheng
@@ -15,13 +14,14 @@ This module provides VersionThread and YLVM APIs that work with contract storage
 -}
 module YulDSL.Haskell.Effects.LinearSMC.Storage
   ( SReferenceable (sget'l, sput'l)
-  , sget, sgetM, SGettableNP (sgetNP), sgetN
+  , sget, sgetM
+  -- , SGettableNP (sgetNP), sgetN
   , sput, (<:=), sputM, (<<:=), sputMM, (<<:=<<)
   ) where
 -- base
 import GHC.TypeLits                             (type (+), type (<=))
 -- linear-base
-import Prelude.Linear                           (($), (.))
+import Prelude.Linear                           ((.))
 -- yul-dsl
 import YulDSL.Core
 -- linearly-versioned-monad
@@ -61,14 +61,6 @@ sget :: forall a b ie r v vref_.
   vref_ a -> YLVM v v r (Ur (Rv v r b))
 sget avar = ytkvarv avar LVM.>>= ymkvar . sget'l
 
--- sgetM :: forall a b ie r v vref_.
---   ( YulO3 r a b
---   , YulVarRef v r (P'x ie r) vref_
---   , SReferenceable v r a b
---   ) =>
---   YLVM v v r (Ur (vref_ a)) -> YLVM v v r (Ur (Rv v r b))
--- sgetM mavar = mavar LVM.>>= \(Ur avar) -> ytkvarv avar LVM.>>= ymkvar . sget'l
-
 sgetM :: forall a b r v.
   ( YulO3 r a b
   -- , YulVarRef v r (P'x ie r) vref_
@@ -77,32 +69,32 @@ sgetM :: forall a b r v.
   YLVM v v r (Ur (Rv v r a)) -> YLVM v v r (Ur (Rv v r b))
 sgetM mavar = mavar LVM.>>= \(Ur avar) -> ytkvarv avar LVM.>>= ymkvar . sget'l
 
-class (KnownNat v, YulO1 r) => SGettableNP v r np b where
-  sgetNP :: forall. np -> YLVM v v r b
+-- class (KnownNat v, YulO1 r) => SGettableNP v r np b where
+--   sgetNP :: forall. np -> YLVM v v r b
 
-instance (KnownNat v, YulO1 r) =>
-         SGettableNP v r (NP '[]) (Ur (NP '[])) where
-  sgetNP Nil = LVM.pure $ Ur Nil
+-- instance (KnownNat v, YulO1 r) =>
+--          SGettableNP v r (NP I '[]) (Ur (NP I '[])) where
+--   sgetNP Nil = LVM.pure $ Ur Nil
 
-instance ( YulO3 r a b
-         , YulVarRef v r (P'x ie r) vref_
-         , SReferenceable v r a b
-         , SGettableNP v r (NP as) (Ur (NP bs))
-         ) =>
-         SGettableNP v r (NP (vref_ a : as)) (Ur (NP (Rv v r b : bs))) where
-  sgetNP (a :* as) = LVM.do
-    Ur b <- sget a
-    Ur bs <- sgetNP as
-    LVM.pure $ Ur (b :* bs)
+-- instance ( YulO3 r a b
+--          , YulVarRef v r (P'x ie r) vref_
+--          , SReferenceable v r a b
+--          , SGettableNP v r (NP I as) (Ur (NP I bs))
+--          ) =>
+--          SGettableNP v r (NP I (vref_ a : as)) (Ur (NP I (Rv v r b : bs))) where
+--   sgetNP (a :* as) = LVM.do
+--     Ur b <- sget a
+--     Ur bs <- sgetNP as
+--     LVM.pure $ Ur (b :* bs)
 
-sgetN :: forall tpl_a tpl_b v r.
-  ( KnownNat v
-  , ConvertibleTupleNtoNP tpl_a, ConvertibleTupleNtoNP tpl_b
-  , SGettableNP v r (TupleNtoNP tpl_a) (TupleNtoNP tpl_b)
-  ) => tpl_a -> YLVM v v r tpl_b
-sgetN tpl_a = let np_a = fromTupleNtoNP tpl_a
-                  np_b = sgetNP np_a :: YLVM v v r (TupleNtoNP tpl_b)
-              in np_b LVM.>>= LVM.pure . fromNPtoTupleN
+-- sgetN :: forall tpl_a tpl_b v r.
+--   ( KnownNat v
+--   , ConvertibleTupleNtoNP I tpl_a, ConvertibleTupleNtoNP I tpl_b
+--   , SGettableNP v r (TupleNtoNP I tpl_a) (TupleNtoNP I tpl_b)
+--   ) => tpl_a -> YLVM v v r tpl_b
+-- sgetN tpl_a = let np_a = fromTupleNtoNP tpl_a
+--                   np_b = sgetNP np_a :: YLVM v v r (TupleNtoNP I tpl_b)
+--               in np_b LVM.>>= LVM.pure . fromNPtoTupleN
 
 ------------------------------------------------------------------------------------------------------------------------
 -- sput, sputM, sputMM
@@ -116,12 +108,12 @@ sput, (<:=) ::
   ) =>
   vref_a_ a ->
   vref_b_ b ->
-  YLVM v (v + 1) r ()
+  YLVM v (v + 1) r (Ur ())
 sput aVar bVar = LVM.do
   a <- ytkvarv aVar
   b <- ytkvarv bVar
   yrunvt (\vt -> sput'l vt a b)
-  LVM.pure ()
+  LVM.pure (Ur ())
 (<:=) = sput
 
 infix 0 <:=, <<:=, <<:=<<
@@ -135,13 +127,13 @@ sputM, (<<:=) :: forall v a b r vref_a_ vref_b_ iea ieb.
   ) =>
   YLVM v v r (Ur (vref_a_ a)) ->
   vref_b_ b ->
-  YLVM v (v + 1) r ()
+  YLVM v (v + 1) r (Ur ())
 sputM aVarM bVar = LVM.do
   Ur aVar <- aVarM
   a <- ytkvarv aVar
   b <- ytkvarv bVar
   yrunvt (\vt -> sput'l vt a b)
-  LVM.pure ()
+  LVM.pure (Ur ())
 (<<:=) = sputM
 
 sputMM, (<<:=<<) :: forall v a b r vref_a_ vref_b_ iea ieb.
@@ -153,12 +145,12 @@ sputMM, (<<:=<<) :: forall v a b r vref_a_ vref_b_ iea ieb.
   ) =>
   YLVM v v r (Ur (vref_a_ a)) ->
   YLVM v v r (Ur (vref_b_ b)) ->
-  YLVM v (v + 1) r ()
+  YLVM v (v + 1) r (Ur ())
 sputMM aVarM bVarM = LVM.do
   Ur aVar <- aVarM
   Ur bVar <- bVarM
   a <- ytkvarv aVar
   b <- ytkvarv bVar
   yrunvt (\vt -> sput'l vt a b)
-  LVM.pure ()
+  LVM.pure (Ur ())
 (<<:=<<) = sputMM

@@ -71,7 +71,7 @@ instance forall b r.
 
 -- ^ Inductive case: @uncurryingNP (x -> ...xs -> b) => (x, uncurryingNP (... xs -> b)) => NP (x:xs) -> b@
 instance forall g x xs b r.
-         ( YulO4 x (NP xs) b r
+         ( YulO4 x (NP I xs) b r
          , UncurriableNP g xs b (YulCat'P r) (YulCat'P r) Many (YulCat'P r) (YulCat'P r) Many
          ) =>
          UncurriableNP (x -> g) (x:xs) b (YulCat'P r) (YulCat'P r) Many (YulCat'P r) (YulCat'P r) Many where
@@ -90,9 +90,9 @@ instance forall b r.
          CurriableNP b '[] b (YulCat'P r) (YulCat'P r) Many (YulCat'P r) Many where
   curryNP fNP = fNP (YulReduceType <.< YulDis)
 
--- ^ Inductive case: @curryingNP (NP (x:xs) -> b) => x -> curryingNP (NP xs -> b)@
+-- ^ Inductive case: @curryingNP (NP (x:xs) -> b) => x -> curryingNP (NP I xs -> b)@
 instance forall g x xs b r.
-         ( YulO5 x (NP xs) b (NP (x:xs)) r
+         ( YulO5 x (NP I xs) b (NP I (x:xs)) r
          , CurriableNP g xs b (YulCat'P r) (YulCat'P r) Many (YulCat'P r) Many
          ) =>
          CurriableNP (x -> g) (x:xs) b (YulCat'P r) (YulCat'P r) Many (YulCat'P r) Many where
@@ -106,14 +106,14 @@ instance forall g x xs b r.
 data PureFn f where
   MkPureFn :: forall f xs b.
     ( EquivalentNPOfFunction f xs b
-    , YulO2 (NP xs) b
+    , YulO2 (NP I xs) b
     ) =>
-    NamedYulCat Pure (NP xs) b -> PureFn f
+    NamedYulCat Pure (NP I xs) b -> PureFn f
 
 instance Show (PureFn f) where
   show (MkPureFn (name, cat)) = "PureFn " <> name <> " {\n  " <> show (cleanYulCat cat) <> "\n}"
 
-instance EquivalentNPOfFunction f xs b => KnownNamedYulCat (PureFn f) PureEffect (NP xs) b where
+instance EquivalentNPOfFunction f xs b => KnownNamedYulCat (PureFn f) PureEffect (NP I xs) b where
   withKnownNamedYulCat (MkPureFn f) g = g f
 
 -- -- | Function without side effects and bottom, hence total.
@@ -134,19 +134,19 @@ instance EquivalentNPOfFunction f xs b => KnownNamedYulCat (PureFn f) PureEffect
 --
 -- When given:
 --
---   * @NP xs = (x1, x2 ... xn)@
---   * @x1' = Pure (NP xs ⤳ x1), ... xn' = Pure (NP xs ⤳ xn)@
---   * @f = λ x1' -> ... λ xn' -> Pure (NP xs ↝ b)@
+--   * @NP I xs = (x1, x2 ... xn)@
+--   * @x1' = Pure (NP I xs ⤳ x1), ... xn' = Pure (NP I xs ⤳ xn)@
+--   * @f = λ x1' -> ... λ xn' -> Pure (NP I xs ↝ b)@
 --
--- It returns: @Pure (NP xs ↝ b)@
+-- It returns: @Pure (NP I xs ↝ b)@
 fn' :: forall f xs b m.
-  ( YulO2 (NP xs) b
-  , YulCat'P (NP xs) ~ m
+  ( YulO2 (NP I xs) b
+  , YulCat'P (NP I xs) ~ m
   , UncurriableNP f xs b m m Many m m Many
   ) =>
   String ->
   LiftFunction f m m Many -> -- ^ uncurrying function type
-  PureFn (CurryNP (NP xs) b) -- ^ result type, or its short form @m b@
+  PureFn (CurryNP (NP I xs) b) -- ^ result type, or its short form @m b@
 fn' cid f = let cat = uncurryNP @f @xs @b @m @m @_ @m @m @_ f YulId in MkPureFn (cid, cat)
 
 -- | Create a 'PureFn' with automatic id based on function definition source location.
@@ -154,7 +154,7 @@ fn :: TH.Q TH.Exp
 fn = [e| fn' ("$pfn_" ++ $fnLocId) |]
 
 instance forall f x xs b g r.
-         ( YulO4 x (NP xs) b r
+         ( YulO4 x (NP I xs) b r
          , EquivalentNPOfFunction f (x:xs) b
          , CurriableNP g xs b (YulCat'P r) (YulCat'P r) Many (YulCat'P r) Many
          ) =>
@@ -168,12 +168,12 @@ call0 :: forall b a.
   , EquivalentNPOfFunction b '[] b
   ) =>
   PureFn b -> YulCat'P a b
-call0 f = callN f ()
+call0 (MkPureFn (cid, cat)) = distributeNP Nil >.> YulJmpU (cid, cat)
 
 instance forall f xs b r.
-         ( YulO3 (NP xs) b r
+         ( YulO3 (NP I xs) b r
          , EquivalentNPOfFunction f xs b
-         , ConvertibleNPtoTupleN (NP (MapList (YulCat'P r) xs))
+         , ConvertibleNPtoTupleN (YulCat'P r) (NP (YulCat'P r) xs)
          , DistributiveNP (YulCat'P r) xs
          ) =>
          CallableFunctionN PureFn f xs b (YulCat'P r) (YulCat'P r) Many where

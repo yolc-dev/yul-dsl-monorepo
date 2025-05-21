@@ -26,23 +26,27 @@ import Ethereum.ContractABI.ABITypeable  (ABITypeable (..))
 import Ethereum.ContractABI.ABITypeCodec (ABITypeCodec (..))
 
 
-instance ABITypeable (NP '[]) where
-  type instance ABITypeDerivedOf (NP '[]) = NP '[]
+--
+-- NP of any type function "f"
+--
+
+instance ABITypeable (NP f '[]) where
+  type instance ABITypeDerivedOf (NP f '[]) = NP f '[]
   abiDefault = Nil
   abiTypeInfo = []
 
-instance ( ABITypeable x, ABITypeable (NP xs)
-         ) => ABITypeable (NP (x : xs)) where
-  type instance ABITypeDerivedOf (NP (x : xs)) = NP (x : xs)
+instance ( ABITypeable (f x), ABITypeable (NP f xs)
+         ) => ABITypeable (NP f (x : xs)) where
+  type instance ABITypeDerivedOf (NP f (x : xs)) = NP f (x : xs)
   abiDefault = abiDefault :* abiDefault
-  abiTypeInfo = abiTypeInfo @x <> abiTypeInfo @(NP xs)
+  abiTypeInfo = abiTypeInfo @(f x) <> abiTypeInfo @(NP f xs)
 
-instance ABITypeCodec (NP '[]) where
+instance ABITypeCodec (NP f '[]) where
   abiEncoder Nil = S.put ()
   abiDecoder = S.get @() >> pure Nil
 
-instance ( ABITypeable x, ABITypeCodec x, ABITypeCodec (NP xs)
-         ) => ABITypeCodec (NP (x : xs)) where
+instance ( ABITypeable (f x), ABITypeCodec (f x), ABITypeCodec (NP f xs)
+         ) => ABITypeCodec (NP f (x : xs)) where
   abiEncoder (x :* xs) = do
     abiEncoder x
     abiEncoder xs
@@ -50,3 +54,18 @@ instance ( ABITypeable x, ABITypeCodec x, ABITypeCodec (NP xs)
     x <- abiDecoder
     xs <- abiDecoder
     pure (x :* xs)
+
+--
+-- Identity type for "f"
+--
+
+instance ABITypeable a => ABITypeable (I a) where
+  type instance ABITypeDerivedOf (I a) = a
+  abiDefault = I abiDefault
+  abiTypeInfo = abiTypeInfo @a
+  abiToCoreType (I x) = x
+  abiFromCoreType = I
+
+instance ABITypeCodec a => ABITypeCodec (I a) where
+  abiEncoder (I a) = abiEncoder a
+  abiDecoder = I <$> abiDecoder
