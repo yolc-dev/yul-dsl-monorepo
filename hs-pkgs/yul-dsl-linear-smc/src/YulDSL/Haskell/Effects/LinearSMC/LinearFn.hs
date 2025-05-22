@@ -209,7 +209,6 @@ ycalluv :: forall f x xs b v g r.
   ( KnownNat v, YulO4 x (NP I xs) b r
   , EncodableFn (PureFn f) PureInputPureOutput v r f (x:xs) b
   , CurriableNP g xs (Ur (Uv r b)) (YulCat'LPP r ()) (YLVM v v r) One (Uv r) One
-  , ConstructibleNP (P'P r) x xs One
   , YulVarRef v r (P'P r) (Uv r)
   ) =>
   PureFn f ->
@@ -243,7 +242,6 @@ class YCallableFunctionNonNil fn f x xs b va vd r | fn -> f vd where
     ( EncodableFn fn (VersionedInputOutput vd) va r f (x:xs) b
     , YulVarRef vb r (P'V vb r) (Rv vb r)
     , CurriableNP g xs (Ur (Rv vb r b)) (YulCat'LVV va va r ()) (YLVM va vb r) One (Rv va r) Many
-    , ConstructibleNP (P'V va r) x xs One
     , va + vd ~ vb, KnownNat va, KnownNat vd, KnownNat vb, YulO3 r x (NP I xs)
     ) =>
     fn ->
@@ -376,7 +374,6 @@ instance forall f x xs b g r.
          ( YulO4 x (NP I xs) b r
          , EquivalentNPOfFunction f (x:xs) b
          , CurriableNP g xs b (YulCat'LPP r ()) (P'P r) One (P'P r) One
-         , ConstructibleNP (P'P r) x xs One
          ) =>
          CallableFunctionNP PureFn f x xs b (P'P r) (P'P r) One where
   call (MkPureFn f') x =
@@ -388,7 +385,6 @@ instance forall f x xs b va g r.
          ( YulO4 x (NP I xs) b r
          , EquivalentNPOfFunction f (x:xs) b
          , CurriableNP g xs b (YulCat'LVV va va r ()) (P'V va r) One (P'V va r) One
-         , ConstructibleNP (P'V va r) x xs One
          ) =>
          CallableFunctionNP PureFn f x xs b (P'V va r) (P'V va r) One where
   call (MkPureFn f) x =
@@ -401,7 +397,6 @@ instance forall f x xs b va g r.
          ( YulO4 x (NP I xs) b r
          , EquivalentNPOfFunction f (x:xs) b
          , CurriableNP g xs b (YulCat'LVV va va r ()) (P'V va r) One (P'V va r) One
-         , ConstructibleNP (P'V va r) x xs One
          ) =>
          CallableFunctionNP StaticFn f x xs b (P'V va r) (P'V va r) One where
   call (MkStaticFn f) = call (MkPureFn (unsafeCoerceNamedYulCat f))

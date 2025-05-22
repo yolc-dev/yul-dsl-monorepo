@@ -477,7 +477,6 @@ yuncurry_nil b h a = h a & eject . unsafeCoerceYulPort . coerceType'l @_ @() LVM
 yuncurry_xs :: forall m1 m2_ m2b_ m2 mb g x xs b r a ie v1 vn.
   ( YulO4 x (NP I xs) r a
   , UncurriableNP g xs b m1 mb Many (m2_ a) (m2b_ a) One
-  , ConstructibleNP (P'x ie r) x xs One
   --
   , KnownNat v1, KnownNat vn
   , YulVarRef v1 r m2 m1 -- m1 |- m2 ∧ m2 |- m1
@@ -517,7 +516,6 @@ instance forall x xs b g v r a.
          ( KnownNat v
          , YulO5 x (NP I xs) b r a
          , UncurriableNP g xs (Ur (Uv r b)) (Uv r) (YLVM v v r) Many (YulCat'LPP r a) (YulCat'LPPM v r a) One
-         , ConstructibleNP (P'P r) x xs One
          ) =>
          UncurriableNP (x -> g) (x:xs) (Ur (Uv r b))
          (Uv r) (YLVM v v r) Many (YulCat'LPP r a) (YulCat'LPPM v r a) One where
@@ -550,7 +548,6 @@ instance forall b v r a.
 instance forall x xs b g r a v.
          ( YulO4 x (NP I xs) r a
          , CurriableNP g xs (Uv r b) (YulCat'LPP r a) (YLVM v v r) One (Uv r) Many
-         , ConstructibleNP (P'P r) x xs One
            --
          , KnownNat v
          ) =>
@@ -578,7 +575,6 @@ instance forall x xs b g v1 vn r a.
          , YulO5 x (NP I xs) b r a
          , UncurriableNP g xs (Ur (Rv vn r b))
            (Uv r) (YLVM v1 vn r) Many (YulCat'LPP r a) (YulCat'LPVM v1 vn r a) One
-         , ConstructibleNP (P'P r) x xs One
          ) =>
          UncurriableNP (x -> g) (x:xs) (Ur (Rv vn r b))
          (Uv r) (YLVM v1 vn r) Many (YulCat'LPP r a) (YulCat'LPVM v1 vn r a) One where
@@ -613,7 +609,6 @@ instance forall b v1 vn r a.
 instance forall x xs b g r a v1 vn.
          ( YulO4 x (NP I xs) r a
          , CurriableNP g xs (Ur (Rv vn r b)) (YulCat'LPP r a) (YLVM v1 vn r) One (Uv r) Many
-         , ConstructibleNP (P'P r) x xs One
            --
          , KnownNat v1, KnownNat vn
          ) =>
@@ -639,7 +634,6 @@ instance forall b v1 vn r a.
 instance forall x xs b g v1 vn r a.
          ( UncurriableNP g xs (Ur (Rv vn r b))
            (Rv v1 r) (YLVM v1 vn r) Many (YulCat'LVV v1 v1 r a) (YulCat'LVVM v1 vn r a) One
-         , ConstructibleNP (P'V v1 r) x xs One
            --
          , YulO5 x (NP I xs) b r a
          , KnownNat v1, KnownNat vn
@@ -677,7 +671,6 @@ instance forall b v1 vn r a.
 instance forall x xs b g r a v1 vn.
          ( YulO4 x (NP I xs) r a
          , CurriableNP g xs (Ur (Rv vn r b)) (YulCat'LVV v1 v1 r a) (YLVM v1 vn r) One (Rv v1 r) Many
-         , ConstructibleNP (P'V v1 r) x xs One
            --
          , KnownNat v1, KnownNat vn
          ) =>

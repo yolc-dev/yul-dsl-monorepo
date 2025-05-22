@@ -130,7 +130,6 @@ unsafe_uncurry_nil b h a =
 uncurry_nonnil :: forall m1 m2_ m2b_ m2 mb g x xs b r a ie.
   ( YulO4 x (NP I xs) r a
   , UncurriableNP g xs b m1 mb One (m2_ a) (m2b_ a) One
-  , ConstructibleNP (P'x ie r) x xs One
   --
   , P'x ie r ~ m1
   , m1 ~ m2
@@ -164,7 +163,6 @@ instance forall b r a.
 instance forall x xs b g r a.
          ( YulO5 x (NP I xs) b r a
          , UncurriableNP g xs b (P'P r) (P'P r) One (YulCat'LPP r a) (YulCat'LPP r a) One
-         , ConstructibleNP (P'P r) x xs One
          ) =>
          UncurriableNP (x -> g) (x:xs) b (P'P r) (P'P r) One (YulCat'LPP r a) (YulCat'LPP r a) One where
   uncurryNP f (MkYulCat'LPP h) = MkYulCat'LPP (uncurry_nonnil f h MkYulCat'LPP (\(MkYulCat'LPP g) -> g))
@@ -195,7 +193,6 @@ instance forall b r a.
 instance forall g x xs b r a.
          ( YulO5 x (NP I xs) b r a
          , CurriableNP g xs b (YulCat'LPP r a) (P'P r) One (P'P r) One
-         , ConstructibleNP (P'P r) x xs One
          ) =>
          CurriableNP (x -> g) (x:xs) b (YulCat'LPP r a) (P'P r) One (P'P r) One where
   curryNP fNP x = curryNP @g @xs @b @(YulCat'LPP r a) @(P'P r) @_ @(P'P r) @_
@@ -217,7 +214,6 @@ instance forall b vd r a.
 instance forall x xs b g vd r a.
          ( YulO5 x (NP I xs) b r a
          , UncurriableNP g xs b (P'P r) (P'V vd r) One (YulCat'LPP r a) (YulCat'LPV vd r a) One
-         , ConstructibleNP (P'P r) x xs One
          ) =>
          UncurriableNP (x -> g) (x:xs) b (P'P r) (P'V vd r) One (YulCat'LPP r a) (YulCat'LPV vd r a) One where
   uncurryNP f (MkYulCat'LPP h) = MkYulCat'LPV (uncurry_nonnil f h MkYulCat'LPP (\(MkYulCat'LPV g) -> g))
@@ -248,7 +244,6 @@ instance forall b v1 vn r a.
 instance forall g x xs b r a v1 vn.
          ( YulO5 x (NP I xs) b r a
          , CurriableNP g xs b (YulCat'LVV v1 v1 r a) (P'V vn r) One (P'P r) One
-         , ConstructibleNP (P'V v1 r) x xs One
          ) =>
          CurriableNP (x -> g) (x:xs) b (YulCat'LVV v1 v1 r a) (P'V vn r) One (P'P r) One where
   curryNP cb x = curryNP @g @xs @b @(YulCat'LVV v1 v1 r a) @(P'V vn r) @_ @(P'P r) @_
@@ -270,7 +265,6 @@ instance forall b v1 vn r a.
 instance forall g x xs b v1 vn r a.
          ( YulO5 x (NP I xs) b r a
          , UncurriableNP g xs b (P'V v1 r) (P'V vn r) One (YulCat'LVV v1 v1 r a) (YulCat'LVV v1 vn r a) One
-         , ConstructibleNP (P'V v1 r) x xs One
          ) =>
          UncurriableNP (x -> g) (x:xs) b (P'V v1 r) (P'V vn r) One (YulCat'LVV v1 v1 r a) (YulCat'LVV v1 vn r a) One where
   uncurryNP f (MkYulCat'LVV h) = MkYulCat'LVV (uncurry_nonnil f h MkYulCat'LVV (\(MkYulCat'LVV g) -> g))
@@ -301,7 +295,6 @@ instance forall b v1 vn r a.
 instance forall g x xs b r a v1 vn.
          ( YulO5 x (NP I xs) b r a
          , CurriableNP g xs b (YulCat'LVV v1 v1 r a) (P'V vn r) One (P'V v1 r) One
-         , ConstructibleNP (P'V v1 r) x xs One
          ) =>
          CurriableNP (x -> g) (x:xs) b (YulCat'LVV v1 v1 r a) (P'V vn r) One (P'V v1 r) One where
   curryNP cb x = curryNP @g @xs @b @(YulCat'LVV v1 v1 r a) @(P'V vn r) @_ @(P'V v1 r) @_

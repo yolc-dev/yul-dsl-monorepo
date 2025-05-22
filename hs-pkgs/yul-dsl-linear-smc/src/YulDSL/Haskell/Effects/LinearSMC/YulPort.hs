@@ -1,4 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-|
 
 Copyright   : (c) 2024-2025 Miao, ZhiCheng
@@ -343,13 +344,8 @@ instance (YulO1 r, ValidINTx s n) => Multiplicative (P'x eff r (INTx s n)) where
 -- NP
 --
 
-instance YulO2 x r =>
-         ConstructibleNP (P'x eff r) x '[] One where
-  consNP x nil = coerceType'l (merge'l (x, nil))
-  unconsNP = split'l . coerceType'l
-
-instance (YulO4 x x' (NP I xs') r, ConstructibleNP (P'x eff r) x' xs' One) =>
-         ConstructibleNP (P'x eff r) x (x':xs') One where
+instance YulO3 x (NP I xs) r =>
+         ConstructibleNP (P'x eff r) x xs One where
   consNP x xs = coerceType'l (merge'l (x, xs))
   unconsNP = split'l . coerceType'l
 
@@ -359,9 +355,9 @@ instance YulO1 r =>
 instance YulO1 r =>
          LinearDistributiveNP (P'x eff r) '[] where
   linearDistributeNP Nil = coerceType'l
-instance (YulO3 x (NP I xs) r, LinearTraversableNP (P'x eff r) xs, ConstructibleNP (P'x eff r) x xs One) =>
+instance (YulO3 x (NP I xs) r, LinearTraversableNP (P'x eff r) xs) =>
          LinearTraversableNP (P'x eff r) (x:xs)
-instance (YulO3 x (NP I xs) r, LinearDistributiveNP (P'x eff r) xs, ConstructibleNP (P'x eff r) x xs One) =>
+instance (YulO3 x (NP I xs) r, LinearDistributiveNP (P'x eff r) xs) =>
          LinearDistributiveNP (P'x eff r) (x:xs)
 
 --
