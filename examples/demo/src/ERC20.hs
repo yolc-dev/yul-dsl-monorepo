@@ -36,13 +36,14 @@ transfer = $lfn $ ylvm'pv
     -- ✅ CORRECT CODE:
 
     Ur senderBalance <- ycall balanceOf (ver from)
-    Ur newSenderBalance <- ywithrv_1 (ver amount :* senderBalance :* Nil)
-      \(amount' :* senderBalance' :* Nil) -> senderBalance' - amount'
+    Ur newSenderBalance <- ywithrv_1 (ver amount, senderBalance)
+      \amount' senderBalance' ->
+        if senderBalance' >= amount' then senderBalance' - amount'
+        else yulRevert
     balances #-> from <<:= newSenderBalance
 
     Ur receiverBalance <- ycall balanceOf (ver to)
-    Ur newReceiverBalance <- ywithrv_1 (ver amount :* receiverBalance :* Nil)
-      \(amount' :* receiverBalance' :* Nil) -> receiverBalance' + amount'
+    Ur newReceiverBalance <- ywithrv_1 (ver amount, receiverBalance) \x y -> x + y
     balances #-> to <<:= newReceiverBalance
 
     -- ⛔ INCORRECT CODE, CANNOT PASS COMPILATION:
@@ -71,7 +72,7 @@ mint = $lfn $ ylvm'pv
     Ur balanceBefore <- ycall balanceOf (ver to)
 
     -- calculate new balance
-    Ur newAmount <- ywithrv_1 (balanceBefore :* ver amount :* Nil) \(x :* y :* Nil) -> x + y
+    Ur newAmount <- ywithrv_1 (balanceBefore, ver amount) \x y -> x + y
 
     -- ⚠️ NOTE: swap the following code blocks will not compile, because there can be reentrance!
 

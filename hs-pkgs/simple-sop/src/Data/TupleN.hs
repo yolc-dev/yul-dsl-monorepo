@@ -22,8 +22,9 @@ module Data.TupleN
   , NPtoTupleN, HavingFromNPtoTupleN (fromNPtoTupleN)
   , TupleN, TupleN_M
   , ConvertibleTupleNtoNP, ConvertibleNPtoTupleN
+  , TupleNWithSameM
   , module Data.TupleN.TH
-  -- re-export solo tuple type
+  -- re-export TupleN
   , Solo (MkSolo)
   ) where
 -- base
@@ -203,6 +204,12 @@ do
     (dec_tf_tpl2np : decs_cls_tpl2np) <>
     (dec_tf_np2tpl : decs_cls_np2tpl) <>
     [dec_tpl, dec_tplm]
+
+-- FIXME: to move
+class TupleNWithSameM tpl
+instance TupleNWithSameM (Solo (m x))
+instance m1 ~ m2 => TupleNWithSameM (m1 x1, m2 x2)
+instance (m1 ~ m2, m2 ~ m3) => TupleNWithSameM (m1 x1, m2 x2, m3 x3)
 
 -- | A constraint alias for TupleN types that are convertible to NP and vice versa.
 type ConvertibleTupleNtoNP m tpl = ( NPtoTupleN m (TupleNtoNP m tpl) ~ tpl

@@ -320,30 +320,30 @@ instance ( YulO2 x (NP I xs)
 -- ytkuvN, ytkrvN
 --
 
-ytkuvN :: forall v xs r m1 m2.
+ytkuvN :: forall xs v r m1 m2.
   ( Uv r ~ m1
   , P'P r ~ m2
   , ConvertibleNPtoTupleN m1 (NP m1 xs)
   , ConvertibleNPtoTupleN m2 (NP m2 xs)
   , YulVarRefNP xs v r m2 m1
   ) =>
-  NPtoTupleN m1 (NP m1 xs) ->
-  YLVM v v r (NPtoTupleN m2 (NP m2 xs))
+  TupleN_M m1 xs ->
+  YLVM v v r (TupleN_M m2 xs)
 ytkuvN tpl = LVM.do
-  aNP <- ytkvarNP @xs @v @r @m2 @m1 (fromTupleNtoNP tpl)
+  aNP <- ytkvarNP (fromTupleNtoNP tpl)
   LVM.pure (fromNPtoTupleN aNP)
 
-ytkrvN :: forall v xs r m1 m2.
+ytkrvN :: forall xs v r m1 m2.
   ( Rv v r ~ m1
   , P'V v r ~ m2
   , ConvertibleNPtoTupleN m1 (NP m1 xs)
   , ConvertibleNPtoTupleN m2 (NP m2 xs)
   , YulVarRefNP xs v r m2 m1
   ) =>
-  NPtoTupleN m1 (NP m1 xs) ->
-  YLVM v v r (NPtoTupleN m2 (NP m2 xs))
+  TupleN_M m1 xs ->
+  YLVM v v r (TupleN_M m2 xs)
 ytkrvN tpl = LVM.do
-  aNP <- ytkvarNP @xs @v @r @m2 @m1 (fromTupleNtoNP tpl)
+  aNP <- ytkvarNP (fromTupleNtoNP tpl)
   LVM.pure (fromNPtoTupleN aNP)
 
 --
@@ -372,11 +372,17 @@ yreturn a = LVM.pure (Ur a)
 
 type ConstraintForYWith f x xs b bs bret f' v r m1 m2 mp =
   ( KnownNat v, YulO6 x (NP I xs) b (NP I bs) bret r
+    -- m2
+  , YulCat Pure (NP I (x:xs)) ~ m2
     -- f
   , UncurriableNP f (x:xs) bret m2 m2 Many m2 m2 Many
     -- f'
   , EquivalentNPOfFunction f' (x:xs) (NP I (b:bs))
     -- x:xs
+  , TupleNWithSameM (TupleN_M m1 (x:xs))
+  , ConvertibleNPtoTupleN mp (NP mp (x:xs))
+  , ConvertibleNPtoTupleN m1 (NP m1 (x:xs))
+  , ConvertibleNPtoTupleN m2 (NP m2 (x:xs))
   , YulVarRefNP xs v r mp m1
   , LinearDistributiveNP mp (x:xs)
   , DistributiveNP m2 (x:xs)
@@ -389,15 +395,14 @@ type ConstraintForYWith f x xs b bs bret f' v r m1 m2 mp =
 
 ywithuv :: forall f x xs b bs btpl f' v r m1 m2.
   ( ConstraintForYWith f x xs b bs btpl f' v r m1 m2 (P'P r)
-    -- m1, m1b, m2
+    -- m1
   , Uv r ~ m1
-  , YulCat Pure (NP I (x:xs)) ~ m2
     -- btpl
   , TupleN (b:bs) ~ btpl
   , NP I (b:bs) ~ ABITypeDerivedOf btpl
   ) =>
   NP (Uv r) (x:xs) ->
-  PureYulFn f ->
+  LiftFunction f m2 m2 Many ->
   YLVM v v r (Ur (TupleN_M (Uv r) (b:bs)))
 ywithuv xxs_uvs f = LVM.do
   xxs <- ytkvarNP @(x:xs) xxs_uvs
@@ -409,53 +414,65 @@ ywithuv xxs_uvs f = LVM.do
 
 ywithuv_1 :: forall f x xs b v r m1 m2 f'.
   ( ConstraintForYWith f x xs b '[] b f' v r m1 m2 (P'P r)
-    -- m1, m2
+    -- m1
   , Uv r ~ m1
-  , YulCat Pure (NP I (x:xs)) ~ m2
   ) =>
-  NP (Uv r) (x:xs) ->
-  PureYulFn f ->
+  TupleN_M (Uv r) (x:xs) ->
+  LiftFunction f m2 m2 Many ->
   YLVM v v r (Ur (Uv r b))
-ywithuv_1 xxs_uvs f = LVM.do
-  xxs <- ytkvarNP @(x:xs) xxs_uvs
-  let !(b :* Nil) = with'l @f' xxs f'
+ywithuv_1 xxs_tpl f = LVM.do
+  xxs_tpl' <- ytkuvN @(x:xs) xxs_tpl
+  let !(b :* Nil) = with'l @f' (fromTupleNtoNP xxs_tpl') f'
   ymkvar b
   where f' txxs = uncurryNP @f @(x:xs) @b @m2 @m2 @Many @m2 @m2 @Many f (distributeNP txxs)
                   >.> YulCoerceType @_ @b @(NP I '[b]) >.> YulReduceType
 
 ywithrv :: forall f x xs b bs btpl v r m1 m2 f'.
   ( ConstraintForYWith f x xs b bs btpl f' v r m1 m2 (P'V v r)
-    -- m1, m2
+    -- m1
   , Rv v r ~ m1
-  , YulCat Pure (NP I (x:xs)) ~ m2
     -- btpl
   , TupleN (b:bs) ~ btpl
   , NP I (b:bs) ~ ABITypeDerivedOf btpl
   ) =>
-  NP (Rv v r) (x:xs) ->
-  (NP m2 (x:xs) -> m2 (TupleN (b:bs))) ->
+  TupleN_M (Rv v r) (x:xs) ->
+  LiftFunction f m2 m2 Many ->
   YLVM v v r (Ur (TupleN_M m1 (b:bs)))
-ywithrv xxs_rvs f = LVM.do
-  xxs <- ytkvarNP @(x:xs) xxs_rvs
-  let bbs = with'l @f' xxs f'
+ywithrv xxs_tpl f = LVM.do
+  xxs_tpl' <- ytkrvN @(x:xs) xxs_tpl
+  let bbs = with'l @f' (fromTupleNtoNP xxs_tpl') f'
   Ur bbsrefs <- ymkvarNP @(b:bs) bbs
   LVM.pure $ Ur (fromNPtoTupleN bbsrefs)
-  where f' txxs = f txxs >.> YulReduceType
+  where f' txxs = uncurryNP @f @(x:xs) @btpl @m2 @m2 @Many @m2 @m2 @Many f (distributeNP txxs)
+                  >.> YulReduceType
 
 ywithrv_1 :: forall f x xs b v r m1 m2 f'.
   ( ConstraintForYWith f x xs b '[] b f' v r m1 m2 (P'V v r)
-    -- m1, m2
+    -- m1
   , Rv v r ~ m1
-  , YulCat Pure (NP I (x:xs)) ~ m2
   ) =>
-  NP (Rv v r) (x:xs) ->
-  (NP m2 (x:xs) -> m2 b) ->
+  TupleN_M (Rv v r) (x:xs) ->
+  LiftFunction f m2 m2 Many ->
   YLVM v v r (Ur (Rv v r b))
-ywithrv_1 xxs_rvs f = LVM.do
-  xxs <- ytkvarNP @(x:xs) xxs_rvs
-  let !(b :* Nil) = with'l @f' xxs f'
+ywithrv_1 xxs_tpl f = LVM.do
+  xxs_tpl' <- ytkrvN @(x:xs) xxs_tpl
+  let !(b :* Nil) = with'l @f' (fromTupleNtoNP xxs_tpl') f'
   ymkvar b
-  where f' txxs = be (f txxs :* Nil)
+  where f' txxs = uncurryNP @f @(x:xs) @b @m2 @m2 @Many @m2 @m2 @Many f (distributeNP txxs)
+                  >.> YulCoerceType @_ @b @(NP I '[b]) >.> YulReduceType
+
+------------------------------------------------------------------------------------------------------------------------
+-- $ControlFlows
+------------------------------------------------------------------------------------------------------------------------
+
+ywhen :: forall va vb r.
+  Rv va r BOOL ->
+  YLVM va vb r (Ur (Rv vb r ())) ->
+  YLVM va vb r (Ur (Rv vb r ()))
+ywhen = error "ywhen"
+-- ywhen rv action = LVM.do
+--   b <- ytkvar rv
+--   ymkvar $ (bool'l (ylvm'vv @'[BOOL] action) (ylvm'vv @'[BOOL] (yembed ()))) (coerceType'l b)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $YLVMDiagrams
