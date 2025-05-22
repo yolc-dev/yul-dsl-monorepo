@@ -10,8 +10,8 @@ module Ethereum.ContractABI
   , module Ethereum.ContractABI.CoreType.INTx
   , module Ethereum.ContractABI.CoreType.BYTESn
   --
+  , module Ethereum.ContractABI.ExtendedType.TPL
   , module Ethereum.ContractABI.ExtendedType.REF
-  , module Ethereum.ContractABI.ExtendedType.TUPLEn
   ) where
 -- type machinery
 import Ethereum.ContractABI.ABICoreType
@@ -26,4 +26,4 @@ import Ethereum.ContractABI.CoreType.INTx
 import Ethereum.ContractABI.CoreType.NP
 -- extended types
 import Ethereum.ContractABI.ExtendedType.REF
-import Ethereum.ContractABI.ExtendedType.TUPLEn
+import Ethereum.ContractABI.ExtendedType.TPL

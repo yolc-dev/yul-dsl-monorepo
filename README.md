@@ -115,7 +115,7 @@ mint = $lfn $ ylvm'pv
   \(Uv to) (Uv amount) -> LVM.do
     Rv balanceBefore <- ycall balanceOf (ver to)
     -- calculate new balance
-    (Rv newAmount) <- ywithrv_N1 @(U256 -> U256 -> U256)
+    (Rv newAmount) <- ywithrv_1 @(U256 -> U256 -> U256)
       (Rv balanceBefore, ver amount)
       (\x y -> x + y)
     -- update balance

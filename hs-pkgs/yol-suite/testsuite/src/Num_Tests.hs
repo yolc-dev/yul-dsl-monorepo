@@ -5,7 +5,7 @@ import Prelude.YulDSL
 -- comparitors
 --
 
-type CmpResult = (I BOOL, I BOOL, I BOOL, I BOOL, I BOOL)
+type CmpResult = (BOOL, BOOL, BOOL, BOOL, BOOL)
 
 cmp_uint256 = fn' @(U256 -> U256 -> CmpResult) $fnLocId \x y -> be (x < y, x <= y, x == y, x >= y, x > y)
 cmp_uint192 = fn' @(U192 -> U192 -> CmpResult) $fnLocId \x y -> be (x < y, x <= y, x == y, x >= y, x > y)

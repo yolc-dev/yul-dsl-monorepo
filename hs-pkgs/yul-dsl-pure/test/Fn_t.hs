@@ -103,7 +103,7 @@ add2NP_fn' :: PureFn (U256 -> U256 -> U256)
 add2NP_fn' = $fn \a b -> add2NP_y (a `yulCons` b `yulCons` yulNil)
 
 add2NP_fn'' :: PureFn (U256 -> U256 -> U256)
-add2NP_fn'' = $fn \a b -> add2NP_y (couldBe (a :* b :* Nil))
+add2NP_fn'' = $fn \a b -> add2NP_y (be (a :* b :* Nil))
 
 test_np_fns :: Gen Bool
 test_np_fns =

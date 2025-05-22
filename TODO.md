@@ -34,7 +34,7 @@ TODO
   - [ ] 🟠 ARRAYn n a
   - [ ] 🟠 STRING
 - ExtendedType
-  - [x] TUPLEn
+  - [x] TPL, TupleN for NP.
   - [x] REF, storage or memory raw reference with `constRef, keyRef`.
 - ABICodec
   - [ ] 🟢 Compatibility with the solidity abi-spec
@@ -226,6 +226,12 @@ z  - [x] Co-cartesian related
   - [x] Nix flake
   - [x] 🌟 yolc.dev playground
   - [ ] 🌟 github container
+
+### simple-np
+
+- NP & TupleN syntax extensions
+ - [ ] N-ary currying constructor: `np a b c nil`
+ - [ ] View pattern `tpl :: NP m xs -> (m x1, ... m x_n)`
 
 ## TODOs beyond 0.1.0.0
 

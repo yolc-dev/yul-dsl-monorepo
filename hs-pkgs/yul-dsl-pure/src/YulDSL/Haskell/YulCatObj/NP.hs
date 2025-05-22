@@ -40,7 +40,9 @@ instance ( YulO3 x (NP I xs) r
 
 instance YulO1 r =>
          PatternMatchable (YulCat eff r) (NP I '[]) (NP (YulCat eff r) '[]) YulCatObj Many where
-  couldBe = distributeNP
+instance YulO1 r =>
+         InjectivePattern (YulCat eff r) (NP I '[]) (NP (YulCat eff r) '[]) YulCatObj Many where
+  be = distributeNP
 
 instance ( YulO3 x (NP I xs) r
          , DistributiveNP (YulCat eff r) (x:xs)
@@ -48,4 +50,10 @@ instance ( YulO3 x (NP I xs) r
          , SingleCasePattern (YulCat eff r) (NP I xs) (NP (YulCat eff r) xs) YulCatObj Many
          ) =>
          PatternMatchable (YulCat eff r) (NP I (x:xs)) (NP (YulCat eff r) (x:xs)) YulCatObj Many where
-  couldBe = distributeNP
+instance ( YulO3 x (NP I xs) r
+         , DistributiveNP (YulCat eff r) (x:xs)
+         , TraversableNP (YulCat eff r) (x:xs)
+         , SingleCasePattern (YulCat eff r) (NP I xs) (NP (YulCat eff r) xs) YulCatObj Many
+         ) =>
+         InjectivePattern (YulCat eff r) (NP I (x:xs)) (NP (YulCat eff r) (x:xs)) YulCatObj Many where
+  be = distributeNP

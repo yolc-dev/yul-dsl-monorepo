@@ -12,7 +12,7 @@ Stability   : experimental
 This module provides the pattern matching instances for yul morphisms to n-tuples.
 
 -}
-module YulDSL.Haskell.YulCatObj.TUPLEn (getSolo) where
+module YulDSL.Haskell.YulCatObj.TPL (getSolo) where
 -- base
 import Control.Monad            (replicateM)
 -- TODO: - Fixed inability to re-export the ``Data.Tuple.MkSolo`` constructor (:ghc-ticket:`25182`)
@@ -32,44 +32,52 @@ getSolo (MkSolo a) = a
 -- Tuple1 is Solo and special.
 
 instance (YulO2 a r) =>
-         SingleCasePattern (YulCat eff r) (Solo a) (Solo (YulCat eff r a))
+         SingleCasePattern (YulCat eff r) (Solo a) (YulCat eff r a)
          YulCatObj Many where
-  is ma = MkSolo (ma >.> YulCoerceType)
+  is = (>.> YulCoerceType)
 instance (YulO2 a r, YulCat eff r ~ m) =>
-         PatternMatchable (YulCat eff r) (Solo a) (Solo (YulCat eff r a))
+         PatternMatchable (YulCat eff r) (Solo a) (YulCat eff r a)
          YulCatObj Many where
-  couldBe (MkSolo ma) = ma >.> YulCoerceType
 -- Make injective pattern free from MkSolo.
 instance YulO2 a r =>
          InjectivePattern (YulCat eff r) (Solo a) (YulCat eff r a)
          YulCatObj Many where
-  be ma = ma >.> YulCoerceType
+  be = (>.> YulCoerceType)
 
 -- Tuple2 is the base case.
 
 instance (YulO3 a1 a2 r) =>
-         SingleCasePattern (YulCat eff r) (a1, a2) (YulCat eff r a1, YulCat eff r a2)
+         SingleCasePattern
+         (YulCat eff r)
+         (a1, a2)
+         (YulCat eff r a1, YulCat eff r a2)
          YulCatObj Many where
   is mtpl =
     let mx1 = mtpl >.> YulExl
         mx2 = mtpl >.> YulExr
     in (mx1, mx2)
 instance (YulO3 a1 a2 r) =>
-         PatternMatchable (YulCat eff r) (a1, a2) (YulCat eff r a1, YulCat eff r a2)
+         PatternMatchable
+         (YulCat eff r)
+         (a1, a2)
+         (YulCat eff r a1, YulCat eff r a2)
          YulCatObj Many
 instance (YulO3 a1 a2 r, YulCat eff r ~ m) =>
-         InjectivePattern (YulCat eff r) (a1, a2) (YulCat eff r a1, YulCat eff r a2)
+         InjectivePattern
+         (YulCat eff r)
+         (a1, a2)
+         (YulCat eff r a1, YulCat eff r a2)
          YulCatObj Many where
   be (mx1, mx2) = YulFork mx1 mx2
 
--- Tuple{[3..15]} instances
+-- Tuple{[3..16]} instances
 
 -- Tuple3 code is the example for the TH to mimic how to generate more instances inductively:
 
 instance (YulO4 a1 a2 a3 r) =>
          SingleCasePattern
          (YulCat eff r)
-         (I a1, I a2, I a3)
+         (a1, a2, a3)
          (YulCat eff r a1, YulCat eff r a2, YulCat eff r a3)
          YulCatObj Many where
   is mtpl =
@@ -79,13 +87,15 @@ instance (YulO4 a1 a2 a3 r) =>
         (mx2, mx3) = is mxs
     in (mx1, mx2, mx3)
 instance (YulO4 a1 a2 a3 r) =>
-         PatternMatchable (YulCat eff r)
-         (I a1, I a2, I a3)
+         PatternMatchable
+         (YulCat eff r)
+         (a1, a2, a3)
          (YulCat eff r a1, YulCat eff r a2, YulCat eff r a3)
          YulCatObj Many
 instance (YulO4 a1 a2 a3 r) =>
-         InjectivePattern (YulCat eff r)
-         (I a1, I a2, I a3)
+         InjectivePattern
+         (YulCat eff r)
+         (a1, a2, a3)
          (YulCat eff r a1, YulCat eff r a2, YulCat eff r a3)
          YulCatObj Many where
   be (mx1, mx2, mx3) =
@@ -94,9 +104,8 @@ instance (YulO4 a1 a2 a3 r) =>
 
 do
   let mkT_YulO1 = (TH.conT ''YulO1 `TH.appT`)
-  let mkT_I = (TH.conT ''I `TH.appT`)
   insts <- mapM (\n -> do
-    -- type variables: r, a, as... {-# SCC " #-}
+    -- type variables: r, a, as...
     r <- TH.newName "r"
     a <- TH.newName "a"
     as <- replicateM (n - 1) (TH.newName "a")
@@ -107,12 +116,12 @@ do
     m <- [t| YulCat $(TH.varT =<< TH.newName "eff") $(TH.varT r) |]
     [d| instance ( $(tupleNFromVarsTWith mkT_YulO1 (r : a : as))
                  , SingleCasePattern $(pure m)
-                                     $(tupleNFromVarsTWith mkT_I as)
+                                     $(tupleNFromVarsT as)
                                      $(tupleNFromVarsTWith (pure m `TH.appT`) as)
                                      YulCatObj Many
                  ) =>
                  SingleCasePattern $(pure m)
-                                   $(tupleNFromVarsTWith mkT_I (a : as))
+                                   $(tupleNFromVarsT (a : as))
                                    $(tupleNFromVarsTWith (pure m `TH.appT`) (a : as))
                                    YulCatObj Many where
           is mtpl_ =
@@ -120,23 +129,23 @@ do
                 mx1_  = mxxs_  >.> YulExl
                 $(TH.tupP (fmap TH.varP xs)) =
                   is (mxxs_  >.> YulExr >.> YulExtendType
-                      :: $(pure m) $(tupleNFromVarsTWith mkT_I as))
+                      :: $(pure m) $(tupleNFromVarsT as))
             in $(TH.tupE (TH.varE 'mx1_ : fmap TH.varE xs))
 
         instance $(tupleNFromVarsTWith mkT_YulO1 (r : a : as)) =>
                  PatternMatchable $(pure m)
-                                  $(tupleNFromVarsTWith mkT_I (a : as))
+                                  $(tupleNFromVarsT (a : as))
                                   $(tupleNFromVarsTWith (pure m `TH.appT`) (a : as))
                                   YulCatObj Many
 
         instance $(tupleNFromVarsTWith mkT_YulO1 (r : a : as)) =>
                  InjectivePattern $(pure m)
-                                  $(tupleNFromVarsTWith mkT_I (a : as))
+                                  $(tupleNFromVarsT (a : as))
                                   $(tupleNFromVarsTWith (pure m `TH.appT`) (a : as))
                                   YulCatObj Many where
           be $(TH.tupP (fmap TH.varP (x : xs))) =
             let mnpxs_ = ( $(TH.varE 'be `TH.appE` TH.tupE (fmap TH.varE xs))
-                           :: $(pure m) $(tupleNFromVarsTWith mkT_I as)
+                           :: $(pure m) $(tupleNFromVarsT as)
                          ) >.> YulReduceType
             in YulFork $(TH.varE x) mnpxs_ >.> YulCoerceType >.> YulExtendType
       |]) [4..16]

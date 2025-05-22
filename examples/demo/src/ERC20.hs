@@ -36,13 +36,13 @@ transfer = $lfn $ ylvm'pv
     -- ✅ CORRECT CODE:
 
     Ur senderBalance <- ycall balanceOf (ver from)
-    Ur newSenderBalance <- ywithrv_1 @(U256 -> U256 -> U256) (ver amount, senderBalance)
-      \amount' senderBalance' -> senderBalance' - amount'
+    Ur newSenderBalance <- ywithrv_1 (ver amount :* senderBalance :* Nil)
+      \(amount' :* senderBalance' :* Nil) -> senderBalance' - amount'
     balances #-> from <<:= newSenderBalance
 
     Ur receiverBalance <- ycall balanceOf (ver to)
-    Ur newReceiverBalance <- ywithrv_1 @(U256 -> U256 -> U256) (ver amount, receiverBalance)
-      \amount' receiverBalance' -> receiverBalance' + amount'
+    Ur newReceiverBalance <- ywithrv_1 (ver amount :* receiverBalance :* Nil)
+      \(amount' :* receiverBalance' :* Nil) -> receiverBalance' + amount'
     balances #-> to <<:= newReceiverBalance
 
     -- ⛔ INCORRECT CODE, CANNOT PASS COMPILATION:
@@ -52,13 +52,12 @@ transfer = $lfn $ ylvm'pv
 
     -- -- calculate new balances
     -- Ur (newSenderBalance, newReceiverBalance) <- ywithrv
-    --   @(U256 -> U256 -> U256 -> (U256, U256))
-    --   (ver amount, senderBalance, receiverBalance)
-    --   \amount' senderBalance' receiverBalance' ->
+    --   (ver amount :* senderBalance :* receiverBalance :* Nil)
+    --   \(amount' :* senderBalance' :* receiverBalance' :* Nil) ->
     --     be (senderBalance' - amount', receiverBalance' + amount')
 
-    -- -- WARNING: THIS IS WRONG
-    -- -- Have you found the issue?
+    -- WARNING: THIS IS WRONG
+    -- Have you found the issue?
     -- balances #-> from <<:= newSenderBalance
     -- balances #-> to   <<:= newReceiverBalance
 
@@ -72,9 +71,7 @@ mint = $lfn $ ylvm'pv
     Ur balanceBefore <- ycall balanceOf (ver to)
 
     -- calculate new balance
-    Ur newAmount <- ywithrv_1 @(U256 -> U256 -> U256)
-      (balanceBefore, ver amount)
-      (\x y -> x + y)
+    Ur newAmount <- ywithrv_1 (balanceBefore :* ver amount :* Nil) \(x :* y :* Nil) -> x + y
 
     -- ⚠️ NOTE: swap the following code blocks will not compile, because there can be reentrance!
 

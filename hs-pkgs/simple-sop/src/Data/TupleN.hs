@@ -20,6 +20,7 @@ It supports up to 16-ary tuple.
 module Data.TupleN
   ( TupleNtoNP, HavingFromTupleNtoNP (fromTupleNtoNP)
   , NPtoTupleN, HavingFromNPtoTupleN (fromNPtoTupleN)
+  , TupleN, TupleN_M
   , ConvertibleTupleNtoNP, ConvertibleNPtoTupleN
   , module Data.TupleN.TH
   -- re-export solo tuple type
@@ -35,27 +36,65 @@ import Data.SimpleNP
 import Data.TupleN.TH
 
 
---
--- TupleNtoNP, FromTupleNtoNP (fromTupleNtoNP)
---
 do
   let maxTupleN = 16
-  let nilE = TH.conE 'Nil
-  let consE = TH.conE '(:*)
-  tfName <- TH.newName "TupleNtoNP"
-  clsName <- TH.newName "HavingFromTupleNtoNP"
-  fnName <- TH.newName "fromTupleNtoNP"
+  --
   t_m <- TH.newName "m"
+  t_np <- TH.newName "np"
+  t_as <- TH.newName "as"
   t_tpl <- TH.newName "tpl"
   t_r <- TH.newName "r"
   t_p <- TH.newName "p" -- multiplicity
+
+  ----------------------------------------------------------------------------------
+  -- TupleN, TupleN_M
+  ----------------------------------------------------------------------------------
+
+  tf_tpl <- TH.newName "TupleN"
+  tf_tplm <- TH.newName "TupleN_M"
+
+  -- type family TupleN xs = r | r -> xs where
+  --   TupleN '[] = ()
+  --   TupleN '[x] = (Solo x)
+  --   TupleN '[x1, x2] = (x1, x2)
+  dec_tpl <- do
+    TH.closedTypeFamilyD tf_tpl [TH.plainTV t_as]
+      (TH.tyVarSig (TH.plainTV t_r)) (Just (TH.injectivityAnn t_r [t_as]))
+      ((\n -> do
+           xs <- replicateM n (TH.newName "x")
+           TH.tySynEqn Nothing
+             (TH.conT tf_tpl `TH.appT` (promotedListFromVarsT xs))
+             (tupleNFromVarsT xs)
+       ) <$> [0..maxTupleN])
+
+  -- type family TupleN_M m xs = r | r -> m xs where
+  --   -- TupleN_M _ '[] = () -- injectivity violation
+  --   TupleN_M m '[x] = (Solo (m x))
+  --   TupleN_M m '[x1, x2] = (m x1, m x2)
+  dec_tplm <- do
+    TH.closedTypeFamilyD tf_tplm [TH.plainTV t_m, TH.plainTV t_as]
+      (TH.tyVarSig (TH.plainTV t_r)) (Just (TH.injectivityAnn t_r [t_m, t_as]))
+      ((\n -> do
+           xs <- replicateM n (TH.newName "x")
+           TH.tySynEqn Nothing
+             (TH.conT tf_tplm `TH.appT` TH.varT t_m `TH.appT` (promotedListFromVarsT xs))
+             (tupleNFromVarsTWith (TH.varT t_m `TH.appT`) xs)
+       ) <$> [1..maxTupleN])
+
+  ----------------------------------------------------------------------------------
+  -- TupleNtoNP, HavingFromTupleNtoNP
+  ----------------------------------------------------------------------------------
+
+  tf_tpl2np <- TH.newName "TupleNtoNP"
+  cls_tpl2np <- TH.newName "HavingFromTupleNtoNP"
+  fn_tpl2np <- TH.newName "fromTupleNtoNP"
 
   -- type family TupleNtoNP m tpl = r | r -> m tpl where
   --   TupleNtoNP m () = NP m '[]
   --   TupleNtoNP m (Solo (m x)) = NP m '[x]
   --   TupleNtoNP m (m x1, m x2) = NP m '[x1, x2]
-  tfDec <- do
-    TH.closedTypeFamilyD tfName [TH.plainTV t_m, TH.plainTV t_tpl]
+  dec_tf_tpl2np <- do
+    TH.closedTypeFamilyD tf_tpl2np [TH.plainTV t_m, TH.plainTV t_tpl]
       -- injectivity: r -> m tpl
       (TH.tyVarSig (TH.plainTV t_r)) (Just (TH.injectivityAnn t_r [t_m, t_tpl]))
       -- equations
@@ -63,7 +102,7 @@ do
            xs <- replicateM n (TH.newName "x")
            TH.tySynEqn Nothing
              -- lhs: TupleNtoNP m (m x1, .. m x_n)
-             (TH.conT tfName `TH.appT` TH.varT t_m `TH.appT` tupleNFromVarsTWith (TH.varT t_m `TH.appT`) xs)
+             (TH.conT tf_tpl2np `TH.appT` TH.varT t_m `TH.appT` tupleNFromVarsTWith (TH.varT t_m `TH.appT`) xs)
              -- rhs: NP m '[x1, ... xn]
              (TH.conT ''NP `TH.appT` TH.varT t_m `TH.appT` promotedListFromVarsT xs)
        ) <$> [0..maxTupleN])
@@ -73,86 +112,86 @@ do
   -- -- instance HavingFromTupleNPtoNP m () -- bad: non-injective
   -- instance HavingFromTupleNPtoNP m (Solo (m a))
   -- instance HavingFromTupleNPtoNP m (m a1, m a2)
-  clsInstsDec <- do
+  decs_cls_tpl2np <- do
     -- class definition
     cls <- TH.classD
            (pure []) -- context
-           clsName
+           cls_tpl2np
            [TH.plainTV t_m, TH.plainTV t_tpl] -- bound variables
            [TH.funDep [t_tpl] [t_m]]
-           [TH.sigD fnName ( TH.mulArrowT `TH.appT` TH.varT t_p `TH.appT` TH.varT t_tpl `TH.appT`
-                             (TH.conT tfName `TH.appT` TH.varT t_m `TH.appT` TH.varT t_tpl)
-                           )]
+           [TH.sigD fn_tpl2np ( TH.mulArrowT `TH.appT` TH.varT t_p `TH.appT` TH.varT t_tpl `TH.appT`
+                                (TH.conT tf_tpl2np `TH.appT` TH.varT t_m `TH.appT` TH.varT t_tpl)
+                              )]
     insts <- mapM
       (\n -> do
           xs <- replicateM n (TH.newName "x")
           TH.instanceD
             (pure []) -- context
-            (TH.conT clsName `TH.appT` TH.varT t_m `TH.appT` tupleNFromVarsTWith (TH.varT t_m `TH.appT`) xs)
+            (TH.conT cls_tpl2np `TH.appT` TH.varT t_m `TH.appT` tupleNFromVarsTWith (TH.varT t_m `TH.appT`) xs)
             -- fromTupleNtoNP (x1, .. xn) = x1 :* ... xn :* Nil
-            [TH.funD fnName
+            [TH.funD fn_tpl2np
              [ TH.clause
                [TH.tupP (map TH.varP xs)]
-               (TH.normalB $ foldr ((\a b -> TH.infixE (Just a) consE (Just b)) . TH.varE) nilE xs)
+               (TH.normalB $ foldr ((\a b -> TH.infixE (Just a) (TH.conE '(:*)) (Just b)) . TH.varE) (TH.conE 'Nil) xs)
                []]]
       ) [1..maxTupleN]
     pure $ cls : insts
 
-  pure $ tfDec : clsInstsDec
+  ----------------------------------------------------------------------------------
+  -- NPtoTupleN, HavingFromNPtoTupleN
+  ----------------------------------------------------------------------------------
 
---
--- NPtoTupleN, FromNPtoTupleN (fromNPtoTupleN)
---
-do
-  let maxTupleN = 16
-  tfName <- TH.newName "NPtoTupleN"
-  clsName <- TH.newName "HavingFromNPtoTupleN"
-  fnName <- TH.newName "fromNPtoTupleN"
-  t_m <- TH.newName "m"
-  t_np <- TH.newName "np"
-  t_r <- TH.newName "r"
-  t_p <- TH.newName "p" -- multiplicity
+  tf_np2tpl <- TH.newName "NPtoTupleN"
+  cls_np2tpl <- TH.newName "HavingFromNPtoTupleN"
+  fn_np2tpl <- TH.newName "fromNPtoTupleN"
 
   -- type family NPtoTupleN m np = r | r -> m np where
   --   -- NPtoTupleN m (NP m '[]) = () -- this violates the injectivity
   --   NPtoTupleN m (NP m '[x]) = (Solo (m x))
   --   NPtoTupleN m (NP m '[x1, x2]) = (m x1, m x2)
-  tfDec <- do
-    TH.closedTypeFamilyD tfName [TH.plainTV t_m, TH.plainTV t_np]
+  dec_tf_np2tpl <- do
+    TH.closedTypeFamilyD tf_np2tpl [TH.plainTV t_m, TH.plainTV t_np]
       (TH.tyVarSig (TH.plainTV t_r)) (Just (TH.injectivityAnn t_r [t_m, t_np]))
       ((\n -> do
            xs <- replicateM n (TH.newName "x")
            TH.tySynEqn Nothing
-             (TH.conT tfName `TH.appT`
-               TH.varT t_m `TH.appT`
-               (TH.conT ''NP `TH.appT` TH.varT t_m `TH.appT` promotedListFromVarsT xs))
+             (TH.conT tf_np2tpl `TH.appT` TH.varT t_m `TH.appT`
+              (TH.conT ''NP `TH.appT` TH.varT t_m `TH.appT` promotedListFromVarsT xs))
              (tupleNFromVarsTWith (TH.varT t_m `TH.appT`) xs)
-       ) <$> ([1..maxTupleN]))
+       ) <$> [1..maxTupleN])
 
   -- class HavingFromNPtoTupleN m np | np -> m where
-  --   fromNPtoTupleN :: np %p -> NPtoTupleN m a
-  -- instance HavingFromNPtoTupleN m (NP m '[]) where
+  --   fromNPtoTupleN :: np %p -> NPtoTupleN m np
+  --   fromNPtoPlainTupleN :: np %p -> TupleN (NP2List np)
+  -- -- instance HavingFromNPtoTupleN m (NP m '[]) where -- no NPtoTupleN
   -- instance HavingFromNPtoTupleN m (NP m '[a]) where
   -- instance HavingFromNPtoTupleN m (NP m '[a1, a2]) where
-  clsInstsDec <- do
+  decs_cls_np2tpl <- do
     let np_p = foldr ((\a b -> TH.infixP a '(:*) b) . TH.varP) (TH.conP 'Nil [])
     cls <- TH.classD
            (pure []) -- context
-           clsName
+           cls_np2tpl
            [TH.plainTV t_m, TH.plainTV t_np] -- bound variables
            [TH.funDep [t_np] [t_m]]
-           [TH.sigD fnName (TH.mulArrowT `TH.appT` TH.varT t_p `TH.appT` TH.varT t_np `TH.appT`
-                            (TH.conT tfName `TH.appT` TH.varT t_m `TH.appT` TH.varT t_np)
-                           )]
+           [ TH.sigD fn_np2tpl
+             (TH.mulArrowT `TH.appT` TH.varT t_p `TH.appT` TH.varT t_np `TH.appT`
+              -- (TH.conT tf_np2tpl `TH.appT` TH.varT t_m `TH.appT` TH.varT t_np)
+              (TH.conT tf_tplm `TH.appT` TH.varT t_m `TH.appT` (TH.conT ''NP2List `TH.appT` TH.varT t_np))
+             )
+           -- , TH.sigD fn_np2ptpl
+           --   (TH.mulArrowT `TH.appT` TH.varT t_p `TH.appT` TH.varT t_np `TH.appT`
+           --     (TH.conT tf_tpl `TH.appT` (TH.conT ''NP2List `TH.appT` TH.varT t_np)))
+           ]
     insts <- mapM
       (\n -> do
           xs <- replicateM n (TH.newName "x")
           TH.instanceD (pure [])
-            (TH.conT clsName `TH.appT`
+            (TH.conT cls_np2tpl `TH.appT`
              TH.varT t_m `TH.appT`
              (TH.conT ''NP `TH.appT` TH.varT t_m `TH.appT` promotedListFromVarsT xs))
-            -- fromNPtoTupleN (x1 :* .. :* Nil) = (x1, ..)
-            [TH.funD fnName
+
+            [ -- fromNPtoTupleN (x1 :* .. :* Nil) = (x1, ..)
+              TH.funD fn_np2tpl
               [ TH.clause
                 [np_p xs]
                 (TH.normalB $ TH.tupE $ fmap TH.varE xs)
@@ -160,16 +199,21 @@ do
       ) [1..maxTupleN]
     pure $ cls : insts
 
-  pure $ tfDec : clsInstsDec
+  pure $
+    (dec_tf_tpl2np : decs_cls_tpl2np) <>
+    (dec_tf_np2tpl : decs_cls_np2tpl) <>
+    [dec_tpl, dec_tplm]
 
 -- | A constraint alias for TupleN types that are convertible to NP and vice versa.
 type ConvertibleTupleNtoNP m tpl = ( NPtoTupleN m (TupleNtoNP m tpl) ~ tpl
+                                   , TupleN_M m (NP2List (TupleNtoNP m tpl)) ~ tpl
                                    , HavingFromTupleNtoNP m tpl
                                    , HavingFromNPtoTupleN m (TupleNtoNP m tpl)
                                    )
 
 -- | A constraint alias for NP types that are convertible to TupleN and vice versa.
 type ConvertibleNPtoTupleN m np = ( TupleNtoNP m (NPtoTupleN m np) ~ np
+                                  , TupleN_M m (NP2List np) ~ NPtoTupleN m np
                                   , HavingFromTupleNtoNP m (NPtoTupleN m np)
                                   , HavingFromNPtoTupleN m np
                                   )

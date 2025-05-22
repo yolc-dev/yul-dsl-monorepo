@@ -22,7 +22,8 @@ module YulDSL.Haskell.Effects.LinearSMC.YLVM
     -- $YulVarRefAPI
     -- * Yul Variable Reference's API
   , LinearlyVersionRestrictedYulPort, DereferenceYulVarRef, ReferenciableYulVar
-  , Ur (Ur), unur, Uv, Rv, VersionableYulVarRef (ver)
+  , Ur (Ur), unur, Uv, Rv
+  , VersionableYulVarRef (ver)
     -- ** Make And Take Of Yul Variables
   , YulVarRef (ymkvar, ytkvar, ytkvarv), YulVarRefNP (ymkvarNP, ytkvarNP), ytkuvN, ytkrvN
   , yembed, yreturn
@@ -233,11 +234,11 @@ type RvYulVarRef v r a = RvLVMVarRef (YLVMCtx r) (P'V v r) v (P'V v r a)
 
 -- | Unrestricted wrapper of 'RvYulVarRef' in two letters.
 data Rv v r a where
-  Rv :: forall v r a. RvYulVarRef v r a -> Rv v r a
+  Rv  :: forall v r a. RvYulVarRef v r a -> Rv v r a
 type role Rv nominal nominal nominal
 
 instance (KnownNat v, YulO2 r a) => ReferenciableLVMVar v (Rv v r a) (YLVMCtx r) (P'V v r a) where
-  takeLVMVarRef (Rv vref) = takeLVMVarRef vref
+  takeLVMVarRef (Rv vref)       = takeLVMVarRef vref
 
 --
 -- VersionableYulVar (ver)
@@ -247,7 +248,7 @@ class (KnownNat v, YulO1 r) => VersionableYulVarRef v r vref_ | vref_ -> r where
   ver :: forall a. YulO1 a => vref_ a -> Rv v r a
 
 instance (KnownNat v, YulO1 r) => VersionableYulVarRef v r (Uv r) where
-  ver (Uv uvref) = Rv (VerUvLVMVarRef uvref)
+  ver (Uv vref) = Rv (VerUvLVMVarRef vref)
 
 instance (KnownNat v, YulO1 r) => VersionableYulVarRef v r (Rv v r) where
   ver = id
@@ -257,26 +258,23 @@ instance (KnownNat v, YulO1 r) => VersionableYulVarRef v r (Rv v r) where
 --
 
 -- | A unified interface to work with both 'Uv' and 'Rv'.
-class VersionableYulVarRef v r vref_ =>
+class (KnownNat v, YulO1 r) =>
       YulVarRef v r port_ vref_ | v port_ -> vref_, vref_ -> port_ where
   -- | Make a variable reference from a yul port.
   ymkvar :: forall a. YulO1 a => port_ a ⊸ YLVM v v r (Ur (vref_ a))
   -- | Take a yul port from a variable reference.
   ytkvar :: forall a. YulO1 a => vref_ a -> YLVM v v r (port_ a)
   -- | Take a version-restricted yul port from a variable reference.
-  ytkvarv :: forall a.
-    (YulO1 a) =>
-    vref_ a ->
-    YLVM v v r (P'V v r a)
-  ytkvarv var = ytkvar (ver var)
+  ytkvarv :: forall a. YulO1 a => vref_ a -> YLVM v v r (P'V v r a)
 
 instance (KnownNat v, YulO1 r) => YulVarRef v r (P'P r) (Uv r) where
   ymkvar x = with_yulvar_registry \rgstr ->
     let !(Ur var, rgstr') = registerUvLVMVar x rgstr
     in LVM.pure (Just rgstr', Ur (Uv var))
-  ytkvar (Uv ref) = with_yulvar_registry \rgstr -> LVM.do
-    (port, rgstr') <- takeLVMVarRef ref rgstr
+  ytkvar (Uv vref) = with_yulvar_registry \rgstr -> LVM.do
+    (port, rgstr') <- takeLVMVarRef vref rgstr
     LVM.pure (Just rgstr', port)
+  ytkvarv uv = ytkvar (ver uv)
 
 instance {-# OVERLAPPABLE #-}
   ( KnownNat va, YulO1 r
@@ -288,9 +286,10 @@ instance (KnownNat v, YulO1 r) => YulVarRef v r (P'V v r) (Rv v r) where
   ymkvar x = with_yulvar_registry \rgstr ->
     let !(Ur var, rgstr') = registerRvLVMVar x rgstr
     in LVM.pure (Just rgstr', Ur (Rv var))
-  ytkvar (Rv ref) = with_yulvar_registry \rgstr -> LVM.do
-    (port, rgstr') <- takeLVMVarRef ref rgstr
+  ytkvar (Rv vref) = with_yulvar_registry \rgstr -> LVM.do
+    (port, rgstr') <- takevLVMVarRef vref rgstr
     LVM.pure (Just rgstr', port)
+  ytkvarv = ytkvar
 
 --
 -- YulVarRefNP
@@ -371,99 +370,92 @@ yreturn a = LVM.pure (Ur a)
 -- ywithuv{_1}, ywithrv{_1}
 --
 
-type ConstraintForYWith f x xs b bs bret f' v r m1 m1b m2 mp =
-  ( KnownNat v
-  , YulO6 x (NP I xs) b (NP I bs) bret r
+type ConstraintForYWith f x xs b bs bret f' v r m1 m2 mp =
+  ( KnownNat v, YulO6 x (NP I xs) b (NP I bs) bret r
     -- f
   , UncurriableNP f (x:xs) bret m2 m2 Many m2 m2 Many
     -- f'
   , EquivalentNPOfFunction f' (x:xs) (NP I (b:bs))
     -- x:xs
-  , ConvertibleNPtoTupleN m1 (NP m1 (x:xs))
-  , ConvertibleNPtoTupleN mp (NP mp (x:xs))
   , YulVarRefNP xs v r mp m1
   , LinearDistributiveNP mp (x:xs)
   , DistributiveNP m2 (x:xs)
   , TraversableNP m2 (x:xs)
     -- b:bs
-  , ConvertibleNPtoTupleN m1b (NP m1b (b:bs))
+  , ConvertibleNPtoTupleN m1 (NP m1 (b:bs))
   , LinearTraversableNP mp (b:bs)
-  , YulVarRefNP (b:bs) v r mp m1b
+  , YulVarRefNP (b:bs) v r mp m1
   )
 
-ywithuv :: forall f x xs b bs btpl f' v r m1 m1b m2.
-  ( ConstraintForYWith f x xs b bs btpl f' v r m1 m1b m2 (P'P r)
+ywithuv :: forall f x xs b bs btpl f' v r m1 m2.
+  ( ConstraintForYWith f x xs b bs btpl f' v r m1 m2 (P'P r)
     -- m1, m1b, m2
   , Uv r ~ m1
-  , Uv r ~ m1b
   , YulCat Pure (NP I (x:xs)) ~ m2
     -- btpl
+  , TupleN (b:bs) ~ btpl
   , NP I (b:bs) ~ ABITypeDerivedOf btpl
   ) =>
-  NPtoTupleN (Uv r) (NP (Uv r) (x:xs)) ->
+  NP (Uv r) (x:xs) ->
   PureYulFn f ->
-  YLVM v v r (Ur (NPtoTupleN (Uv r) (NP (Uv r) (b:bs))))
-ywithuv xxstpl f = LVM.do
-  xxstpl' <- ytkuvN @v @(x:xs) xxstpl
-  let bbs = withNP'l @f' (fromTupleNtoNP xxstpl') f'
+  YLVM v v r (Ur (TupleN_M (Uv r) (b:bs)))
+ywithuv xxs_uvs f = LVM.do
+  xxs <- ytkvarNP @(x:xs) xxs_uvs
+  let bbs = with'l @f' xxs f'
   Ur bbsrefs <- ymkvarNP @(b:bs) bbs
   LVM.pure $ Ur (fromNPtoTupleN bbsrefs)
   where f' txxs = uncurryNP @f @(x:xs) @btpl @m2 @m2 @Many @m2 @m2 @Many f (distributeNP txxs)
                   >.> YulReduceType
 
-ywithuv_1 :: forall f x xs b v r m1 m1b m2 f'.
-  ( ConstraintForYWith f x xs b '[] b f' v r m1 m1b m2 (P'P r)
+ywithuv_1 :: forall f x xs b v r m1 m2 f'.
+  ( ConstraintForYWith f x xs b '[] b f' v r m1 m2 (P'P r)
     -- m1, m2
   , Uv r ~ m1
-  , Uv r ~ m1b
   , YulCat Pure (NP I (x:xs)) ~ m2
   ) =>
-  NPtoTupleN (Uv r) (NP (Uv r) (x:xs)) ->
+  NP (Uv r) (x:xs) ->
   PureYulFn f ->
   YLVM v v r (Ur (Uv r b))
-ywithuv_1 xxstpl f = LVM.do
-  xxstpl' <- ytkuvN @v @(x:xs) xxstpl
-  let !(b :* Nil) = withNP'l @f' (fromTupleNtoNP xxstpl') f'
+ywithuv_1 xxs_uvs f = LVM.do
+  xxs <- ytkvarNP @(x:xs) xxs_uvs
+  let !(b :* Nil) = with'l @f' xxs f'
   ymkvar b
   where f' txxs = uncurryNP @f @(x:xs) @b @m2 @m2 @Many @m2 @m2 @Many f (distributeNP txxs)
                   >.> YulCoerceType @_ @b @(NP I '[b]) >.> YulReduceType
 
-ywithrv :: forall f x xs b bs btpl v r m1 m1b m2 f'.
-  ( ConstraintForYWith f x xs b bs btpl f' v r m1 m1b m2 (P'V v r)
+ywithrv :: forall f x xs b bs btpl v r m1 m2 f'.
+  ( ConstraintForYWith f x xs b bs btpl f' v r m1 m2 (P'V v r)
     -- m1, m2
   , Rv v r ~ m1
-  , Rv v r ~ m1b
   , YulCat Pure (NP I (x:xs)) ~ m2
     -- btpl
+  , TupleN (b:bs) ~ btpl
   , NP I (b:bs) ~ ABITypeDerivedOf btpl
   ) =>
-  NPtoTupleN (Rv v r) (NP (Rv v r) (x:xs)) ->
-  PureYulFn f ->
-  YLVM v v r (Ur (NPtoTupleN (Rv v r) (NP (Rv v r) (b:bs))))
-ywithrv xxstpl f = LVM.do
-  xxstpl' <- ytkrvN @v @(x:xs) xxstpl
-  let bbs = withNP'l @f' (fromTupleNtoNP xxstpl') f'
+  NP (Rv v r) (x:xs) ->
+  (NP m2 (x:xs) -> m2 (TupleN (b:bs))) ->
+  YLVM v v r (Ur (TupleN_M m1 (b:bs)))
+ywithrv xxs_rvs f = LVM.do
+  xxs <- ytkvarNP @(x:xs) xxs_rvs
+  let bbs = with'l @f' xxs f'
   Ur bbsrefs <- ymkvarNP @(b:bs) bbs
   LVM.pure $ Ur (fromNPtoTupleN bbsrefs)
-  where f' txxs = uncurryNP @f @(x:xs) @btpl @m2 @m2 @Many @m2 @m2 @Many f (distributeNP txxs)
-                  >.> YulReduceType
+  where f' txxs = f txxs >.> YulReduceType
 
-ywithrv_1 :: forall f x xs b v r m1 m1b m2 f'.
-  ( ConstraintForYWith f x xs b '[] b f' v r m1 m1b m2 (P'V v r)
+ywithrv_1 :: forall f x xs b v r m1 m2 f'.
+  ( ConstraintForYWith f x xs b '[] b f' v r m1 m2 (P'V v r)
     -- m1, m2
   , Rv v r ~ m1
-  , Rv v r ~ m1b
   , YulCat Pure (NP I (x:xs)) ~ m2
   ) =>
-  NPtoTupleN (Rv v r) (NP (Rv v r) (x:xs)) ->
-  PureYulFn f ->
+  NP (Rv v r) (x:xs) ->
+  (NP m2 (x:xs) -> m2 b) ->
   YLVM v v r (Ur (Rv v r b))
-ywithrv_1 xxstpl f = LVM.do
-  xxstpl' <- ytkrvN @v @(x:xs) xxstpl
-  let !(b :* Nil) = withNP'l @f' (fromTupleNtoNP xxstpl') f'
+ywithrv_1 xxs_rvs f = LVM.do
+  xxs <- ytkvarNP @(x:xs) xxs_rvs
+  let !(b :* Nil) = with'l @f' xxs f'
   ymkvar b
-  where f' txxs = uncurryNP @f @(x:xs) @b @m2 @m2 @Many @m2 @m2 @Many f (distributeNP txxs)
-                  >.> YulCoerceType @_ @b @(NP I '[b]) >.> YulReduceType
+  where f' txxs = be (f txxs :* Nil)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $YLVMDiagrams

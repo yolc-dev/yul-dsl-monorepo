@@ -1,6 +1,5 @@
-{-# LANGUAGE AllowAmbiguousTypes    #-}
-{-# LANGUAGE LinearTypes            #-}
-{-# LANGUAGE TypeFamilyDependencies #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE LinearTypes         #-}
 {-|
 
 Copyright   : (c) 2024-2025 Miao, ZhiCheng
@@ -44,13 +43,13 @@ type family LiftFunction f (m  :: Type -> Type) (mb :: Type -> Type) (p :: Multi
 
 -- | Uncurry the arguments of a function to a list of types.
 type family UncurryNP'Fst f :: [Type] where
-  UncurryNP'Fst (x1 %_-> g) = x1 : UncurryNP'Fst (g)
-  UncurryNP'Fst         (b) = '[]
+  UncurryNP'Fst (x1 -> g) = x1 : UncurryNP'Fst (g)
+  UncurryNP'Fst       (b) = '[]
 
 -- | Uncurry the result of a function.
-type family UncurryNP'Snd (f :: Type) where
-  UncurryNP'Snd (_ %_-> g) = UncurryNP'Snd (g)
-  UncurryNP'Snd        (b) = b
+type family UncurryNP'Snd (f :: Type) :: Type where
+  UncurryNP'Snd (_ -> g) = UncurryNP'Snd (g)
+  UncurryNP'Snd      (b) = b
 
 -- | Uncurry and extract the multiplicity of the last arrow.
 type family UncurryNP'Multiplicity f :: Multiplicity where
@@ -70,13 +69,13 @@ type family CurryNP np b where
 
 -- | The type of the head of arguments of an currying function.
 type family CurryNP'Head f where
-  CurryNP'Head (a1 %_-> g) = a1
-  CurryNP'Head         (b) = ()
+  CurryNP'Head (a1 -> g) = a1
+  CurryNP'Head       (b) = ()
 
 -- | The type of the tail of an currying function.
 type family CurryNP'Tail f where
-  CurryNP'Tail (_ %_-> g) = g
-  CurryNP'Tail        (b) = b
+  CurryNP'Tail (_ -> g) = g
+  CurryNP'Tail      (b) = b
 
 -- | Declare the equivalence between a currying function form @f@ and @NP xs -> b@.
 type EquivalentNPOfFunction f xs b =
@@ -87,7 +86,6 @@ type EquivalentNPOfFunction f xs b =
 
 -- | Uncurry a function into a function of @NP xs@ to @b@.
 class ( EquivalentNPOfFunction f xs b
-      , LiftFunction b m1 m1b p1 ~ m1b b
       -- rewrite the second lift function into its one-arity form
       , LiftFunction (NP I xs -> b) m2 m2b p2 ~ (m2 (NP I xs) %p2 -> m2b b)
       ) =>
@@ -98,8 +96,7 @@ class ( EquivalentNPOfFunction f xs b
 
 -- | Curry a function of @NP xs@ to @b@.
 class ( EquivalentNPOfFunction f xs b
-      , LiftFunction b m1 mb p1 ~ mb b
-      -- rewrite the first lift function into its one-arity form
+        -- rewrite the first lift function into its one-arity form
       , LiftFunction (NP I xs -> b) m2 mb p1 ~ (m2 (NP I xs) %p1 -> mb b)
       ) =>
       CurriableNP f xs b m2 mb p2 m1 p1 | m2 mb -> p2, m1 -> p1 where

@@ -83,26 +83,12 @@ bar3 = $lfn $ ylvm'pv
 -- working with PureY
 --------------------------------------------------------------------------------
 
-test_withNP :: StaticFn (U256 -> U256 -> U256)
-test_withNP = $lfn $ yulports'vv
+test_with :: StaticFn (U256 -> U256 -> U256)
+test_with = $lfn $ yulports'vv
   \x1'v x2'v ->
-    let !(r :* Nil) = withNP'l (x1'v :* x2'v :* Nil)
-          \(x1 :* x2 :* Nil) -> couldBe ((x1 + x1 * x2) :* Nil)
+    let !(r :* Nil) = with'l (x1'v :* x2'v :* Nil)
+          \(x1 :* x2 :* Nil) -> be ((x1 + x1 * x2) :* Nil)
     in r
-
--- test_with :: StaticFn (U256 -> U256 -> U256)
--- test_with = $lfn $ yulports'vv
--- \x1'v x2'v -> getSolo do
---   with'l -- @(U256 -> U256 -> Solo U256)
---     (x1'v, x2'v)
---     \x1 x2 -> be (x1 + x1 * x2)
-
--- test_withN :: StaticFn (U256 -> U256 -> U256)
--- test_withN = $lfn $ yulports'vv
---   \x1'v x2'v -> getSolo do
---     withN'l -- @(U256 -> U256 -> Solo U256)
---       (x1'v, x2'v)
---       \x1 x2 -> be (x1 + x1 * x2)
 
 --------------------------------------------------------------------------------
 -- tuples

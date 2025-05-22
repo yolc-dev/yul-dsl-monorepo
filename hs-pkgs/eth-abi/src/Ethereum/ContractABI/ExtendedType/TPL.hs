@@ -14,7 +14,7 @@ Portability : GHC2024
 Ethereum contract ABI compatible tuples encoded as n-tuples.
 
 -}
-module Ethereum.ContractABI.ExtendedType.TUPLEn
+module Ethereum.ContractABI.ExtendedType.TPL
   ( module Data.TupleN
   ) where
 -- base
@@ -55,23 +55,26 @@ instance (ABITypeCodec a1, ABITypeCodec a2) => ABITypeCodec (a1, a2)
 
 -- Generate the tuples (from tuple3) with identity wrappers:
 
--- instance (ABITypeable a1, ABITypeable a2) => ABITypeable (I a1, I a2, I a3) where
---   type instance ABITypeDerivedOf (I a1, I a2, I a3) = NP I '[a1, a2, a3]
---   abiDefault = (I abiDefault, I abiDefault, I abiDefault)
---   abiToCoreType (I a1, I a2, I a3) = I a1 :* I a2 :* :* I a3 Nil
---   abiFromCoreType (I a1 :* I a2 :* I a3:* Nil) = (a1, a2, a3)
--- instance (ABITypeCodec a1, ABITypeCodec a2, ABITypeCodec a3) => ABITypeCodec (I a1, I a2, I a3)
+instance (ABITypeable a1, ABITypeable a2, ABITypeable a3) => ABITypeable (a1, a2, a3) where
+  type instance ABITypeDerivedOf (a1, a2, a3) = NP I '[a1, a2, a3]
+  abiDefault = (abiDefault, abiDefault, abiDefault)
+  abiToCoreType (a1, a2, a3) = I a1 :* I a2 :* I a3 :* Nil
+  abiFromCoreType (I a1 :* I a2 :* I a3:* Nil) = (a1, a2, a3)
+instance (ABITypeCodec a1, ABITypeCodec a2, ABITypeCodec a3) => ABITypeCodec (a1, a2, a3)
+
 do
   insts <- mapM (\n -> do
-    as <- replicateM n (TH.newName "a")
-    [d| instance $(tupleNFromVarsTWith (TH.conT ''ABITypeable `TH.appT`) as) =>
-                  ABITypeable $(tupleNFromVarsTWith (TH.conT ''I `TH.appT`) as) where
-          type instance ABITypeDerivedOf $(tupleNFromVarsTWith (TH.conT ''I `TH.appT`) as) =
-            NP I $(promotedListFromVarsT as)
+    let np_e = foldr (\a b -> TH.infixE (Just a) (TH.conE '(:*)) (Just b)) (TH.conE 'Nil)
+    let np_p = foldr (\a b -> TH.infixP a '(:*) b) (TH.conP 'Nil [])
+    t_as <- replicateM n (TH.newName "a")
+    xs <- replicateM n (TH.newName "x")
+    [d| instance $(tupleNFromVarsTWith (TH.conT ''ABITypeable `TH.appT`) t_as) =>
+                  ABITypeable $(tupleNFromVarsT t_as) where
+          type instance ABITypeDerivedOf $(tupleNFromVarsT t_as) = NP I $(promotedListFromVarsT t_as)
           abiDefault = $(TH.tupE (replicate n (TH.varE 'abiDefault)))
-          abiToCoreType = $(TH.varE 'fromTupleNtoNP)
-          abiFromCoreType = $(TH.varE 'fromNPtoTupleN)
-        instance $(tupleNFromVarsTWith (TH.conT ''ABITypeCodec `TH.appT`) as) =>
-                 ABITypeCodec $(tupleNFromVarsTWith (TH.conT ''I `TH.appT`) as)
-     |]) [3..16]
+          abiToCoreType $(TH.tupP (TH.varP <$> xs)) = $(np_e ((TH.conE 'I `TH.appE`) . TH.varE <$> xs))
+          abiFromCoreType $(np_p (TH.conP 'I . (:[]) . TH.varP <$> xs)) = $(TH.tupE (TH.varE <$> xs))
+        instance $(tupleNFromVarsTWith (TH.conT ''ABITypeCodec `TH.appT`) t_as) =>
+                 ABITypeCodec $(tupleNFromVarsT t_as)
+     |]) [4..16]
   pure (concat insts)

@@ -80,4 +80,4 @@ type CallGasLimit = U256
 type CallValue    = U256
 
 -- TODO: use ADT
-type CallParams = (I CallTarget, I CallGasLimit, I CallValue)
+type CallParams = (CallTarget, CallGasLimit, CallValue)

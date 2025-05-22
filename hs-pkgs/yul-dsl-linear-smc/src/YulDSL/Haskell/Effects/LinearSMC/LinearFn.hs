@@ -149,8 +149,7 @@ data BoundMethod vref_tgt f xs b where
     BoundMethod vref_tgt f xs b
 
 (@->), bindMethod :: forall vref_tgt f xs b.
-  ( EquivalentNPOfFunction f xs b
-  ) =>
+  EquivalentNPOfFunction f xs b =>
   vref_tgt ADDR ->
   ExternalOmniFn f ->
   BoundMethod vref_tgt f xs b

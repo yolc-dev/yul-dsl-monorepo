@@ -1,4 +1,3 @@
-{-# LANGUAGE LinearTypes #-}
 module Data_Type_Function_t where
 import Prelude
 -- base
@@ -19,8 +18,6 @@ test_tf_lift_function_examples = and
                    (Identity Int -> Identity Bool))
   , fromBoolKind @(LiftFunction (Int -> Float -> Bool) Identity Identity Many ==
                     (Identity Int -> Identity Float -> Identity Bool))
-  , fromBoolKind @(LiftFunction (Int -> Float -> Bool) Identity Identity One ==
-                    (Identity Int %1-> Identity Float %1-> Identity Bool))
   ]
 
 test_tf_uncurry_examples = and
@@ -28,8 +25,6 @@ test_tf_uncurry_examples = and
   , fromBoolKind @(UncurryNP I (Int -> Bool) == (NP I '[Int] -> Bool))
   , fromBoolKind @(UncurryNP I (Int -> Float -> Bool) == (NP I '[Int, Float] -> Bool))
   , fromBoolKind @(UncurryNP I (Int -> Float -> String -> Bool) == (NP I '[Int, Float, String] -> Bool))
-  , fromBoolKind @(UncurryNP I (Int %1-> Float %1-> String %1-> Bool) == (NP I '[Int, Float, String] %1-> Bool))
-  , fromBoolKind @(UncurryNP I (Int %1-> Float -> String -> Bool) == (NP I '[Int, Float, String] %1-> Bool)) -- tolerated
   ]
 
 test_tf_ncurry_examples = and
@@ -43,15 +38,12 @@ test_tf_uncurrying_head_examples = and
   [ fromBoolKind @(CurryNP'Head (Bool) == ())
   , fromBoolKind @(CurryNP'Head (Int -> Bool) == Int)
   , fromBoolKind @(CurryNP'Head (Int -> Float -> Bool) == Int)
-  , fromBoolKind @(CurryNP'Head (Int %1-> Float %1-> Bool) == Int)
   ]
 
 test_tf_uncurrying_tail_examples = and
   [ fromBoolKind @(CurryNP'Tail (Bool) == Bool)
   , fromBoolKind @(CurryNP'Tail (Int -> Bool) == Bool)
   , fromBoolKind @(CurryNP'Tail (Int -> Float -> Bool) == (Float -> Bool))
-  , fromBoolKind @(CurryNP'Tail (Int %1-> Float %1-> Bool) == (Float %1-> Bool))
-  , fromBoolKind @(CurryNP'Tail (Int -> Float %1-> Bool) == (Float %1-> Bool)) -- tolerated
   ]
 
 tests = describe "Data.Type.Function" $ do

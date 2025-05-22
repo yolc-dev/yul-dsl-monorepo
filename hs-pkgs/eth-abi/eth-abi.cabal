@@ -53,8 +53,8 @@ library
     Ethereum.ContractABI.CoreType.INTx
     Ethereum.ContractABI.CoreType.BYTESn
     -- extended types
+    Ethereum.ContractABI.ExtendedType.TPL
     Ethereum.ContractABI.ExtendedType.REF
-    Ethereum.ContractABI.ExtendedType.TUPLEn
     -- main export
     Ethereum.ContractABI
   other-modules:

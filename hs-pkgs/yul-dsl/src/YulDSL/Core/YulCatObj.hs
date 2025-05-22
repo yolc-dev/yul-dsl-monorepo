@@ -65,7 +65,7 @@ type YulO6 a b c d e g = (YulCatObj a, YulO5 b c d e g)
 instance YulCatObj a => YulCatObj (I a)
 
 -- NP
-instance YulCatObj (NP f '[])
+instance YulCatObj (NP I '[])
 instance (YulCatObj x, YulCatObj (NP I xs)) => YulCatObj (NP I (x:xs))
 
 -- Unit / Terminal Object
@@ -86,7 +86,7 @@ do
       as <- replicateM n (TH.newName "a")
       -- NOTE! Haskell2010 only demands the Show instance to support up to Tuple15
       [d| instance $(tupleNFromVarsTWith (TH.conT ''YulCatObj `TH.appT`) as) =>
-                   YulCatObj $(tupleNFromVarsTWith (TH.conT ''I `TH.appT`) as)
+                   YulCatObj $(tupleNFromVarsT as)
         |]
     ) [3..15]
   pure (concat insts)

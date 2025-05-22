@@ -23,7 +23,7 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
     -- $GeneralOps
   , discard'l, ignore'l, mkunit'l, emb'l, const'l, dup'l, merge'l, split'l
     -- $WithPureFunctions
-  , with'l, withNP'l, withN'l
+  , with'l
     -- $VersionThread
   , VersionThread, vtstart, vtstart_, vtstop, vtreturn, vtmkunit, vtgulp, vtseq
   ) where
@@ -203,24 +203,24 @@ type ConstraintForWith x xs b bs r ioe m1 m2 =
     -- m1, m2
   , P'x ioe r ~ m1
   , YulCat Pure (NP I (x:xs)) ~ m2
-  -- x:xs
+    -- x:xs
   , LinearDistributiveNP m1 (x:xs)
-  -- bs
+    -- bs
   , LinearTraversableNP m1 (b:bs)
   )
 
 -- | Process a NP of yul ports with a pure yul function.
-withNP'l :: forall f x xs b bs r ioe m1 m2.
+with'l :: forall f x xs b bs r ioe m1 m2.
   ( ConstraintForWith x xs b bs r ioe m1 m2
-  -- f
+    -- f
   , EquivalentNPOfFunction f (x:xs) (NP I (b:bs))
-  -- x:xs
+    -- x:xs
   , TraversableNP m2 (x:xs)
   ) =>
   NP m1 (x:xs) ⊸
   (NP m2 (x:xs) -> m2 (NP I (b:bs))) ->
   NP m1 (b:bs)
-withNP'l xxs f =
+with'l xxs f =
   let !(x, xs) = splitNonEmptyNP xxs
       !(x', u) = mkunit'l x
       txxs = sequenceNP (YulId :: m2 (NP I (x:xs)))
@@ -229,54 +229,29 @@ withNP'l xxs f =
       !(b :* bs, snil) = linearSequenceNP sbbs
   in ignore'l snil b :* bs
 
--- | Process a TupleN of yul ports with a pure yul function.
-with'l :: forall f x xs b bs r ioe m1 m2 btpl.
-  ( ConstraintForWith x xs b bs r ioe m1 m2
-   -- f
-  , EquivalentNPOfFunction f (x:xs) btpl
-  , UncurriableNP f (x:xs) btpl m2 m2 Many m2 m2 Many
-  -- x:xs
-  , ConvertibleNPtoTupleN m1 (NP m1 (x:xs))
-  -- b:bs
-  , ConvertibleNPtoTupleN m1 (NP m1 (b:bs))
-  -- btpl
-  , NP I (b:bs) ~ TupleNtoNP I btpl
-  , YulO1 btpl
-  , SingleCasePattern m1 btpl (NPtoTupleN m1 (NP m1 (b:bs))) YulCatObj One
-  ) =>
-  NPtoTupleN m1 (NP m1 (x:xs)) ⊸
-  PureYulFn f ->
-  NPtoTupleN m1 (NP m1 (b:bs))
-with'l tpl f =
-  let !(x, xs) = splitNonEmptyNP (fromTupleNtoNP tpl)
-      !(x', u) = mkunit'l x
-      sxxs = linearDistributeNP (x' :* xs) u
-      cat = uncurryNP @f @(x:xs) @btpl @m2 @m2 @_ @m2 @m2 @_ f YulId
-  in is (encodeP'x (YulUnsafeCoerceEffect cat) sxxs)
-
--- | It does the same as 'with\'l', but implemented using 'withNP\'l'.
-withN'l :: forall f x xs b bs r ioe m1 m2 f' btpl.
-  ( ConstraintForWith x xs b bs r ioe m1 m2
-  -- f
-  , EquivalentNPOfFunction f (x:xs) btpl
-  , UncurriableNP f (x:xs) btpl m2 m2 Many m2 m2 Many
-  -- f'
-  , EquivalentNPOfFunction f' (x:xs) (NP I (b:bs))
-  -- x:xs
-  , ConvertibleNPtoTupleN m1 (NP m1 (x:xs))
-  , DistributiveNP m2 (x:xs)
-  , TraversableNP m2 (x:xs)
-  -- b:bs
-  , ConvertibleNPtoTupleN m1 (NP m1 (b:bs))
-  -- btpl
-  , NP I (b:bs) ~ ABITypeDerivedOf btpl
-  , YulO1 btpl
-  ) =>
-  NPtoTupleN m1 (NP m1 (x:xs)) ⊸
-  PureYulFn f ->
-  NPtoTupleN m1 (NP m1 (b:bs))
-withN'l tpl f = fromNPtoTupleN (withNP'l @f' @x @xs @b @bs (fromTupleNtoNP tpl) f')
-  where f' txxs = uncurryNP @f @(x:xs) @btpl @m2 @m2 @_ @m2 @m2 @_ f (distributeNP txxs) >.> YulReduceType
+-- -- | It does the same as 'with\'l', but implemented using 'withNP\'l'.
+-- withN'l :: forall f x xs b bs r ioe m1 m2 f' btpl.
+--   ( ConstraintForWith x xs b bs r ioe m1 m2
+--     -- f
+--   , UncurriableNP f (x:xs) btpl m2 m2 Many m2 m2 Many
+--     -- f'
+--   , EquivalentNPOfFunction f' (x:xs) (NP I (b:bs))
+--     -- x:xs
+--   , ConvertibleNPtoTupleN m1 (NP m1 (x:xs))
+--   , DistributiveNP m2 (x:xs)
+--   , TraversableNP m2 (x:xs)
+--     -- b:bs
+--   , ConvertibleNPtoTupleN m1 (NP m1 (b:bs))
+--     -- btpl
+--   , TupleN (b:bs) ~ btpl
+--   , NP I (b:bs) ~ ABITypeDerivedOf btpl
+--   , YulO1 btpl
+--   ) =>
+--   TupleN_M m1 (x:xs) ⊸
+--   PureYulFn f ->
+--   TupleN_M m1 (b:bs)
+-- withN'l tpl f = fromNPtoTupleN (withNP'l @f' @x @xs @b @bs (fromTupleNtoNP tpl) f')
+--   where f' txxs = uncurryNP @f @(x:xs) @btpl @m2 @m2 @_ @m2 @m2 @_ f (distributeNP txxs) >.> YulReduceType
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $VersionThread
@@ -402,7 +377,6 @@ instance YulO2 a r =>
 instance YulO2 a r =>
          PatternMatchable (P'x eff r) (Solo a) (P'x eff r a)
          YulCatObj One where
-  couldBe = coerceType'l
 -- Make injective pattern free from MkSolo.
 instance YulO2 a r =>
          InjectivePattern (P'x eff r) (Solo a) (P'x eff r a)
@@ -428,7 +402,7 @@ instance (YulO3 a1 a2 r, P'x eff r ~ m) =>
 instance (YulO4 a1 a2 a3 r) =>
          SingleCasePattern
          (P'x eff r)
-         (I a1, I a2, I a3)
+         (a1, a2, a3)
          (P'x eff r a1, P'x eff r a2, P'x eff r a3)
          YulCatObj One where
   is mtpl =
@@ -440,13 +414,13 @@ instance (YulO4 a1 a2 a3 r) =>
 instance (YulO4 a1 a2 a3 r) =>
          PatternMatchable
          (P'x eff r)
-         (I a1, I a2, I a3)
+         (a1, a2, a3)
          (P'x eff r a1, P'x eff r a2, P'x eff r a3)
          YulCatObj One
 instance (YulO4 a1 a2 a3 r) =>
          InjectivePattern
          (P'x eff r)
-         (I a1, I a2, I a3)
+         (a1, a2, a3)
          (P'x eff r a1, P'x eff r a2, P'x eff r a3)
          YulCatObj One where
   be (mx1, mx2, mx3) =
@@ -458,7 +432,6 @@ instance (YulO4 a1 a2 a3 r) =>
 
 do
   let mkT_YulO1 = (TH.conT ''YulO1 `TH.appT`)
-  let mkT_I = (TH.conT ''I `TH.appT`)
   insts <- BasePrelude.mapM (\n -> do
     -- type variables: r, a, as...
     r <- TH.newName "r"
@@ -471,36 +444,36 @@ do
     m <- [t| P'x $(TH.varT BasePrelude.=<< TH.newName "eff") $(TH.varT r) |]
     [d| instance ( $(tupleNFromVarsTWith mkT_YulO1 (r : a : as))
                  , SingleCasePattern $(BasePrelude.pure m)
-                                     $(tupleNFromVarsTWith mkT_I (a:as))
+                                     $(tupleNFromVarsT (a:as))
                                      $(tupleNFromVarsTWith (BasePrelude.pure m `TH.appT`) (a:as))
                                      YulCatObj One
                  ) =>
                  SingleCasePattern $(BasePrelude.pure m)
-                                   $(tupleNFromVarsTWith mkT_I (a:as))
+                                   $(tupleNFromVarsT (a:as))
                                    $(tupleNFromVarsTWith (BasePrelude.pure m `TH.appT`) (a:as))
                                    YulCatObj One where
           is mtpl_ =
             -- NOTE! lots of let expression to workaround a GHC faulty warning related to unused variables.
             let mxxs_ = (coerceType'l . reduceType'l) mtpl_ in
             let !(mx1_, mxs_) = split'l mxxs_ in
-            let mxs_' = extendType'l mxs_ :: $(BasePrelude.pure m) $(tupleNFromVarsTWith mkT_I as) in
+            let mxs_' = extendType'l mxs_ :: $(BasePrelude.pure m) $(tupleNFromVarsT as) in
             let $(TH.bangP (TH.tupP (BasePrelude.fmap TH.varP xs))) = is mxs_'
             in $(TH.tupE (TH.varE 'mx1_ : BasePrelude.fmap TH.varE xs))
 
         instance $(tupleNFromVarsTWith mkT_YulO1 (r : a : as)) =>
                  PatternMatchable $(BasePrelude.pure m)
-                                  $(tupleNFromVarsTWith mkT_I (a : as))
+                                  $(tupleNFromVarsT (a : as))
                                   $(tupleNFromVarsTWith (BasePrelude.pure m `TH.appT`) (a : as))
                                   YulCatObj One
 
         instance $(tupleNFromVarsTWith mkT_YulO1 (r : a : as)) =>
                  InjectivePattern $(BasePrelude.pure m)
-                                  $(tupleNFromVarsTWith mkT_I (a : as))
+                                  $(tupleNFromVarsT (a : as))
                                   $(tupleNFromVarsTWith (BasePrelude.pure m `TH.appT`) (a : as))
                                   YulCatObj One where
           be $(TH.tupP (BasePrelude.fmap TH.varP (x : xs))) =
             let mxs_ = $(TH.varE 'be `TH.appE` TH.tupE (BasePrelude.fmap TH.varE xs))
-                      :: $(BasePrelude.pure m) $(tupleNFromVarsTWith mkT_I as)
+                      :: $(BasePrelude.pure m) $(tupleNFromVarsT as)
                 mxs_' = reduceType'l mxs_
             in (extendType'l . coerceType'l . merge'l) ($(TH.varE x), mxs_')
       |]) [4..16]
