@@ -99,9 +99,9 @@ class CurriableNP xs b m2 mb p2 m1 p1 | m2 mb -> p2, m1 -> p1 where
     (m2 (NP I xs) %p2 -> mb b) %p1 -> -- ^ from this lifted function. NOTE: using p1 to be consumed by m1.
     CurryNP (NP m1 xs) (mb b) p1      -- ^ to this lifted function
 
-class EquivalentNPOfFunction f (x:xs) b =>
-      CallableFunctionNP fn f x xs b m mb p | fn m -> mb p where
-  call :: forall. fn f -> (m x %p -> CurryNP (NP m xs) (mb b) p)
+class EquivalentNPOfFunction f xs b =>
+      CallableFunctionNP fn f xs b m mb p | fn mb -> m p where
+  call :: forall. fn f -> CurryNP (NP m xs) (mb b) p
 
 class ( EquivalentNPOfFunction f xs b
       , ConvertibleNPtoTupleN m (NP m xs)

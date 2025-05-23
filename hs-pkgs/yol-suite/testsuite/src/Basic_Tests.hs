@@ -33,7 +33,7 @@ rangeSum'l = $lfn $ yulports'pp
 
 callExternalFoo0 :: OmniFn (ADDR -> U256)
 callExternalFoo0 = $lfn $ ylvm'pv
-  \to -> ycall0 (to @-> external_foo0)
+  \to -> ycall (to @-> external_foo0)
 
 callExternalFoo1 :: OmniFn (ADDR -> U256 -> U256)
 callExternalFoo1 = $lfn $ ylvm'pv

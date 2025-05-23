@@ -57,7 +57,7 @@ def_fn4 = $fn \a b c d -> f a b + f c d
   where f a b = a + b
 
 call_fn0 :: PureFn (U256)
-call_fn0 = $fn do call0 def_fn0
+call_fn0 = $fn do call def_fn0
 
 call_fn1 :: PureFn (U256 -> U256)
 call_fn1 = $fn
