@@ -56,7 +56,7 @@ yulIfThenElse c a b = YulSwitch (c >.> yulSafeCast) [(1, a), (0, b)] yulRevert
 ------------------------------------------------------------------------------------------------------------------------
 
 -- | Revert without any message.
-yulRevert :: forall eff a b. (YulO2 a b) => YulCat eff a b
+yulRevert :: forall eff r b. (YulO2 r b) => YulCat eff r b
 yulRevert = YulDis >.> YulJmpB (MkYulBuiltIn @"__const_revert0_c_" @() @b)
 
 -- | Wrapper for built-in keccak256 yul function.

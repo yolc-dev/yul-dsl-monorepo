@@ -22,19 +22,19 @@ globalCounterLoc = $fn do
 incGlobalCounter :: OmniFn (U256 -> ())
 incGlobalCounter = $lfn $ ylvm'pv
   \inc -> LVM.do
-    Ur counterRef <- ycalluv_0 globalCounterLoc
+    Ur counterRef <- ycalluv globalCounterLoc
 
     Ur currentValue <- sget counterRef
 
     Ur newValue <- ywithrv_1 (currentValue, ver inc) \x y -> x + y
 
-    ycalluv_0 globalCounterLoc <<:= newValue
+    ycalluv globalCounterLoc <<:= newValue
 
     yembed ()
 
 getGlobalCounter :: StaticFn U256
 getGlobalCounter = $lfn $ ylvm'pv LVM.do
-  Ur counterRef <- ycalluv_0 globalCounterLoc
+  Ur counterRef <- ycalluv globalCounterLoc
   sget counterRef
 
 --

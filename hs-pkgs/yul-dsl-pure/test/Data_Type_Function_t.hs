@@ -1,3 +1,4 @@
+{-# LANGUAGE LinearTypes #-}
 module Data_Type_Function_t where
 import Prelude
 -- base
@@ -27,28 +28,30 @@ test_tf_uncurry_examples = and
   , fromBoolKind @(UncurryNP I (Int -> Float -> String -> Bool) == (NP I '[Int, Float, String] -> Bool))
   ]
 
-test_tf_ncurry_examples = and
-  [ fromBoolKind @(CurryNP (NP I '[]) Int == Int)
-  , fromBoolKind @(CurryNP (NP I '[Char]) Bool == (Char -> Bool))
-  , fromBoolKind @(CurryNP (NP I '[Char, Double]) Bool == (Char -> Double -> Bool))
-  , fromBoolKind @(CurryNP (NP I '[Char, Char, Double]) Bool == (Char -> Char -> Double -> Bool))
+test_tf_curry_examples = and
+  [ fromBoolKind @(CurryNP_I (NP I '[]) Int == Int)
+  , fromBoolKind @(CurryNP_I (NP I '[Char]) Bool == (Char -> Bool))
+  , fromBoolKind @(CurryNP_I (NP I '[Char, Double]) Bool == (Char -> Double -> Bool))
+  , fromBoolKind @(CurryNP (NP I '[]) Int One == Int)
+  , fromBoolKind @(CurryNP (NP I '[Char]) Bool One == (I Char %1 -> Bool))
+  , fromBoolKind @(CurryNP (NP I '[Char, Double]) Bool One == (I Char %1 -> I Double %1 -> Bool))
   ]
 
-test_tf_uncurrying_head_examples = and
-  [ fromBoolKind @(CurryNP'Head (Bool) == ())
-  , fromBoolKind @(CurryNP'Head (Int -> Bool) == Int)
-  , fromBoolKind @(CurryNP'Head (Int -> Float -> Bool) == Int)
+test_tf_uncurry_head_examples = and
+  [ fromBoolKind @(UncurryNP'Head (Bool) == ())
+  , fromBoolKind @(UncurryNP'Head (Int -> Bool) == Int)
+  , fromBoolKind @(UncurryNP'Head (Int -> Float -> Bool) == Int)
   ]
 
-test_tf_uncurrying_tail_examples = and
-  [ fromBoolKind @(CurryNP'Tail (Bool) == Bool)
-  , fromBoolKind @(CurryNP'Tail (Int -> Bool) == Bool)
-  , fromBoolKind @(CurryNP'Tail (Int -> Float -> Bool) == (Float -> Bool))
+test_tf_uncurry_tail_examples = and
+  [ fromBoolKind @(UncurryNP'Tail (Bool) == Bool)
+  , fromBoolKind @(UncurryNP'Tail (Int -> Bool) == Bool)
+  , fromBoolKind @(UncurryNP'Tail (Int -> Float -> Bool) == (Float -> Bool))
   ]
 
 tests = describe "Data.Type.Function" $ do
   it "LiftFunction examples" test_tf_lift_function_examples
   it "UncurryNP examples" test_tf_uncurry_examples
-  it "CurryNP examples" test_tf_ncurry_examples
-  it "UncurryNP'Head" test_tf_uncurrying_head_examples
-  it "UncurryNP'Tail" test_tf_uncurrying_tail_examples
+  it "CurryNP examples" test_tf_curry_examples
+  it "UncurryNP'Head" test_tf_uncurry_head_examples
+  it "UncurryNP'Tail" test_tf_uncurry_tail_examples

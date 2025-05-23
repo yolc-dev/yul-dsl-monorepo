@@ -1,4 +1,3 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-|
 
@@ -25,6 +24,8 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
   , discard'l, ignore'l, mkunit'l, emb'l, const'l, dup'l, merge'l, split'l
     -- $WithPureFunctions
   , with'l
+    -- control flows
+  , bool'l
     -- $VersionThread
   , VersionThread, vtstart, vtstart_, vtstop, vtreturn, vtmkunit, vtgulp, vtseq
   ) where
@@ -230,29 +231,31 @@ with'l xxs f =
       !(b :* bs, snil) = linearSequenceNP sbbs
   in ignore'l snil b :* bs
 
--- -- | It does the same as 'with\'l', but implemented using 'withNP\'l'.
--- withN'l :: forall f x xs b bs r ioe m1 m2 f' btpl.
---   ( ConstraintForWith x xs b bs r ioe m1 m2
---     -- f
---   , UncurriableNP f (x:xs) btpl m2 m2 Many m2 m2 Many
---     -- f'
---   , EquivalentNPOfFunction f' (x:xs) (NP I (b:bs))
---     -- x:xs
---   , ConvertibleNPtoTupleN m1 (NP m1 (x:xs))
---   , DistributiveNP m2 (x:xs)
---   , TraversableNP m2 (x:xs)
---     -- b:bs
---   , ConvertibleNPtoTupleN m1 (NP m1 (b:bs))
---     -- btpl
---   , TupleN (b:bs) ~ btpl
---   , NP I (b:bs) ~ ABITypeDerivedOf btpl
---   , YulO1 btpl
---   ) =>
---   TupleN_M m1 (x:xs) ⊸
---   PureYulFn f ->
---   TupleN_M m1 (b:bs)
--- withN'l tpl f = fromNPtoTupleN (withNP'l @f' @x @xs @b @bs (fromTupleNtoNP tpl) f')
---   where f' txxs = uncurryNP @f @(x:xs) @btpl @m2 @m2 @_ @m2 @m2 @_ f (distributeNP txxs) >.> YulReduceType
+------------------------------------------------------------------------------------------------------------------------
+-- $ControlFlows
+------------------------------------------------------------------------------------------------------------------------
+
+-- | Yul port boolean switch.
+bool'l :: forall xs b ioe r.
+  ( YulO3 (NP I xs) b r
+  , LinearDistributiveNP (P'x ioe r) xs
+  )=>
+  P'x ioe r BOOL ⊸
+  NP (P'x ioe r) xs ⊸
+  (forall r1. YulO1 r1 => P'x ioe r1 (NP I xs) ⊸ P'x ioe r1 b) ->
+  (forall r2. YulO1 r2 => P'x ioe r2 (NP I xs) ⊸ P'x ioe r2 b) ->
+  P'x ioe r b
+bool'l b xs ga gb =
+  let !(b', u) = mkunit'l b in encodeP'x g (linearDistributeNP (b' :* xs) u)
+  where
+    gc :: forall r3. YulO1 r3 =>
+      P'x ioe r3 (NP I (BOOL:xs)) ⊸ P'x ioe r3 BOOL
+    gc bxs = let !(b', xs') = unconsNP bxs in ignore'l (discard'l xs') b'
+    gh :: forall r1. YulO1 r1 =>
+      (P'x ioe r1 (NP I xs) ⊸ P'x ioe r1 b) ->
+      (P'x ioe r1 (NP I (BOOL:xs)) ⊸ P'x ioe r1 b)
+    gh h bxs = let !(b', xs') = unconsNP bxs in h (ignore'l (discard'l b') xs')
+    g = YulSwitch ((decodeP'x gc) >.> yulSafeCast) [(1, decodeP'x (gh ga)), (0, decodeP'x (gh gb))] yulRevert
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $VersionThread

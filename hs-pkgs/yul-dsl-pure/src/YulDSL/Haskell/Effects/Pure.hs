@@ -87,16 +87,16 @@ instance forall b r.
          , EquivalentNPOfFunction b '[] b
          , LiftFunction b (YulCat'P r) (YulCat'P r) Many ~ YulCat'P r b
          ) =>
-         CurriableNP b '[] b (YulCat'P r) (YulCat'P r) Many (YulCat'P r) Many where
+         CurriableNP '[] b (YulCat'P r) (YulCat'P r) Many (YulCat'P r) Many where
   curryNP fNP = fNP (YulReduceType <.< YulDis)
 
 -- ^ Inductive case: @curryingNP (NP (x:xs) -> b) => x -> curryingNP (NP I xs -> b)@
-instance forall g x xs b r.
+instance forall x xs b r.
          ( YulO5 x (NP I xs) b (NP I (x:xs)) r
-         , CurriableNP g xs b (YulCat'P r) (YulCat'P r) Many (YulCat'P r) Many
+         , CurriableNP xs b (YulCat'P r) (YulCat'P r) Many (YulCat'P r) Many
          ) =>
-         CurriableNP (x -> g) (x:xs) b (YulCat'P r) (YulCat'P r) Many (YulCat'P r) Many where
-  curryNP fNP x = curryNP @g @xs @b @(YulCat'P r) @(YulCat'P r) @_ @(YulCat'P r) @_ (fNP . consNP x)
+         CurriableNP (x:xs) b (YulCat'P r) (YulCat'P r) Many (YulCat'P r) Many where
+  curryNP fNP x = curryNP @xs @b @(YulCat'P r) @(YulCat'P r) @_ @(YulCat'P r) @_ (fNP . consNP x)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $PureFn
@@ -146,20 +146,20 @@ fn' :: forall f xs b m.
   ) =>
   String ->
   LiftFunction f m m Many -> -- ^ uncurrying function type
-  PureFn (CurryNP (NP I xs) b) -- ^ result type, or its short form @m b@
+  PureFn (CurryNP_I (NP I xs) b) -- ^ result type, or its short form @m b@
 fn' cid f = let cat = uncurryNP @f @xs @b @m @m @_ @m @m @_ f YulId in MkPureFn (cid, cat)
 
 -- | Create a 'PureFn' with automatic id based on function definition source location.
 fn :: TH.Q TH.Exp
 fn = [e| fn' ("$pfn_" ++ $fnLocId) |]
 
-instance forall f x xs b g r.
+instance forall f x xs b r.
          ( YulO4 x (NP I xs) b r
          , EquivalentNPOfFunction f (x:xs) b
-         , CurriableNP g xs b (YulCat'P r) (YulCat'P r) Many (YulCat'P r) Many
+         , CurriableNP xs b (YulCat'P r) (YulCat'P r) Many (YulCat'P r) Many
          ) =>
          CallableFunctionNP PureFn f x xs b (YulCat'P r) (YulCat'P r) Many where
-  call (MkPureFn (cid, cat)) x = curryNP @g @xs @b @(YulCat'P r) @(YulCat'P r) @_ @(YulCat'P r) @_
+  call (MkPureFn (cid, cat)) x = curryNP @xs @b @(YulCat'P r) @(YulCat'P r) @_ @(YulCat'P r) @_
     (\xs -> consNP x xs >.> YulJmpU (cid, cat))
 
 -- | An alias to @callN f ()@.

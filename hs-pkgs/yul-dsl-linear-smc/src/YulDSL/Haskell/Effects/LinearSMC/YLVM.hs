@@ -15,12 +15,12 @@ This module provides the linearly-versioned monad (LVM) for yul ports, aka. YLVM
 
 -}
 module YulDSL.Haskell.Effects.LinearSMC.YLVM
-  ( -- $YLVM
+  ( -- * YLVM: A Linearly Versioned Monad for Yul Ports
+    -- $YLVM
     YLVM, runYLVM
-    -- * YLVM: A Linearly Versioned Monad for Yul Ports
   , ygulp, yrunvt
-    -- $YulVarRefAPI
     -- * Yul Variable Reference's API
+    -- $YulVarRefAPI
   , LinearlyVersionRestrictedYulPort, DereferenceYulVarRef, ReferenciableYulVar
   , Ur (Ur), unur, Uv, Rv
   , VersionableYulVarRef (ver)
@@ -29,8 +29,11 @@ module YulDSL.Haskell.Effects.LinearSMC.YLVM
   , yembed, yreturn
     -- ** Process With Pure Functions
   , ywithuv, ywithuv_1, ywithrv, ywithrv_1
+    -- * Control Flow With YLVM
+    -- $ControlFlows
+  , ywhen
     -- $YLVMDiagrams
-    -- * YLVM Monadic Diagrams
+    -- * Create YLVM Monadic Diagrams
   , YulCat'LPPM (MkYulCat'LPPM), YulCat'LPVM (MkYulCat'LPVM), YulCat'LVVM (MkYulCat'LVVM)
   , ylvm'pp, ylvm'pv, ylvm'vv
     -- * Re-export LVM Primitives
@@ -559,17 +562,15 @@ ylvm'pp f =
 
 instance forall b v r a.
          YulO2 r a =>
-         CurriableNP (Uv r b) '[] (Uv r b) (YulCat'LPP r a) (YLVM v v r) One (Uv r) Many where
+         CurriableNP '[] (Ur (Uv r b)) (YulCat'LPP r a) (YLVM v v r) One (Uv r) Many where
   curryNP fNP = fNP (MkYulCat'LPP (\a -> coerceType'l (discard'l a)))
 
-instance forall x xs b g r a v.
-         ( YulO4 x (NP I xs) r a
-         , CurriableNP g xs (Uv r b) (YulCat'LPP r a) (YLVM v v r) One (Uv r) Many
-           --
-         , KnownNat v
+instance forall x xs b r a v.
+         ( KnownNat v, YulO4 x (NP I xs) r a
+         , CurriableNP xs (Uv r b) (YulCat'LPP r a) (YLVM v v r) One (Uv r) Many
          ) =>
-         CurriableNP (x -> g) (x:xs) (Uv r b) (YulCat'LPP r a) (YLVM v v r) One (Uv r) Many where
-  curryNP fNP xVar = curryNP @g @xs @(Uv r b) @(YulCat'LPP r a) @(YLVM v v r) @_ @(Uv r) @_
+         CurriableNP (x:xs) (Uv r b) (YulCat'LPP r a) (YLVM v v r) One (Uv r) Many where
+  curryNP fNP xVar = curryNP @xs @(Uv r b) @(YulCat'LPP r a) @(YLVM v v r) @_ @(Uv r) @_
     (\(MkYulCat'LPP fxs) -> ytkvar xVar LVM.>>= \x -> fNP (MkYulCat'LPP (\a -> consNP x (fxs a))))
 
 --
@@ -580,16 +581,13 @@ instance forall x xs b g r a v.
 newtype YulCat'LPVM v1 vn r a b = MkYulCat'LPVM (P'P r a ⊸ YLVM v1 vn r b)
 
 instance forall b v1 vn r a.
-         ( KnownNat v1, KnownNat vn
-         , YulO3 b r a
-         ) =>
+         (KnownNat v1, KnownNat vn , YulO3 b r a) =>
          UncurriableNP (Ur (Rv vn r b)) '[] (Ur (Rv vn r b))
          (Uv r) (YLVM v1 vn r) Many (YulCat'LPP r a) (YulCat'LPVM v1 vn r a) One where
   uncurryNP b (MkYulCat'LPP h) = MkYulCat'LPVM (yuncurry_nil b h)
 
-instance forall x xs b g v1 vn r a.
-         ( KnownNat v1, KnownNat vn
-         , YulO5 x (NP I xs) b r a
+instance forall x xs g b v1 vn r a.
+         ( KnownNat v1, KnownNat vn, YulO5 x (NP I xs) b r a
          , UncurriableNP g xs (Ur (Rv vn r b))
            (Uv r) (YLVM v1 vn r) Many (YulCat'LPP r a) (YulCat'LPVM v1 vn r a) One
          ) =>
@@ -620,17 +618,17 @@ ylvm'pv f =
 
 instance forall b v1 vn r a.
          YulO2 r a =>
-         CurriableNP (Ur (Rv vn r b)) '[] (Ur (Rv vn r b)) (YulCat'LPP r a) (YLVM v1 vn r) One (Uv r) Many where
+         CurriableNP '[] (Ur (Rv vn r b)) (YulCat'LPP r a) (YLVM v1 vn r) One (Uv r) Many where
   curryNP fNP = fNP (MkYulCat'LPP (\a -> coerceType'l (discard'l a)))
 
-instance forall x xs b g r a v1 vn.
+instance forall x xs b r a v1 vn.
          ( YulO4 x (NP I xs) r a
-         , CurriableNP g xs (Ur (Rv vn r b)) (YulCat'LPP r a) (YLVM v1 vn r) One (Uv r) Many
+         , CurriableNP xs (Ur (Rv vn r b)) (YulCat'LPP r a) (YLVM v1 vn r) One (Uv r) Many
            --
          , KnownNat v1, KnownNat vn
          ) =>
-         CurriableNP (x -> g) (x:xs) (Ur (Rv vn r b)) (YulCat'LPP r a) (YLVM v1 vn r) One (Uv r) Many where
-  curryNP fNP xVar = curryNP @g @xs @(Ur (Rv vn r b)) @(YulCat'LPP r a) @(YLVM v1 vn r) @_ @(Uv r) @_
+         CurriableNP (x:xs) (Ur (Rv vn r b)) (YulCat'LPP r a) (YLVM v1 vn r) One (Uv r) Many where
+  curryNP fNP xVar = curryNP @xs @(Ur (Rv vn r b)) @(YulCat'LPP r a) @(YLVM v1 vn r) @_ @(Uv r) @_
     (\(MkYulCat'LPP fxs) -> ytkvar xVar LVM.>>= \x -> fNP (MkYulCat'LPP (\a -> consNP x (fxs a))))
 
 --
@@ -682,15 +680,15 @@ ylvm'vv f =
 
 instance forall b v1 vn r a.
          YulO2 r a =>
-         CurriableNP (Ur (Rv vn r b)) '[] (Ur (Rv vn r b)) (YulCat'LVV v1 v1 r a) (YLVM v1 vn r) One (Rv v1 r) Many where
+         CurriableNP '[] (Ur (Rv vn r b)) (YulCat'LVV v1 v1 r a) (YLVM v1 vn r) One (Rv v1 r) Many where
   curryNP fNP = fNP (MkYulCat'LVV (\a -> coerceType'l (discard'l a)))
 
-instance forall x xs b g r a v1 vn.
+instance forall x xs b r a v1 vn.
          ( YulO4 x (NP I xs) r a
-         , CurriableNP g xs (Ur (Rv vn r b)) (YulCat'LVV v1 v1 r a) (YLVM v1 vn r) One (Rv v1 r) Many
+         , CurriableNP xs (Ur (Rv vn r b)) (YulCat'LVV v1 v1 r a) (YLVM v1 vn r) One (Rv v1 r) Many
            --
          , KnownNat v1, KnownNat vn
          ) =>
-         CurriableNP (x -> g) (x:xs) (Ur (Rv vn r b)) (YulCat'LVV v1 v1 r a) (YLVM v1 vn r) One (Rv v1 r) Many where
-  curryNP fNP xVar = curryNP @g @xs @(Ur (Rv vn r b)) @(YulCat'LVV v1 v1 r a) @(YLVM v1 vn r) @_ @(Rv v1 r) @_
+         CurriableNP (x:xs) (Ur (Rv vn r b)) (YulCat'LVV v1 v1 r a) (YLVM v1 vn r) One (Rv v1 r) Many where
+  curryNP fNP xVar = curryNP @xs @(Ur (Rv vn r b)) @(YulCat'LVV v1 v1 r a) @(YLVM v1 vn r) @_ @(Rv v1 r) @_
     (\(MkYulCat'LVV fxs) -> ytkvar xVar LVM.>>= \x -> fNP (MkYulCat'LVV (\a -> consNP x (fxs a))))

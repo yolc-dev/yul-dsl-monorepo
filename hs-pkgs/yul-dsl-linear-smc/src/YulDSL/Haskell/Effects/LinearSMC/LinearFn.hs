@@ -19,7 +19,7 @@ module YulDSL.Haskell.Effects.LinearSMC.LinearFn
     -- $MethodBinding
   , bindMethod, (@->)
     -- $CallableFnWithYulVars
-  , ycalluv, ycalluv_0, ycall, ycall0
+  , ycalluv, ycall, ycall0
     -- $CallableFnWithYulPorts
   ) where
 -- base
@@ -202,54 +202,41 @@ instance (KnownNat v, EquivalentNPOfFunction f xs b, YulO2 (NP I xs) b) =>
          EncodableFn (OmniFn f)   (VersionedInputOutput vd) v r f xs b
 
 --
--- ycalluv, ycalluv_0
+-- ycalluv
 --
 
-ycalluv :: forall f x xs b v g r.
-  ( KnownNat v, YulO4 x (NP I xs) b r
-  , EncodableFn (PureFn f) PureInputPureOutput v r f (x:xs) b
-  , CurriableNP g xs (Ur (Uv r b)) (YulCat'LPP r ()) (YLVM v v r) One (Uv r) One
+ycalluv :: forall f xs b v r.
+  ( KnownNat v, YulO3 (NP I xs) b r
+  , EncodableFn (PureFn f) PureInputPureOutput v r f xs b
+  , CurriableNP xs (Ur (Uv r b)) (YulCat'LPP r ()) (YLVM v v r) One (Uv r) Many
   , YulVarRef v r (P'P r) (Uv r)
   ) =>
   PureFn f ->
-  (Uv r x -> LiftFunction (CurryNP (NP I xs) (Ur (Uv r b))) (Uv r) (YLVM v v r) One)
-ycalluv f xVar =
-  curryNP @g @xs @(Ur (Uv r b)) @(YulCat'LPP r ()) @(YLVM v v r) @One @(Uv r)
+  CurryNP (NP (Uv r) xs) (YLVM v v r (Ur (Uv r b))) Many
+ycalluv f =
+  curryNP @xs @(Ur (Uv r b)) @(YulCat'LPP r ()) @(YLVM v v r) @One @(Uv r)
   \(MkYulCat'LPP fxs) -> LVM.do
-    x <- ytkvar xVar
-    let !(x', u) = mkunit'l x
+    u :: P'P r () <- embed ()
     f' <- encodeFnWith'l @_ @PureInputPureOutput @v f ymkvar
-    f' (consNP x' (fxs u))
-
-ycalluv_0 :: forall b v r.
-  ( KnownNat v, YulO2 b r
-  , EncodableFn (PureFn b) PureInputPureOutput v r b '[] b
-  , YulVarRef v r (P'P r) (Uv r)
-  ) =>
-  PureFn b ->
-  LiftFunction (Ur (Uv r b)) (Uv r) (YLVM v v r) One
-ycalluv_0 f = LVM.do
-  u :: P'P r () <- embed ()
-  f' <- encodeFnWith'l @_ @PureInputPureOutput @v f ymkvar
-  f' (coerceType'l u)
+    f' (fxs u)
 
 --
 -- ycall
 --
 
 class YCallableFunctionNonNil fn f x xs b va vd r | fn -> f vd where
-  ycall :: forall vb g.
+  ycall :: forall vb.
     ( EncodableFn fn (VersionedInputOutput vd) va r f (x:xs) b
     , YulVarRef vb r (P'V vb r) (Rv vb r)
-    , CurriableNP g xs (Ur (Rv vb r b)) (YulCat'LVV va va r ()) (YLVM va vb r) One (Rv va r) Many
+    , CurriableNP xs (Ur (Rv vb r b)) (YulCat'LVV va va r ()) (YLVM va vb r) One (Rv va r) Many
     , va + vd ~ vb, KnownNat va, KnownNat vd, KnownNat vb, YulO3 r x (NP I xs)
     ) =>
     fn ->
-    (Rv va r x -> LiftFunction (CurryNP (NP I xs) (Ur (Rv vb r b))) (Rv va r) (YLVM va vb r) Many)
+    (Rv va r x -> CurryNP (NP (Rv va r) xs) (YLVM va vb r (Ur (Rv vb r b))) Many)
   ycall f xVar =
     -- the axiom proof makes the error messages better:
     toLinear2 (withDict) (unsafeAxiom :: Dict (va <= va + vd)) $
-    curryNP @g @xs @(Ur (Rv vb r b)) @(YulCat'LVV va va r ()) @(YLVM va vb r) @_ @(Rv va r) @_
+    curryNP @xs @(Ur (Rv vb r b)) @(YulCat'LVV va va r ()) @(YLVM va vb r) @_ @(Rv va r) @_
     \(MkYulCat'LVV fxs) -> LVM.do
       x <- ytkvar xVar
       let !(x', u) = mkunit'l x
@@ -280,6 +267,11 @@ class YCallableFunctionNil fn b va vd r | fn -> b vd where
           f (\b -> LVM.unsafeCoerceLVM (LVM.pure (Ur ())) LVM.>> ymkvar b)
     f' (coerceType'l u)
 
+instance {-# OVERLAPPABLE #-}
+         TypeError.Unsatisfiable (TypeError.Text "You are using ycall0 with a non-nullary function") =>
+         YCallableFunctionNil (BoundMethod vref_tgt f xs b) f va vd r where
+instance YCallableFunctionNil (BoundMethod vref_tgt b '[] b) b va 1 r where
+
 instance YCallableFunctionNil (PureFn b) b va 0 r
 instance YCallableFunctionNil (StaticFn b) b va 0 r
 instance YCallableFunctionNil (OmniFn b) b va 1 r
@@ -288,7 +280,8 @@ instance YCallableFunctionNil (OmniFn b) b va 1 r
 -- BoundMethod Support
 --
 
-instance ( KnownNat va, YulO2 (NP I xs) b, EquivalentNPOfFunction f xs b
+instance ( KnownNat va, YulO2 (NP I xs) b
+         , EquivalentNPOfFunction f xs b
          , VersionableYulVarRef va r vref_tgt
          ) =>
          EncodableFn (BoundMethod vref_tgt f xs b) (VersionedInputOutput 1) va r f xs b where
@@ -301,11 +294,6 @@ instance ( KnownNat va, YulO2 (NP I xs) b, EquivalentNPOfFunction f xs b
                       (YulCall sel) cont (merge'l (be (unsafeCoerceYulPort contract, gasLimit, value), xs))
 
 instance YCallableFunctionNonNil (BoundMethod vref_tgt f (x:xs) b) f x xs b va 1 r
-
-instance {-# OVERLAPPABLE #-}
-         TypeError.Unsatisfiable (TypeError.Text "You are using ycall0 with a non-nullary function") =>
-         YCallableFunctionNil (BoundMethod vref_tgt f xs b) f va vd r where
-instance YCallableFunctionNil (BoundMethod vref_tgt b '[] b) b va 1 r where
 
 --
 -- ycallN (FIXME)
@@ -370,33 +358,33 @@ instance YCallableFunctionNil (BoundMethod vref_tgt b '[] b) b va 1 r where
 -- call'l FIXME
 --
 
-instance forall f x xs b g r.
+instance forall f x xs b r.
          ( YulO4 x (NP I xs) b r
          , EquivalentNPOfFunction f (x:xs) b
-         , CurriableNP g xs b (YulCat'LPP r ()) (P'P r) One (P'P r) One
+         , CurriableNP xs b (YulCat'LPP r ()) (P'P r) One (P'P r) One
          ) =>
          CallableFunctionNP PureFn f x xs b (P'P r) (P'P r) One where
   call (MkPureFn f') x =
     let !(x', u) = mkunit'l x
-    in curryNP @g @xs @b @(YulCat'LPP r ()) @(P'P r) @_ @(P'P r) @_
+    in curryNP @xs @b @(YulCat'LPP r ()) @(P'P r) @_ @(P'P r) @_
        \(MkYulCat'LPP fxs) -> encodeWith'l (YulJmpU f') id (consNP x' (fxs u))
 
-instance forall f x xs b va g r.
+instance forall f x xs b va r.
          ( YulO4 x (NP I xs) b r
          , EquivalentNPOfFunction f (x:xs) b
-         , CurriableNP g xs b (YulCat'LVV va va r ()) (P'V va r) One (P'V va r) One
+         , CurriableNP xs b (YulCat'LVV va va r ()) (P'V va r) One (P'V va r) One
          ) =>
          CallableFunctionNP PureFn f x xs b (P'V va r) (P'V va r) One where
   call (MkPureFn f) x =
     let f' = unsafeCoerceNamedYulCat f :: NamedYulCat (VersionedInputOutput 0) (NP I (x:xs)) b
         !(x', u) = mkunit'l x
-    in curryNP @g @xs @b @(YulCat'LVV va va r ()) @(P'V va r) @_ @(P'V va r)
+    in curryNP @xs @b @(YulCat'LVV va va r ()) @(P'V va r) @_ @(P'V va r)
        \(MkYulCat'LVV fxs) -> encodeWith'l (YulJmpU f') id (consNP x' (fxs u))
 
-instance forall f x xs b va g r.
+instance forall f x xs b va r.
          ( YulO4 x (NP I xs) b r
          , EquivalentNPOfFunction f (x:xs) b
-         , CurriableNP g xs b (YulCat'LVV va va r ()) (P'V va r) One (P'V va r) One
+         , CurriableNP xs b (YulCat'LVV va va r ()) (P'V va r) One (P'V va r) One
          ) =>
          CallableFunctionNP StaticFn f x xs b (P'V va r) (P'V va r) One where
   call (MkStaticFn f) = call (MkPureFn (unsafeCoerceNamedYulCat f))

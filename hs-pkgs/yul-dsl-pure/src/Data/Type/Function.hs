@@ -20,11 +20,12 @@ Additionally, the design of this module is highly polymorphic including multipli
 module Data.Type.Function
   ( LiftFunction
   , UncurryNP'Fst, UncurryNP'Snd, UncurryNP'Multiplicity, UncurryNP
-  , CurryNP, CurryNP'Head, CurryNP'Tail
+  , UncurryNP'Head, UncurryNP'Tail
+  , CurryNP, CurryNP_I
   , EquivalentNPOfFunction
   , UncurriableNP (uncurryNP)
   , CurriableNP (curryNP)
-  , CallableFunctionNP (call), CallableFunctionN (callN, (<$*>))
+  , CallableFunctionNP (call), CallableFunctionN (callN)
   ) where
 -- base
 import Data.Kind     (Type)
@@ -59,34 +60,36 @@ type family UncurryNP'Multiplicity f :: Multiplicity where
 -- | Uncurry a function to its NP form whose multiplicity of the last arrow is preserved.
 type UncurryNP m f = NP m (UncurryNP'Fst f) %(UncurryNP'Multiplicity f) -> UncurryNP'Snd f
 
--- | Convert a function in ts NP form @np -> b@ to a curried function with multiplicity arrows in @p@.
---
---   Note: To add multiplicity-polymorphic arrows or to decorate arguments with additional type function, use
---   'LiftFunction'.
-type family CurryNP np b where
-  CurryNP (NP _    '[]) b = b
-  CurryNP (NP m (x:xs)) b = x -> CurryNP (NP m xs) b
+-- | The type of the tail of an currying function.
+type family UncurryNP'Tail f where
+  UncurryNP'Tail (_ -> g) = g
+  UncurryNP'Tail      (b) = b
 
 -- | The type of the head of arguments of an currying function.
-type family CurryNP'Head f where
-  CurryNP'Head (a1 -> g) = a1
-  CurryNP'Head       (b) = ()
+type family UncurryNP'Head f where
+  UncurryNP'Head (a1 -> g) = a1
+  UncurryNP'Head       (b) = ()
 
--- | The type of the tail of an currying function.
-type family CurryNP'Tail f where
-  CurryNP'Tail (_ -> g) = g
-  CurryNP'Tail      (b) = b
+-- | Convert a function in ts "NP m" form @np -> b@ to a curried function with multiplicity arrows in @p@.
+type family CurryNP np mb p where
+  CurryNP (NP m    '[]) b _ = b
+  CurryNP (NP m (x:xs)) b p = m x %p -> CurryNP (NP m xs) b p
+
+-- | Convert a function in ts "NP I" form @np -> b@ to a curried function.
+type family CurryNP_I np b where
+  CurryNP_I (NP I    '[]) b = b
+  CurryNP_I (NP I (x:xs)) b = x -> CurryNP_I (NP I xs) b
 
 -- | Declare the equivalence between a currying function form @f@ and @NP xs -> b@.
 type EquivalentNPOfFunction f xs b =
-  ( CurryNP (NP I xs) b ~ f
+  ( CurryNP_I (NP I xs) b ~ f
   , UncurryNP'Fst f ~ xs
   , UncurryNP'Snd f ~ b
   )
 
 -- | Uncurry a function into a function of @NP xs@ to @b@.
 class ( EquivalentNPOfFunction f xs b
-      -- rewrite the second lift function into its one-arity form
+        -- rewrite the second lift function into its one-arity form
       , LiftFunction (NP I xs -> b) m2 m2b p2 ~ (m2 (NP I xs) %p2 -> m2b b)
       ) =>
       UncurriableNP f xs b m1 m1b p1 m2 m2b p2 | m1 m1b -> p1, m2 -> p2 where
@@ -95,23 +98,20 @@ class ( EquivalentNPOfFunction f xs b
     LiftFunction (NP I xs -> b) m2 m2b p2        -- ^ to this lifted function
 
 -- | Curry a function of @NP xs@ to @b@.
-class ( EquivalentNPOfFunction f xs b
-        -- rewrite the first lift function into its one-arity form
-      , LiftFunction (NP I xs -> b) m2 mb p1 ~ (m2 (NP I xs) %p1 -> mb b)
+class ( -- rewrite the first lift function into its one-arity form
+        LiftFunction (NP I xs -> b) m2 mb p1 ~ (m2 (NP I xs) %p1 -> mb b)
       ) =>
-      CurriableNP f xs b m2 mb p2 m1 p1 | m2 mb -> p2, m1 -> p1 where
+      CurriableNP xs b m2 mb p2 m1 p1 | m2 mb -> p2, m1 -> p1 where
   curryNP :: forall.
     LiftFunction (NP I xs -> b) m2 mb p2 %p1 -> -- ^ from this lifted function. NOTE: using p1 to be consumed by m1.
-    LiftFunction           f  m1 mb p1          -- ^ to this lifted function
+    CurryNP (NP m1 xs) (mb b) p1          -- ^ to this lifted function
 
-class ( EquivalentNPOfFunction f (x:xs) b
-      ) =>
+class EquivalentNPOfFunction f (x:xs) b =>
       CallableFunctionNP fn f x xs b m mb p | fn m -> mb p where
-  call :: forall. fn f -> (m x %p -> LiftFunction (CurryNP (NP I xs) b) m mb p)
+  call :: forall. fn f -> (m x %p -> CurryNP (NP m xs) (mb b) p)
 
 class ( EquivalentNPOfFunction f xs b
       , ConvertibleNPtoTupleN m (NP m xs)
       ) =>
       CallableFunctionN fn f xs b m mb p | fn mb -> m p where
-  callN, (<$*>) :: forall. fn f -> NPtoTupleN m (NP m xs) %p -> mb b
-  (<$*>) = callN
+  callN :: forall. fn f -> NPtoTupleN m (NP m xs) %p -> mb b

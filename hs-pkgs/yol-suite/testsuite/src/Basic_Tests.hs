@@ -66,7 +66,7 @@ varSharingL = $lfn $ yulports'pp
 
 lvmvar_test1 :: PureFn (U256 -> U256 -> U256)
 lvmvar_test1 = $lfn $ ylvm'pp
-  \x_ y_ -> ywithuv_1 (x_ :* y_ :* Nil) \x y -> x * y + y
+  \x_ y_ -> ywithuv_1 (x_, y_) \x y -> x * y + y
 
 lvmvar_test2 :: PureFn (U256)
 lvmvar_test2 = $lfn $ ylvm'pp LVM.do
