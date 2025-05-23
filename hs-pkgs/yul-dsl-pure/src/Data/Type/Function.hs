@@ -107,4 +107,4 @@ class ( EquivalentNPOfFunction f xs b
       , ConvertibleNPtoTupleN m (NP m xs)
       ) =>
       CallableFunctionN fn f xs b m mb p | fn mb -> m p where
-  callN :: forall. fn f -> NPtoTupleN m (NP m xs) %p -> mb b
+  callN :: forall. fn f -> TupleN_M m xs %p -> mb b

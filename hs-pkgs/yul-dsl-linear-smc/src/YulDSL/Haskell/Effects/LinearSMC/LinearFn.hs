@@ -52,10 +52,11 @@ import YulDSL.Haskell.Effects.LinearSMC.YulPort
 
 data StaticFn f where
   MkStaticFn :: forall (eff :: LinearEffectKind) f xs b.
-                ( KnownYulCatEffect eff
-                , AssertStaticEffect eff
-                , EquivalentNPOfFunction f xs b
-                ) => NamedYulCat eff (NP I xs) b ⊸ StaticFn f
+    ( KnownYulCatEffect eff
+    , AssertStaticEffect eff
+    , EquivalentNPOfFunction f xs b
+    ) =>
+    NamedYulCat eff (NP I xs) b ⊸ StaticFn f
 
 instance Show (StaticFn f) where
   show (MkStaticFn (name, cat)) = "StaticFn " <> name <> " {\n  " <> show (cleanYulCat cat) <> "\n}"
@@ -66,10 +67,11 @@ instance EquivalentNPOfFunction f xs b =>
 
 data OmniFn f where
   MkOmniFn :: forall (eff :: LinearEffectKind) f xs b.
-              ( KnownYulCatEffect eff
-              , AssertOmniEffect eff
-              , EquivalentNPOfFunction f xs b
-              ) => NamedYulCat eff (NP I xs) b ⊸ OmniFn f
+    ( KnownYulCatEffect eff
+    , AssertOmniEffect eff
+    , EquivalentNPOfFunction f xs b
+    ) =>
+    NamedYulCat eff (NP I xs) b ⊸ OmniFn f
 
 instance Show (OmniFn f) where
   show (MkOmniFn (name, cat)) = "OmniFn " <> name <> " {\n  " <> show (cleanYulCat cat) <> "\n}"

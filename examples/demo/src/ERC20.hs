@@ -53,12 +53,12 @@ transfer = $lfn $ ylvm'pv
 
     -- -- calculate new balances
     -- Ur (newSenderBalance, newReceiverBalance) <- ywithrv
-    --   (ver amount :* senderBalance :* receiverBalance :* Nil)
-    --   \(amount' :* senderBalance' :* receiverBalance' :* Nil) ->
+    --   (ver amount, senderBalance, receiverBalance)
+    --   \amount' senderBalance' receiverBalance' ->
     --     be (senderBalance' - amount', receiverBalance' + amount')
 
-    -- WARNING: THIS IS WRONG
-    -- Have you found the issue?
+    -- -- WARNING: THIS IS WRONG
+    -- -- Have you found the issue?
     -- balances #-> from <<:= newSenderBalance
     -- balances #-> to   <<:= newReceiverBalance
 

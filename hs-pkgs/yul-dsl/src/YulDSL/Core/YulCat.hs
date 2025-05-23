@@ -236,15 +236,8 @@ instance (YulO3 x (NP I xs) r, YulCat eff r ~ s) =>
           x    = YulExl <.< xxs'
           xs   = YulExr <.< xxs'
 
-instance YulO1 r => TraversableNP (YulCat eff r) '[] where
-  sequenceNP _ = Nil
 instance YulO1 r => DistributiveNP (YulCat eff r) '[] where
   distributeNP _ = YulEmb Nil <.< YulDis
-
-instance (YulO3 x (NP I xs) r, TraversableNP (YulCat eff r) xs) =>
-         TraversableNP (YulCat eff r) (x:xs)
-instance (YulO3 x (NP I xs) r, DistributiveNP (YulCat eff r) xs) =>
-         DistributiveNP (YulCat eff r) (x:xs)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Base Library Instances

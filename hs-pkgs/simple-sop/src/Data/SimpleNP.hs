@@ -1,5 +1,4 @@
-{-# LANGUAGE DefaultSignatures #-}
-{-# LANGUAGE LinearTypes       #-}
+{-# LANGUAGE LinearTypes #-}
 {-|
 
 Copyright   : (c) 2024-2025 Miao, ZhiCheng
@@ -67,7 +66,7 @@ instance (Show (f x), Show (NP f xs)) => Show (NonEmptyNP f x xs) where
   show (x :* xs) = "(" ++ show x ++ " :* " ++ show xs ++ ")"
 
 ------------------------------------------------------------------------------------------------------------------------
--- Applicative-like classes for NP. TODO: Defer the actual applicative framework, instead.
+-- Applicative-like classes for NP. TODO: Defer this to the actual applicative framework, instead.
 ------------------------------------------------------------------------------------------------------------------------
 
 -- | Construct and deconstruct NP within the effect @f@
@@ -81,42 +80,44 @@ class ConstructibleNP f x xs p | f -> p where
 class TraversableNP f xs where
   -- | Sequence a NP under the context of @f@ into a NP with each component under the same context.
   sequenceNP :: forall. f (NP I xs) -> NP f xs
-  -- ^ The default implementation for 'sequenceNP' when it is also a 'constructibleNP'.
-  default sequenceNP :: forall x' xs'.
-    ( x':xs' ~ xs
-    , ConstructibleNP f x' xs' Many
-    , TraversableNP f xs'
-    ) =>
-    f (NP I xs) -> NP f xs
-  sequenceNP txxs = let (x, txs) = unconsNP txxs in x :* sequenceNP txs
+
+-- ^ The terminal case of sequence should be universally Nil.
+instance TraversableNP f '[] where
+  sequenceNP _ = Nil
+
+-- ^ The default implementation of non-empty 'TraversableNP' when it is also a 'constructibleNP'.
+instance ( ConstructibleNP f x xs Many
+         , TraversableNP f xs
+         ) =>
+         TraversableNP f (x:xs) where
+    sequenceNP txxs = let (x, txs) = unconsNP txxs in x :* sequenceNP txs
 
 -- | A distributive NP is the duo of 'TraversableNP'.
 class DistributiveNP f xs where
   -- | The dual of 'sequenceNP'.
   distributeNP :: forall. NP f xs -> f (NP I xs)
-  -- ^ The default implementation for 'distributeNP' when it is also an 'constructibleNP'.
-  default distributeNP :: forall x' xs'.
-    ( x':xs' ~ xs
-    , ConstructibleNP f x' xs' Many
-    , DistributiveNP f xs'
-    ) =>
-    NP f xs -> f (NP I xs)
+
+-- ^ The default implementation for non-empty 'DistributiveNP' when it is also an 'constructibleNP'.
+instance ( ConstructibleNP f x xs Many
+         , DistributiveNP f xs
+         ) =>
+         DistributiveNP f (x:xs) where
   distributeNP (x :* xs) = consNP x (distributeNP xs)
 
 -- | A linear-typed 'TraversableNP'.
 class LinearTraversableNP f xs where
   -- | A linear-typed 'sequenceNP', where @t ()@ is the waste unit "product" to be linearly discarded.
   linearSequenceNP :: forall. f (NP I xs) %1 -> (NP f xs, f ())
-  -- ^ The default implementation for 'linearSequenceNP' when it is also an 'constructibleNP'.
-  default linearSequenceNP :: forall x' xs'.
-    ( x':xs' ~ xs
-    , ConstructibleNP f x' xs' One
-    , LinearTraversableNP f xs'
-    ) =>
-    f (NP I xs) %1 -> (NP f xs, f ())
-  linearSequenceNP txxs = let !(x, txs) = unconsNP txxs
-                              !(xs, tnil) = linearSequenceNP txs
-                          in (x :* xs, tnil)
+
+-- ^ The default implementation for non-empty 'linearSequenceNP' when it is also an 'constructibleNP'.
+instance ( ConstructibleNP f x xs One
+         , LinearTraversableNP f xs
+         ) =>
+         LinearTraversableNP f (x:xs) where
+  linearSequenceNP txxs =
+    let !(x, txs) = unconsNP txxs
+        !(xs, tnil) = linearSequenceNP txs
+    in (x :* xs, tnil)
 
 -- | A linear-typed 'DistributiveNP'.
 class LinearDistributiveNP f xs where
@@ -127,11 +128,11 @@ class LinearDistributiveNP f xs where
   --   In some linear-typed system, conjuring up @t ()@ from nothing is impossible. In such a system, to start the
   --   distribution process, a nil value is provided, instead.
   linearDistributeNP :: forall. NP f xs %1 -> f () %1 -> f (NP I xs)
-  -- ^ The default implementation for 'linearDistributeNP' when it is also an 'constructibleNP'.
-  default linearDistributeNP :: forall x' xs'.
-    ( x':xs' ~ xs
-    , ConstructibleNP f x' xs' One
-    , LinearDistributiveNP f xs'
-    ) =>
-    NP f xs %1 -> f () %1 -> f (NP I xs)
+
+
+-- ^ The default implementation for non-empty 'linearDistributeNP' when it is also an 'constructibleNP'.
+instance ( ConstructibleNP f x xs One
+         , LinearDistributiveNP f xs
+         ) =>
+         LinearDistributiveNP f (x:xs) where
   linearDistributeNP (x :* xs) tnil = consNP x (linearDistributeNP xs tnil)

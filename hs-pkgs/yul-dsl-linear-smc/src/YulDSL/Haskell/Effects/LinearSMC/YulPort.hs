@@ -355,13 +355,10 @@ instance YulO3 x (NP I xs) r =>
 instance YulO1 r =>
          LinearTraversableNP (P'x eff r) '[] where
   linearSequenceNP snil = (Nil, coerceType'l snil)
+
 instance YulO1 r =>
          LinearDistributiveNP (P'x eff r) '[] where
   linearDistributeNP Nil = coerceType'l
-instance (YulO3 x (NP I xs) r, LinearTraversableNP (P'x eff r) xs) =>
-         LinearTraversableNP (P'x eff r) (x:xs)
-instance (YulO3 x (NP I xs) r, LinearDistributiveNP (P'x eff r) xs) =>
-         LinearDistributiveNP (P'x eff r) (x:xs)
 
 --
 -- TupleN
