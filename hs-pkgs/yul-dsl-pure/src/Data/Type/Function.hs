@@ -87,24 +87,17 @@ type EquivalentNPOfFunction f xs b =
   , UncurryNP'Snd f ~ b
   )
 
--- | Uncurry a function into a function of @NP xs@ to @b@.
-class ( EquivalentNPOfFunction f xs b
-        -- rewrite the second lift function into its one-arity form
-      , LiftFunction (NP I xs -> b) m2 m2b p2 ~ (m2 (NP I xs) %p2 -> m2b b)
-      ) =>
-      UncurriableNP f xs b m1 m1b p1 m2 m2b p2 | m1 m1b -> p1, m2 -> p2 where
+-- | Uncurry a function into a function of @NP m2 xs@ to @m2b b@.
+class UncurriableNP xs b m1 m1b p1 m2 m2b p2 | m1 m1b -> p1, m2 -> p2 where
   uncurryNP :: forall.
-    LiftFunction             f  m1 m1b p1 %p2 -> -- ^ from this lifted function. NOTE: using p2 to be consumed by m2.
-    LiftFunction (NP I xs -> b) m2 m2b p2        -- ^ to this lifted function
+     CurryNP (NP m1 xs) (m1b b) p1 %p2 -> -- ^ from this lifted function. NOTE: using p2 to be consumed by m2.
+     (m2 (NP I xs) %p2 -> m2b b)          -- ^ to this lifted function
 
--- | Curry a function of @NP xs@ to @b@.
-class ( -- rewrite the first lift function into its one-arity form
-        LiftFunction (NP I xs -> b) m2 mb p1 ~ (m2 (NP I xs) %p1 -> mb b)
-      ) =>
-      CurriableNP xs b m2 mb p2 m1 p1 | m2 mb -> p2, m1 -> p1 where
+-- | Curry a function of @NP m1 xs@ to @mb b@.
+class CurriableNP xs b m2 mb p2 m1 p1 | m2 mb -> p2, m1 -> p1 where
   curryNP :: forall.
-    LiftFunction (NP I xs -> b) m2 mb p2 %p1 -> -- ^ from this lifted function. NOTE: using p1 to be consumed by m1.
-    CurryNP (NP m1 xs) (mb b) p1          -- ^ to this lifted function
+    (m2 (NP I xs) %p2 -> mb b) %p1 -> -- ^ from this lifted function. NOTE: using p1 to be consumed by m1.
+    CurryNP (NP m1 xs) (mb b) p1      -- ^ to this lifted function
 
 class EquivalentNPOfFunction f (x:xs) b =>
       CallableFunctionNP fn f x xs b m mb p | fn m -> mb p where

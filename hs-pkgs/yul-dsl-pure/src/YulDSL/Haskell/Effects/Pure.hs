@@ -61,32 +61,24 @@ type PureYulFn f = YulFn Pure f
 --
 
 -- ^ Base case: @uncurryingNP (x) => NP '[] -> x@
-instance forall b r.
-         ( YulO2 b r
-         , EquivalentNPOfFunction b '[] b
-         , LiftFunction b (YulCat'P r) (YulCat'P r) Many ~ YulCat'P r b
-         ) =>
-         UncurriableNP b '[] b (YulCat'P r) (YulCat'P r) Many (YulCat'P r) (YulCat'P r) Many where
+instance YulO2 b r =>
+         UncurriableNP '[] b (YulCat'P r) (YulCat'P r) Many (YulCat'P r) (YulCat'P r) Many where
   uncurryNP b _ = b
 
 -- ^ Inductive case: @uncurryingNP (x -> ...xs -> b) => (x, uncurryingNP (... xs -> b)) => NP (x:xs) -> b@
-instance forall g x xs b r.
+instance forall x xs b r.
          ( YulO4 x (NP I xs) b r
-         , UncurriableNP g xs b (YulCat'P r) (YulCat'P r) Many (YulCat'P r) (YulCat'P r) Many
+         , UncurriableNP xs b (YulCat'P r) (YulCat'P r) Many (YulCat'P r) (YulCat'P r) Many
          ) =>
-         UncurriableNP (x -> g) (x:xs) b (YulCat'P r) (YulCat'P r) Many (YulCat'P r) (YulCat'P r) Many where
-  uncurryNP f xxs = let (x, xs) = unconsNP xxs in uncurryNP @g @xs @b @(YulCat'P r) @(YulCat'P r) (f x) xs
+         UncurriableNP (x:xs) b (YulCat'P r) (YulCat'P r) Many (YulCat'P r) (YulCat'P r) Many where
+  uncurryNP f xxs = let (x, xs) = unconsNP xxs in uncurryNP @xs @b @(YulCat'P r) @(YulCat'P r) (f x) xs
 
 --
 -- CurriableNP instances
 --
 
 -- ^ Base case: @curryingNP (NP '[] -> b) => b@
-instance forall b r.
-         ( YulO2 b r
-         , EquivalentNPOfFunction b '[] b
-         , LiftFunction b (YulCat'P r) (YulCat'P r) Many ~ YulCat'P r b
-         ) =>
+instance YulO2 b r =>
          CurriableNP '[] b (YulCat'P r) (YulCat'P r) Many (YulCat'P r) Many where
   curryNP fNP = fNP (YulReduceType <.< YulDis)
 
@@ -142,12 +134,13 @@ instance EquivalentNPOfFunction f xs b => KnownNamedYulCat (PureFn f) PureEffect
 fn' :: forall f xs b m.
   ( YulO2 (NP I xs) b
   , YulCat'P (NP I xs) ~ m
-  , UncurriableNP f xs b m m Many m m Many
+  , EquivalentNPOfFunction f xs b
+  , UncurriableNP xs b m m Many m m Many
   ) =>
   String ->
-  LiftFunction f m m Many -> -- ^ uncurrying function type
-  PureFn (CurryNP_I (NP I xs) b) -- ^ result type, or its short form @m b@
-fn' cid f = let cat = uncurryNP @f @xs @b @m @m @_ @m @m @_ f YulId in MkPureFn (cid, cat)
+  CurryNP (NP m xs) (m b) Many -> -- ^ uncurrying function type
+  PureFn (CurryNP_I (NP I xs) b)  -- ^ result type, or its short form @m b@
+fn' cid f = let cat = uncurryNP @xs @b @m @m @_ @m @m @_ f YulId in MkPureFn (cid, cat)
 
 -- | Create a 'PureFn' with automatic id based on function definition source location.
 fn :: TH.Q TH.Exp
