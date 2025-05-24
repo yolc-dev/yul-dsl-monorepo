@@ -163,7 +163,6 @@ do
 
   -- class HavingFromNPtoTupleN m np | np -> m where
   --   fromNPtoTupleN :: np %p -> NPtoTupleN m np
-  --   fromNPtoPlainTupleN :: np %p -> TupleN (NP2List np)
   -- -- instance HavingFromNPtoTupleN m (NP m '[]) where -- no NPtoTupleN
   -- instance HavingFromNPtoTupleN m (NP m '[a]) where
   -- instance HavingFromNPtoTupleN m (NP m '[a1, a2]) where
@@ -179,9 +178,6 @@ do
               -- (TH.conT tf_np2tpl `TH.appT` TH.varT t_m `TH.appT` TH.varT t_np)
               (TH.conT tf_tplm `TH.appT` TH.varT t_m `TH.appT` (TH.conT ''NP2List `TH.appT` TH.varT t_np))
              )
-           -- , TH.sigD fn_np2ptpl
-           --   (TH.mulArrowT `TH.appT` TH.varT t_p `TH.appT` TH.varT t_np `TH.appT`
-           --     (TH.conT tf_tpl `TH.appT` (TH.conT ''NP2List `TH.appT` TH.varT t_np)))
            ]
     insts <- mapM
       (\n -> do

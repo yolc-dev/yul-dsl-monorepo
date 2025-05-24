@@ -27,12 +27,11 @@ instance YulO1 r  =>
   is _ =  Nil
 
 instance ( YulO3 x (NP I xs) r
-         , TraversableNP (YulCat eff r) (x:xs)
          , DistributiveNP (YulCat eff r) (x:xs)
          , SingleCasePattern (YulCat eff r) (NP I xs) (NP (YulCat eff r) xs) YulCatObj Many
          ) =>
          SingleCasePattern (YulCat eff r) (NP I (x:xs)) (NP (YulCat eff r) (x:xs)) YulCatObj Many where
-  is = sequenceNP
+  is = distribute_NP
 
 --
 -- PatternMatchable instances
@@ -42,7 +41,7 @@ instance YulO1 r =>
          PatternMatchable (YulCat eff r) (NP I '[]) (NP (YulCat eff r) '[]) YulCatObj Many where
 instance YulO1 r =>
          InjectivePattern (YulCat eff r) (NP I '[]) (NP (YulCat eff r) '[]) YulCatObj Many where
-  be = distributeNP
+  be = sequence_NP
 
 instance ( YulO3 x (NP I xs) r
          , DistributiveNP (YulCat eff r) (x:xs)
@@ -56,4 +55,4 @@ instance ( YulO3 x (NP I xs) r
          , SingleCasePattern (YulCat eff r) (NP I xs) (NP (YulCat eff r) xs) YulCatObj Many
          ) =>
          InjectivePattern (YulCat eff r) (NP I (x:xs)) (NP (YulCat eff r) (x:xs)) YulCatObj Many where
-  be = distributeNP
+  be = sequence_NP

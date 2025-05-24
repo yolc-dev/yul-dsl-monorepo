@@ -1,4 +1,5 @@
-{-# LANGUAGE LinearTypes #-}
+{-# LANGUAGE LinearTypes          #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-|
 
 Copyright   : (c) 2024-2025 Miao, ZhiCheng
@@ -10,7 +11,7 @@ Portability : GHC2024
 
 = Description
 
-A simple n-ary product without any type function that is present in the sop-core package.
+A simplistic n-ary product implementation.
 
 -}
 module Data.SimpleNP
@@ -20,10 +21,11 @@ module Data.SimpleNP
   , NonEmptyNP, splitNonEmptyNP
     -- re-export multiplicity types
   , Multiplicity (Many, One)
-    -- * Applicative-like Classes For NP
-  , ConstructibleNP (consNP, unconsNP)
-  , TraversableNP (sequenceNP), DistributiveNP (distributeNP)
-  , LinearTraversableNP (linearSequenceNP), LinearDistributiveNP (linearDistributeNP)
+    -- * Traversable and Distributive for NP
+  , TraversableNP (sequence_NP), DistributiveNP (distribute_NP)
+  , ConstructibleNP (nil_NP, cons_NP, uncons_NP)
+  , LinearTraversableNP (lsequence_NP), LinearDistributiveNP (ldistribute_NP)
+  , LinearlyConstructibleNP (lunit2nil_NP, lnil2unit_NP, lcons_NP, luncons_NP)
   ) where
 -- base
 import Data.Kind (Type)
@@ -44,7 +46,10 @@ infixr 5 :*
 -- | Extract the type-level list of an NP.
 type family NP2List np where NP2List (NP _ xs) = xs
 
--- | A type alias to non-empty N-ary products.
+-- | A type alias for empty NP.
+type EmptyNP f = NP f '[]
+
+-- | A type alias to non-empty NP.
 type NonEmptyNP f x xs = NP f (x : xs)
 
 -- | Split a non-empty NP into its head and tail safely.
@@ -60,79 +65,95 @@ deriving stock instance (Eq (f x), Eq (NP f xs)) => Eq (NonEmptyNP f x xs)
 --
 -- Show instances
 --
-instance Show (NP f '[]) where
+instance Show (EmptyNP f) where
   show _ = "Nil"
 instance (Show (f x), Show (NP f xs)) => Show (NonEmptyNP f x xs) where
   show (x :* xs) = "(" ++ show x ++ " :* " ++ show xs ++ ")"
 
 ------------------------------------------------------------------------------------------------------------------------
--- Applicative-like classes for NP. TODO: Defer this to the actual applicative framework, instead.
+-- Traversable and Distributive for NP
 ------------------------------------------------------------------------------------------------------------------------
 
--- | Construct and deconstruct NP within the effect @f@
-class ConstructibleNP f x xs p | f -> p where
-  -- | Add an element of a NP, within the effect @f@.
-  consNP :: forall. f x %p -> f (NP I xs) %p -> f (NonEmptyNP I x xs)
-  -- | Deconstruct a non-empty NP to its first element and the rest, within the effect @f.
-  unconsNP :: forall. f (NonEmptyNP I x xs) %p -> (f x, f (NP I xs))
+--
+-- Non-linear
+--
 
 -- | A traversable NP with its components @xs@ is parameterized to allow terminating empty NP instance.
 class TraversableNP f xs where
-  -- | Sequence a NP under the context of @f@ into a NP with each component under the same context.
-  sequenceNP :: forall. f (NP I xs) -> NP f xs
-
--- ^ The terminal case of sequence should be universally Nil.
-instance TraversableNP f '[] where
-  sequenceNP _ = Nil
-
--- ^ The default implementation of non-empty 'TraversableNP' when it is also a 'constructibleNP'.
-instance ( ConstructibleNP f x xs Many
-         , TraversableNP f xs
-         ) =>
-         TraversableNP f (x:xs) where
-    sequenceNP txxs = let (x, txs) = unconsNP txxs in x :* sequenceNP txs
+  -- | Sequence effect @f@ for all elements of a NP.
+  sequence_NP :: NP f xs -> f (NP I xs)
 
 -- | A distributive NP is the duo of 'TraversableNP'.
 class DistributiveNP f xs where
-  -- | The dual of 'sequenceNP'.
-  distributeNP :: forall. NP f xs -> f (NP I xs)
+  -- | Distribute effect @f@ throughout an NP.
+  distribute_NP :: f (NP I xs) -> NP f xs
 
--- ^ The default implementation for non-empty 'DistributiveNP' when it is also an 'constructibleNP'.
-instance ( ConstructibleNP f x xs Many
-         , DistributiveNP f xs
-         ) =>
+-- | Construct and deconstruct NP within the effect @f@.
+class ConstructibleNP f c | f -> c where
+  -- | Create an effectful Nil.
+  nil_NP :: forall. f (EmptyNP I)
+  -- | Add an element of a NP, within the effect @f@.
+  cons_NP :: forall x xs. (c x, c (NP I xs)) => f x -> f (NP I xs) -> f (NonEmptyNP I x xs)
+  -- | Deconstruct a non-empty NP to its first element and the rest, within the effect @f.
+  uncons_NP :: forall x xs. (c x, c (NP I xs)) => f (NonEmptyNP I x xs) -> (f x, f (NP I xs))
+
+instance ConstructibleNP f c => TraversableNP f '[] where
+  sequence_NP _ = nil_NP
+
+instance (ConstructibleNP f c, c x, c (NP I xs), TraversableNP f xs) =>
+         TraversableNP f (x:xs) where
+  sequence_NP (x :* xs) = cons_NP x (sequence_NP xs)
+
+instance ConstructibleNP f c => DistributiveNP f '[] where
+  distribute_NP _ = Nil
+
+instance (ConstructibleNP f c, c x, c (NP I xs), DistributiveNP f xs) =>
          DistributiveNP f (x:xs) where
-  distributeNP (x :* xs) = consNP x (distributeNP xs)
+  distribute_NP fxxs = let (x, fxs) = uncons_NP fxxs in x :* distribute_NP fxs
+
+--
+-- Linearly ConstructibleNP
+--
 
 -- | A linear-typed 'TraversableNP'.
 class LinearTraversableNP f xs where
-  -- | A linear-typed 'sequenceNP', where @t ()@ is the waste unit "product" to be linearly discarded.
-  linearSequenceNP :: forall. f (NP I xs) %1 -> (NP f xs, f ())
-
--- ^ The default implementation for non-empty 'linearSequenceNP' when it is also an 'constructibleNP'.
-instance ( ConstructibleNP f x xs One
-         , LinearTraversableNP f xs
-         ) =>
-         LinearTraversableNP f (x:xs) where
-  linearSequenceNP txxs =
-    let !(x, txs) = unconsNP txxs
-        !(xs, tnil) = linearSequenceNP txs
-    in (x :* xs, tnil)
-
--- | A linear-typed 'DistributiveNP'.
-class LinearDistributiveNP f xs where
-  -- | A linear-typed 'distributeNP', where @t ()@ is supplied for the initial distribution process.
+  -- | A linear-typed 'sequence_NP', where @f ()@ is supplied for the initial distribution process.
   --
   --   /Why @t ()@ is needed?/
   --
   --   In some linear-typed system, conjuring up @t ()@ from nothing is impossible. In such a system, to start the
   --   distribution process, a nil value is provided, instead.
-  linearDistributeNP :: forall. NP f xs %1 -> f () %1 -> f (NP I xs)
+  lsequence_NP :: forall. NP f xs %1 -> f () %1 -> f (NP I xs)
 
+-- | A linear-typed 'DistributiveNP'.
+class LinearDistributiveNP f xs where
+  -- | A linear-typed 'distribute_NP', where @f ()@ is the waste unit "product" to be linearly discarded.
+  ldistribute_NP :: forall. f (NP I xs) %1 -> (NP f xs, f ())
 
--- ^ The default implementation for non-empty 'linearDistributeNP' when it is also an 'constructibleNP'.
-instance ( ConstructibleNP f x xs One
-         , LinearDistributiveNP f xs
-         ) =>
+-- | Linearly construct and deconstruct NP within the effect @f@.
+class LinearlyConstructibleNP f c | f -> c where
+  -- | Create an empty NP from unit, within the effect @f@.
+  lunit2nil_NP :: forall. f () %1 -> f (EmptyNP I)
+  -- | Reverse of 'lunit2nil_NP'.
+  lnil2unit_NP :: forall. f (EmptyNP I) %1 -> f ()
+  -- | Add an element of a NP, within the effect @f@.
+  lcons_NP :: forall x xs. (c x, c (NP I xs)) => f x %1 -> f (NP I xs) %1 -> f (NonEmptyNP I x xs)
+  -- | Deconstruct a non-empty NP to its first element and the rest, within the effect @f.
+  luncons_NP :: forall x xs. (c x, c (NP I xs)) => f (NonEmptyNP I x xs) %1 -> (f x, f (NP I xs))
+
+instance LinearlyConstructibleNP f c => LinearTraversableNP f '[] where
+  lsequence_NP Nil = lunit2nil_NP
+
+instance (LinearlyConstructibleNP f c, c x, c (NP I xs), LinearTraversableNP f xs) =>
+         LinearTraversableNP f (x:xs) where
+  lsequence_NP (x :* xs) fnil = lcons_NP x (lsequence_NP xs fnil)
+
+instance LinearlyConstructibleNP f c => LinearDistributiveNP f '[] where
+  ldistribute_NP fnil = (Nil, lnil2unit_NP fnil)
+
+instance (LinearlyConstructibleNP f c, c x, c (NP I xs), LinearDistributiveNP f xs) =>
          LinearDistributiveNP f (x:xs) where
-  linearDistributeNP (x :* xs) tnil = consNP x (linearDistributeNP xs tnil)
+  ldistribute_NP fxxs =
+    let !(x, fxs) = luncons_NP fxxs
+        !(xs, fnil) = ldistribute_NP fxs
+    in (x :* xs, fnil)

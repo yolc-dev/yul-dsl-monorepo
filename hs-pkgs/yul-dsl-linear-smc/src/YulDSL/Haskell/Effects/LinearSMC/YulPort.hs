@@ -206,9 +206,9 @@ type ConstraintForWith x xs b bs r ioe m1 m2 =
   , P'x ioe r ~ m1
   , YulCat Pure (NP I (x:xs)) ~ m2
     -- x:xs
-  , LinearDistributiveNP m1 (x:xs)
+  , LinearTraversableNP m1 xs
     -- bs
-  , LinearTraversableNP m1 (b:bs)
+  , LinearDistributiveNP m1 bs
   )
 
 -- | Process a NP of yul ports with a pure yul function.
@@ -217,7 +217,7 @@ with'l :: forall f x xs b bs r ioe m1 m2.
     -- f
   , EquivalentNPOfFunction f (x:xs) (NP I (b:bs))
     -- x:xs
-  , TraversableNP m2 (x:xs)
+  , DistributiveNP m2 (x:xs)
   ) =>
   NP m1 (x:xs) ⊸
   (NP m2 (x:xs) -> m2 (NP I (b:bs))) ->
@@ -225,10 +225,10 @@ with'l :: forall f x xs b bs r ioe m1 m2.
 with'l xxs f =
   let !(x, xs) = splitNonEmptyNP xxs
       !(x', u) = mkunit'l x
-      txxs = sequenceNP (YulId :: m2 (NP I (x:xs)))
-      sxxs = linearDistributeNP (x' :* xs) u
+      txxs = distribute_NP (YulId :: m2 (NP I (x:xs)))
+      sxxs = lsequence_NP (x' :* xs) u
       sbbs = encodeP'x (YulUnsafeCoerceEffect (f txxs)) sxxs
-      !(b :* bs, snil) = linearSequenceNP sbbs
+      !(b :* bs, snil) = ldistribute_NP sbbs
   in ignore'l snil b :* bs
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -238,7 +238,7 @@ with'l xxs f =
 -- | Yul port boolean switch.
 bool'l :: forall xs b ioe r.
   ( YulO3 (NP I xs) b r
-  , LinearDistributiveNP (P'x ioe r) xs
+  , LinearTraversableNP (P'x ioe r) xs
   )=>
   P'x ioe r BOOL ⊸
   NP (P'x ioe r) xs ⊸
@@ -246,15 +246,15 @@ bool'l :: forall xs b ioe r.
   (forall r2. YulO1 r2 => P'x ioe r2 (NP I xs) ⊸ P'x ioe r2 b) ->
   P'x ioe r b
 bool'l b xs ga gb =
-  let !(b', u) = mkunit'l b in encodeP'x g (linearDistributeNP (b' :* xs) u)
+  let !(b', u) = mkunit'l b in encodeP'x g (lsequence_NP (b' :* xs) u)
   where
     gc :: forall r3. YulO1 r3 =>
       P'x ioe r3 (NP I (BOOL:xs)) ⊸ P'x ioe r3 BOOL
-    gc bxs = let !(b', xs') = unconsNP bxs in ignore'l (discard'l xs') b'
+    gc bxs = let !(b', xs') = luncons_NP bxs in ignore'l (discard'l xs') b'
     gh :: forall r1. YulO1 r1 =>
       (P'x ioe r1 (NP I xs) ⊸ P'x ioe r1 b) ->
       (P'x ioe r1 (NP I (BOOL:xs)) ⊸ P'x ioe r1 b)
-    gh h bxs = let !(b', xs') = unconsNP bxs in h (ignore'l (discard'l b') xs')
+    gh h bxs = let !(b', xs') = luncons_NP bxs in h (ignore'l (discard'l b') xs')
     g = YulSwitch ((decodeP'x gc) >.> yulSafeCast) [(1, decodeP'x (gh ga)), (0, decodeP'x (gh gb))] yulRevert
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -347,18 +347,11 @@ instance (YulO1 r, ValidINTx s n) => Multiplicative (P'x eff r (INTx s n)) where
 -- NP
 --
 
-instance YulO3 x (NP I xs) r =>
-         ConstructibleNP (P'x eff r) x xs One where
-  consNP x xs = coerceType'l (merge'l (x, xs))
-  unconsNP = split'l . coerceType'l
-
-instance YulO1 r =>
-         LinearTraversableNP (P'x eff r) '[] where
-  linearSequenceNP snil = (Nil, coerceType'l snil)
-
-instance YulO1 r =>
-         LinearDistributiveNP (P'x eff r) '[] where
-  linearDistributeNP Nil = coerceType'l
+instance YulO1 r => LinearlyConstructibleNP (P'x eff r) YulCatObj where
+  lnil2unit_NP = coerceType'l
+  lunit2nil_NP = coerceType'l
+  lcons_NP x xs = coerceType'l (merge'l (x, xs))
+  luncons_NP = split'l . coerceType'l
 
 --
 -- TupleN

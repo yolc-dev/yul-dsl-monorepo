@@ -23,7 +23,7 @@ module Data.Type.Function
   , UncurryNP'Head, UncurryNP'Tail
   , CurryNP, CurryNP_I
   , EquivalentNPOfFunction
-  , UncurriableNP (uncurryNP)
+  , UncurriableNP (uncurryNP), UncurriableTupleN (uncurryN)
   , CurriableNP (curryNP)
   , CallableFunctionNP (call), CallableFunctionN (callN)
   ) where
@@ -90,8 +90,18 @@ type EquivalentNPOfFunction f xs b =
 -- | Uncurry a function into a function of @NP m2 xs@ to @m2b b@.
 class UncurriableNP xs b m1 m1b p1 m2 m2b p2 | m1 m1b -> p1, m2 -> p2 where
   uncurryNP :: forall.
-     CurryNP (NP m1 xs) (m1b b) p1 %p2 -> -- ^ from this lifted function. NOTE: using p2 to be consumed by m2.
-     (m2 (NP I xs) %p2 -> m2b b)          -- ^ to this lifted function
+    CurryNP (NP m1 xs) (m1b b) p1 %p2 -> -- ^ from this lifted function. NOTE: using p2 to be consumed by m2.
+    (m2 (NP I xs) %p2 -> m2b b)          -- ^ to this lifted function
+
+class ( UncurriableNP xs b m1 m1b p1 m2 m2b p2
+      , TupleNWithSameM (TupleN_M m2 xs)
+      , ConvertibleNPtoTupleN m2 (NP m2 xs)
+      , DistributiveNP m2 xs
+      ) =>
+      UncurriableTupleN xs b m1 m1b p1 m2 m2b p2 | m1 m1b -> p1, m2 -> p2 where
+  uncurryN :: forall.
+    CurryNP (NP m1 xs) (m1b b) p1 %p2 ->
+    (TupleN_M m2 xs %p1 -> m2b b)
 
 -- | Curry a function of @NP m1 xs@ to @mb b@.
 class CurriableNP xs b m2 mb p2 m1 p1 | m2 mb -> p2, m1 -> p1 where

@@ -141,7 +141,7 @@ uncurry_nonnil :: forall m1 m2_ m2b_ m2 mb x xs b r a ie.
   (m2 a ⊸ mb b)
 uncurry_nonnil f h mk un a =
   let !(a1, a2) = dup'l a
-      !(x, xs) = unconsNP (h a1)
+      !(x, xs) = luncons_NP (h a1)
   in let g = uncurryNP @xs @b @m1 @mb @One @(m2_ a) @(m2b_ a) @One
              (f x)
              (mk (const'l xs))
@@ -154,6 +154,7 @@ uncurry_nonnil f h mk un a =
 instance YulO3 b a r =>
          UncurriableNP '[] b (P'P r) (P'P r) One (YulCat'LPP r a) (YulCat'LPP r a) One where
   uncurryNP b (MkYulCat'LPP h) = MkYulCat'LPP (unsafe_uncurry_nil b h)
+  -- uncurryN b (MkYulCat'LPP h) = MkYulCat'LPP (unsafe_uncurry_nil b h)
 
 instance ( YulO5 x (NP I xs) b r a
          , UncurriableNP xs b (P'P r) (P'P r) One (YulCat'LPP r a) (YulCat'LPP r a) One
@@ -185,7 +186,7 @@ instance forall x xs b r a.
          ) =>
          CurriableNP (x:xs) b (YulCat'LPP r a) (P'P r) One (P'P r) One where
   curryNP fNP x = curryNP @xs @b @(YulCat'LPP r a) @(P'P r) @_ @(P'P r) @_
-                  (\(MkYulCat'LPP fxs) -> fNP (MkYulCat'LPP (\a -> (consNP (unsafeCoerceYulPort x) (fxs a)))))
+                  (\(MkYulCat'LPP fxs) -> fNP (MkYulCat'LPP (\a -> (lcons_NP (unsafeCoerceYulPort x) (fxs a)))))
 
 ------------------------------------------------------------------------------------------------------------------------
 -- (P'P r x1 ⊸ P'P r x2 ⊸ ... P'V vd r b) <=> YulCat'LPV vd r (NP I xs) b
@@ -224,7 +225,7 @@ instance ( YulO5 x (NP I xs) b r a
          ) =>
          CurriableNP (x:xs) b (YulCat'LVV v1 v1 r a) (P'V vn r) One (P'P r) One where
   curryNP cb x = curryNP @xs @b @(YulCat'LVV v1 v1 r a) @(P'V vn r) @_ @(P'P r) @_
-                 (\(MkYulCat'LVV fxs) -> cb (MkYulCat'LVV (\a -> (consNP (unsafeCoerceYulPort x) (fxs a)))))
+                 (\(MkYulCat'LVV fxs) -> cb (MkYulCat'LVV (\a -> (lcons_NP (unsafeCoerceYulPort x) (fxs a)))))
 
 ------------------------------------------------------------------------------------------------------------------------
 -- (P'V v1 r x1 ⊸ P'V v1 r x2 ⊸ ... P'V vn r b) <=> YulCat'LVV v1 vn r (NP I xs) b
@@ -263,4 +264,4 @@ instance ( YulO5 x (NP I xs) b r a
          ) =>
          CurriableNP (x:xs) b (YulCat'LVV v1 v1 r a) (P'V vn r) One (P'V v1 r) One where
   curryNP cb x = curryNP @xs @b @(YulCat'LVV v1 v1 r a) @(P'V vn r) @_ @(P'V v1 r) @_
-                 (\(MkYulCat'LVV fxs) -> cb (MkYulCat'LVV (\a -> (consNP x (fxs a)))))
+                 (\(MkYulCat'LVV fxs) -> cb (MkYulCat'LVV (\a -> (lcons_NP x (fxs a)))))

@@ -339,7 +339,7 @@ instance forall f x xs b r.
   call (MkPureFn f') x =
     let !(x', u) = mkunit'l x
     in curryNP @xs @b @(YulCat'LPP r ()) @(P'P r) @_ @(P'P r) @_
-       \(MkYulCat'LPP fxs) -> encodeWith'l (YulJmpU f') id (consNP x' (fxs u))
+       \(MkYulCat'LPP fxs) -> encodeWith'l (YulJmpU f') id (lcons_NP x' (fxs u))
 
 instance forall f x xs b va r.
          ( YulO4 x (NP I xs) b r
@@ -351,7 +351,7 @@ instance forall f x xs b va r.
     let f' = unsafeCoerceNamedYulCat f :: NamedYulCat (VersionedInputOutput 0) (NP I (x:xs)) b
         !(x', u) = mkunit'l x
     in curryNP @xs @b @(YulCat'LVV va va r ()) @(P'V va r) @_ @(P'V va r)
-       \(MkYulCat'LVV fxs) -> encodeWith'l (YulJmpU f') id (consNP x' (fxs u))
+       \(MkYulCat'LVV fxs) -> encodeWith'l (YulJmpU f') id (lcons_NP x' (fxs u))
 
 instance forall f x xs b va r.
          ( YulO4 x (NP I xs) b r

@@ -228,16 +228,13 @@ instance YulO2 a b => YulCatObj (YulExp eff a b)
 -- TranversableNP and DistributiveNP instances
 --
 
-instance (YulO3 x (NP I xs) r, YulCat eff r ~ s) =>
-         ConstructibleNP (YulCat eff r) x xs Many where
-  consNP sx sxs = YulFork sx sxs >.> YulCoerceType
-  unconsNP xxs = (x, xs)
+instance YulO1 r => ConstructibleNP (YulCat eff r) YulCatObj where
+  nil_NP = YulEmb Nil
+  cons_NP sx sxs = YulFork sx sxs >.> YulCoerceType
+  uncons_NP xxs = (x, xs)
     where xxs' = YulCoerceType <.< xxs
           x    = YulExl <.< xxs'
           xs   = YulExr <.< xxs'
-
-instance YulO1 r => DistributiveNP (YulCat eff r) '[] where
-  distributeNP _ = YulEmb Nil <.< YulDis
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Base Library Instances
