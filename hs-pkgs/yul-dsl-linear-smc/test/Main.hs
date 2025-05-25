@@ -2,9 +2,9 @@ import Test.Hspec
 --
 import Prelude
 --
-import LinearFn_t qualified
-import YulPortNum_t qualified
+import YLVM_Fn_t qualified
+import YulPorts_Fn_t qualified
 
 main = hspec do
-  LinearFn_t.tests
-  YulPortNum_t.tests
+  YulPorts_Fn_t.tests
+  YLVM_Fn_t.tests

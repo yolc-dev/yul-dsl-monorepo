@@ -36,10 +36,10 @@ instance ( YulO1 a
          (vref_a_ a)
          b v r where
   (MkSMap key) #-> aVar = LVM.do
-    a <- ytkvarv aVar
+    a <- yrtakev aVar
     let !(a', u) = mkunit'l a
     let key1 = keccak256'l (merge'l (emb'l key u, a'))
-    ymkvar (extendType'l key1)
+    ymakev (extendType'l key1)
 
 -- TODO, inductive implementation
 
@@ -52,14 +52,14 @@ instance ( YulO2 a1 a2
          (vref_a1_ a1, vref_a2_ a2)
          b v r where
   (MkSMap key) #-> (a1Var, a2Var) = LVM.do
-    a1 <- ytkvarv a1Var
+    a1 <- yrtakev a1Var
     let !(a1', u) = mkunit'l a1
     let key1 = keccak256'l (merge'l (emb'l key u, a1'))
 
-    a2 <- ytkvarv a2Var
+    a2 <- yrtakev a2Var
     let key2 = keccak256'l (merge'l (key1, a2))
 
-    ymkvar (extendType'l key2)
+    ymakev (extendType'l key2)
 
 instance ( YulO3 a1 a2 a3
          , YulVarRef v r (P'x ioe r) vref_a1_
@@ -71,14 +71,14 @@ instance ( YulO3 a1 a2 a3
          (vref_a1_ a1, vref_a2_ a2, vref_a3_ a3)
          b v r where
   (MkSMap key) #-> (a1Var, a2Var, a3Var) = LVM.do
-    a1 <- ytkvarv a1Var
+    a1 <- yrtakev a1Var
     let !(a1', u) = mkunit'l a1
     let key1 = keccak256'l (merge'l (emb'l key u, a1'))
 
-    a2 <- ytkvarv a2Var
+    a2 <- yrtakev a2Var
     let key2 = keccak256'l (merge'l (key1, a2))
 
-    a3 <- ytkvarv a3Var
+    a3 <- yrtakev a3Var
     let key3 = keccak256'l (merge'l (key2, a3))
 
-    ymkvar (extendType'l key3)
+    ymakev (extendType'l key3)

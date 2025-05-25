@@ -22,8 +22,8 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
   , coerceType'l, reduceType'l, extendType'l
     -- $GeneralOps
   , discard'l, ignore'l, mkunit'l, emb'l, const'l, dup'l, merge'l, split'l
-    -- $InPureFunctions
-  , CanInpureNP_L, inpureNP'l, CanInpureN_L, inpureN'l
+    -- $PureLam
+  , PureLamNP_L, purelamNP'l, PureLamN_L, purelamN'l
     -- control flows
   , bool'l
     -- $VersionThread
@@ -190,8 +190,8 @@ split'l :: forall a b eff r.
 split'l ab = let !(a, b) = split (unP'x ab) in (MkP'x a, MkP'x b)
 
 ------------------------------------------------------------------------------------------------------------------------
--- $InPureFunctions
--- * Process Yul Ports In Pure Functions
+-- $PureLam
+-- * Process Yul Ports In Pure Lambdas
 --
 -- Using yul port APIs involves threading (linearly, metaphorically speaking) of the ports. Manually doing such
 -- threading can quickly becomes a toll on the users. The family of "with" functions are provided to capture some ports
@@ -199,8 +199,8 @@ split'l ab = let !(a, b) = split (unP'x ab) in (MkP'x a, MkP'x b)
 -- any safety, then eventually returns a set of new yul ports.
 ------------------------------------------------------------------------------------------------------------------------
 
--- | Constraint alias required for 'inpureNP\'l'.
-type CanInpureNP_L x xs b bs m1 m2 r ioe =
+-- | Constraint alias required for 'purelamNP\'l'.
+type PureLamNP_L x xs b bs m1 m2 r ioe =
   ( YulO5 x (NP I xs) b (NP I bs) r
     -- m1, m2
   , P'x ioe r ~ m1
@@ -212,36 +212,36 @@ type CanInpureNP_L x xs b bs m1 m2 r ioe =
   , LinearDistributiveNP m1 (b:bs)
   )
 
--- | Process a NP of yul ports with a pure yul function.
-inpureNP'l :: forall x xs b bs m1 m2 r ioe.
-  CanInpureNP_L x xs b bs m1 m2 r ioe =>
+-- | Process a NP of yul ports with a pure yul lambda.
+purelamNP'l :: forall x xs b bs m1 m2 r ioe.
+  PureLamNP_L x xs b bs m1 m2 r ioe =>
   NP m1 (x:xs) ⊸
   (NP m2 (x:xs) -> m2 (NP I (b:bs))) ->
   NP m1 (b:bs)
-inpureNP'l xxs_np f =
+purelamNP'l xxs_np f =
   let sxxs = lsequence_NonEmptyNP xxs_np
       sbbs = encodeP'x (YulUnsafeCoerceEffect (f (distribute_NP YulId))) sxxs
   in ldistribute_NonEmptyNP sbbs
 
--- | Constraint alias required for 'inpureN\'l'.
-type CanInpureN_L x xs b bs m1 m2 r ioe =
+-- | Constraint alias required for 'purelamN\'l'.
+type PureLamN_L x xs b bs m1 m2 r ioe =
   ( YulO1 (TupleN (b:bs))
-  , CanInpureNP_L x xs b bs m1 m2 r ioe
+  , PureLamNP_L x xs b bs m1 m2 r ioe
   , ConvertibleNPtoTupleN m1 (NP m1 (x:xs))
   , ConvertibleNPtoTupleN m1 (NP m1 (b:bs))
   , UncurriableNPDistributed (x:xs) (TupleN (b:bs)) m2 m2 m2 m2 Many
   , NP I (b:bs) ~ ABITypeDerivedOf (TupleN (b:bs))
   )
 
--- | Process a tupleN of yul ports with a pure yul function.
-inpureN'l :: forall x xs b bs m1 m2 r ioe.
-  CanInpureN_L x xs b bs m1 m2 r ioe =>
+-- | Process a tupleN of yul ports with a pure yul lambda.
+purelamN'l :: forall x xs b bs m1 m2 r ioe.
+  PureLamN_L x xs b bs m1 m2 r ioe =>
   TupleN_M m1 (x:xs) ⊸
   CurryNP (NP m2 (x:xs)) (m2 (TupleN (b:bs))) Many ->
   TupleN_M m1 (b:bs)
-inpureN'l xxs_tpl f = fromNPtoTupleN (inpureNP'l (fromTupleNtoNP xxs_tpl) f')
+purelamN'l xxs_tpl f = fromNPtoTupleN (purelamNP'l (fromTupleNtoNP xxs_tpl) f')
   where f' xxs_np = uncurryNPDistributed @m2 @m2 @m2 @m2 @Many @(x:xs) @(TupleN (b:bs)) f xxs_np
-                    >.> YulReduceType
+          >.> YulReduceType
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $ControlFlows

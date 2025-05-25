@@ -218,7 +218,7 @@ ycalluv f =
   curryNP @xs @(Ur (Uv r b)) @(YulCat'LPP r ()) @(YLVM v v r) @One @(Uv r)
   \(MkYulCat'LPP fxs) -> LVM.do
     u :: P'P r () <- embed ()
-    f' <- encodeFnWith'l @_ @PureInputPureOutput @v f ymkvar
+    f' <- encodeFnWith'l @_ @PureInputPureOutput @v f ymakev
     f' (fxs u)
 
 --
@@ -241,7 +241,7 @@ class YCallableFunctionNonNil fn f xs b va vd r | fn -> f vd where
     \(MkYulCat'LVV fxs) -> LVM.do
       u :: P'V va r () <- embed ()
       f' <- encodeFnWith'l @_ @(VersionedInputOutput vd) @va
-            f (\b -> LVM.unsafeCoerceLVM (LVM.pure (Ur ())) LVM.>> ymkvar b)
+            f (\b -> LVM.unsafeCoerceLVM (LVM.pure (Ur ())) LVM.>> ymakev b)
       f' (fxs u)
 
 instance YCallableFunctionNonNil (PureFn f) f xs b va 0 r
@@ -259,7 +259,7 @@ instance ( KnownNat va, YulO2 (NP I xs) b
          EncodableFn (BoundMethod vref_tgt f xs b) (VersionedInputOutput 1) va r f xs b where
   encodeFnWith'l (MkBoundMethod getMethod) cont = LVM.do
     let !(contractVar, sel) = getMethod (Proxy @(SNat va, r))
-    contract <- ytkvar contractVar
+    contract <- ytakev contractVar
     u <- embed ()
     let !(gasLimit, value) = dup'l (emb'l 0 u)
     LVM.pure $ \xs -> encodeWith'l @(VersionedInputOutput 1)

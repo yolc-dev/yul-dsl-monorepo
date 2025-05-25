@@ -23,7 +23,7 @@ module Control.LinearlyVersionedMonad.LVMVar
     -- $UsableLVMVar
     -- $LVMVarRegistry
   , LVMVarRegistry, initLVMVarRegistry, consumeLVMVarRegistry
-  , ReferenciableLVMVar (takeLVMVarRef, takevLVMVarRef)
+  , ReferenciableLVMVar (takeLVMVarRef, rtakeLVMVarRef)
   , UvLVMVarRef, registerUvLVMVar
   , RvLVMVarRef (VerUvLVMVarRef), registerRvLVMVar
   ) where
@@ -151,10 +151,10 @@ class ( KnownNat v
   takeLVMVarRef :: forall. vref ⊸ LVMVarRegistry ctx ⊸ LVM.LVM ctx v v (a, LVMVarRegistry ctx)
 
   -- | Take a linearly version-restricted copy of the variable stored in the reference.
-  takevLVMVarRef :: forall a_rv.
+  rtakeLVMVarRef :: forall a_rv.
     VersionRestrictedData v ctx a ~ a_rv =>
     vref ⊸ LVMVarRegistry ctx ⊸ LVM.LVM ctx v v (a_rv, LVMVarRegistry ctx)
-  takevLVMVarRef ref registry = LVM.do
+  rtakeLVMVarRef ref registry = LVM.do
     (a, registry') <- takeLVMVarRef ref registry
     a' <- restrictVersion a
     LVM.pure (a', registry')

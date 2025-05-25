@@ -59,7 +59,7 @@ sget :: forall a b ie r v vref_.
   , SReferenceable v r a b
   ) =>
   vref_ a -> YLVM v v r (Ur (Rv v r b))
-sget avar = ytkvarv avar LVM.>>= ymkvar . sget'l
+sget avar = yrtakev avar LVM.>>= ymakev . sget'l
 
 sgetM :: forall a b r v.
   ( YulO3 r a b
@@ -67,7 +67,7 @@ sgetM :: forall a b r v.
   , SReferenceable v r a b
   ) =>
   YLVM v v r (Ur (Rv v r a)) -> YLVM v v r (Ur (Rv v r b))
-sgetM mavar = mavar LVM.>>= \(Ur avar) -> ytkvarv avar LVM.>>= ymkvar . sget'l
+sgetM mavar = mavar LVM.>>= \(Ur avar) -> yrtakev avar LVM.>>= ymakev . sget'l
 
 ------------------------------------------------------------------------------------------------------------------------
 -- sput, sputM, sputMM
@@ -83,8 +83,8 @@ sput, (<:=) ::
   vref_b_ b ->
   YLVM v (v + 1) r (Ur ())
 sput aVar bVar = LVM.do
-  a <- ytkvarv aVar
-  b <- ytkvarv bVar
+  a <- yrtakev aVar
+  b <- yrtakev bVar
   yrunvt (\vt -> sput'l vt a b)
   LVM.pure (Ur ())
 (<:=) = sput
@@ -103,8 +103,8 @@ sputM, (<<:=) :: forall v a b r vref_a_ vref_b_ iea ieb.
   YLVM v (v + 1) r (Ur ())
 sputM aVarM bVar = LVM.do
   Ur aVar <- aVarM
-  a <- ytkvarv aVar
-  b <- ytkvarv bVar
+  a <- yrtakev aVar
+  b <- yrtakev bVar
   yrunvt (\vt -> sput'l vt a b)
   LVM.pure (Ur ())
 (<<:=) = sputM
@@ -122,8 +122,8 @@ sputMM, (<<:=<<) :: forall v a b r vref_a_ vref_b_ iea ieb.
 sputMM aVarM bVarM = LVM.do
   Ur aVar <- aVarM
   Ur bVar <- bVarM
-  a <- ytkvarv aVar
-  b <- ytkvarv bVar
+  a <- yrtakev aVar
+  b <- yrtakev bVar
   yrunvt (\vt -> sput'l vt a b)
   LVM.pure (Ur ())
 (<<:=<<) = sputMM

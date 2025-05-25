@@ -109,6 +109,6 @@ Test-Suite test-yul-dsl-linear-smc
                       yul-dsl-linear-smc
   -- modules
   other-modules:
-    LinearFn_t
-    YulPortNum_t
+    YulPorts_Fn_t
+    YLVM_Fn_t
   main-is: Main.hs

@@ -46,9 +46,9 @@ callExternalFoo2 = $lfn $ ylvm'vv
 sgetTest :: StaticFn (ADDR -> U256)
 sgetTest = $lfn $ ylvm'pv
   \acc'uv -> LVM.do
-    acc <- ytkvarv acc'uv
+    acc <- yrtakev acc'uv
     key <- embed (42 :: U32)
-    ymkvar (sget'l (extendType'l @(REF U256) (keccak256'l (merge'l (key, acc)))))
+    ymakev (sget'l (extendType'l @(REF U256) (keccak256'l (merge'l (key, acc)))))
 
 shmapGetTest :: StaticFn (ADDR -> U256)
 shmapGetTest = $lfn $ ylvm'pv
@@ -66,27 +66,27 @@ varSharingL = $lfn $ yulports'pp
 
 lvmvar_test1 :: PureFn (U256 -> U256 -> U256)
 lvmvar_test1 = $lfn $ ylvm'pp
-  \x_ y_ -> ywithuv_1 (x_, y_) \x y -> x * y + y
+  \x_ y_ -> ypurelamN_1 (x_, y_) \x y -> x * y + y
 
 lvmvar_test2 :: PureFn (U256)
 lvmvar_test2 = $lfn $ ylvm'pp LVM.do
   b <- embed (42 :: U256)
   let !(b1, b2) = dup'l b
-  ymkvar (b1 + b2)
+  ymakev (b1 + b2)
 
 lvmvar_test3 :: StaticFn (U256)
 lvmvar_test3 = $lfn $ ylvm'pv LVM.do
   b <- embed (42 :: U256)
   let !(b1, b2) = dup'l b
-  ymkvar (b1 + b2)
+  ymakev (b1 + b2)
 
 lvmvar_test4 :: StaticFn (U256 -> U256 -> U256)
 lvmvar_test4 = $lfn $ ylvm'vv
   \x y -> LVM.do
-    x1 <- ytkvar x
-    x2 <- ytkvar x
-    y1 <- ytkvar y
-    ymkvar (x1 + x2 * y1)
+    x1 <- ytakev x
+    x2 <- ytakev x
+    y1 <- ytakev y
+    ymakev (x1 + x2 * y1)
 
 object = mkYulObject "BasicTests" yulNoop
   [ pureFn "embUnit$p" embUnit'p
