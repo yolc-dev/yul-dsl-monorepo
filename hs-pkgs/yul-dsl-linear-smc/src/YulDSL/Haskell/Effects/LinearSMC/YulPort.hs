@@ -22,8 +22,8 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
   , coerceType'l, reduceType'l, extendType'l
     -- $GeneralOps
   , discard'l, ignore'l, mkunit'l, emb'l, const'l, dup'l, merge'l, split'l
-    -- $WithPureFunctions
-  , with'l
+    -- $InPureFunctions
+  , CanInpureNP_L, inpureNP'l, CanInpureN_L, inpureN'l
     -- control flows
   , bool'l
     -- $VersionThread
@@ -190,8 +190,8 @@ split'l :: forall a b eff r.
 split'l ab = let !(a, b) = split (unP'x ab) in (MkP'x a, MkP'x b)
 
 ------------------------------------------------------------------------------------------------------------------------
--- $WithPureFunctions
--- * Process With Pure Yul Functions
+-- $InPureFunctions
+-- * Process Yul Ports In Pure Functions
 --
 -- Using yul port APIs involves threading (linearly, metaphorically speaking) of the ports. Manually doing such
 -- threading can quickly becomes a toll on the users. The family of "with" functions are provided to capture some ports
@@ -199,37 +199,49 @@ split'l ab = let !(a, b) = split (unP'x ab) in (MkP'x a, MkP'x b)
 -- any safety, then eventually returns a set of new yul ports.
 ------------------------------------------------------------------------------------------------------------------------
 
--- | Common constraint set for the family of "with'l" functions.
-type ConstraintForWith x xs b bs r ioe m1 m2 =
+-- | Constraint alias required for 'inpureNP\'l'.
+type CanInpureNP_L x xs b bs m1 m2 r ioe =
   ( YulO5 x (NP I xs) b (NP I bs) r
     -- m1, m2
   , P'x ioe r ~ m1
   , YulCat Pure (NP I (x:xs)) ~ m2
     -- x:xs
-  , LinearTraversableNP m1 xs
-    -- bs
-  , LinearDistributiveNP m1 bs
+  , LinearTraversableNP m1 (x:xs)
+  , DistributiveNP m2 (x:xs)
+    -- b:bs
+  , LinearDistributiveNP m1 (b:bs)
   )
 
 -- | Process a NP of yul ports with a pure yul function.
-with'l :: forall f x xs b bs r ioe m1 m2.
-  ( ConstraintForWith x xs b bs r ioe m1 m2
-    -- f
-  , EquivalentNPOfFunction f (x:xs) (NP I (b:bs))
-    -- x:xs
-  , DistributiveNP m2 (x:xs)
-  ) =>
+inpureNP'l :: forall x xs b bs m1 m2 r ioe.
+  CanInpureNP_L x xs b bs m1 m2 r ioe =>
   NP m1 (x:xs) ⊸
   (NP m2 (x:xs) -> m2 (NP I (b:bs))) ->
   NP m1 (b:bs)
-with'l xxs f =
-  let !(x, xs) = splitNonEmptyNP xxs
-      !(x', u) = mkunit'l x
-      txxs = distribute_NP (YulId :: m2 (NP I (x:xs)))
-      sxxs = lsequence_NP (x' :* xs) u
-      sbbs = encodeP'x (YulUnsafeCoerceEffect (f txxs)) sxxs
-      !(b :* bs, snil) = ldistribute_NP sbbs
-  in ignore'l snil b :* bs
+inpureNP'l xxs_np f =
+  let sxxs = lsequence_NonEmptyNP xxs_np
+      sbbs = encodeP'x (YulUnsafeCoerceEffect (f (distribute_NP YulId))) sxxs
+  in ldistribute_NonEmptyNP sbbs
+
+-- | Constraint alias required for 'inpureN\'l'.
+type CanInpureN_L x xs b bs m1 m2 r ioe =
+  ( YulO1 (TupleN (b:bs))
+  , CanInpureNP_L x xs b bs m1 m2 r ioe
+  , ConvertibleNPtoTupleN m1 (NP m1 (x:xs))
+  , ConvertibleNPtoTupleN m1 (NP m1 (b:bs))
+  , UncurriableNPDistributed (x:xs) (TupleN (b:bs)) m2 m2 m2 m2 Many
+  , NP I (b:bs) ~ ABITypeDerivedOf (TupleN (b:bs))
+  )
+
+-- | Process a tupleN of yul ports with a pure yul function.
+inpureN'l :: forall x xs b bs m1 m2 r ioe.
+  CanInpureN_L x xs b bs m1 m2 r ioe =>
+  TupleN_M m1 (x:xs) ⊸
+  CurryNP (NP m2 (x:xs)) (m2 (TupleN (b:bs))) Many ->
+  TupleN_M m1 (b:bs)
+inpureN'l xxs_tpl f = fromNPtoTupleN (inpureNP'l (fromTupleNtoNP xxs_tpl) f')
+  where f' xxs_np = uncurryNPDistributed @m2 @m2 @m2 @m2 @Many @(x:xs) @(TupleN (b:bs)) f xxs_np
+                    >.> YulReduceType
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $ControlFlows
@@ -246,7 +258,7 @@ bool'l :: forall xs b ioe r.
   (forall r2. YulO1 r2 => P'x ioe r2 (NP I xs) ⊸ P'x ioe r2 b) ->
   P'x ioe r b
 bool'l b xs ga gb =
-  let !(b', u) = mkunit'l b in encodeP'x g (lsequence_NP (b' :* xs) u)
+  encodeP'x g (lsequence_NonEmptyNP (b :* xs))
   where
     gc :: forall r3. YulO1 r3 =>
       P'x ioe r3 (NP I (BOOL:xs)) ⊸ P'x ioe r3 BOOL
@@ -348,8 +360,10 @@ instance (YulO1 r, ValidINTx s n) => Multiplicative (P'x eff r (INTx s n)) where
 --
 
 instance YulO1 r => LinearlyConstructibleNP (P'x eff r) YulCatObj where
-  lnil2unit_NP = coerceType'l
   lunit2nil_NP = coerceType'l
+  ldiscard_NP = discard'l
+  lignore_NP = ignore'l
+  lmkunit_NP = mkunit'l
   lcons_NP x xs = coerceType'l (merge'l (x, xs))
   luncons_NP = split'l . coerceType'l
 

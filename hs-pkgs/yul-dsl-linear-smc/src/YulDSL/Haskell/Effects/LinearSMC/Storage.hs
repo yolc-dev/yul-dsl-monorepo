@@ -69,33 +69,6 @@ sgetM :: forall a b r v.
   YLVM v v r (Ur (Rv v r a)) -> YLVM v v r (Ur (Rv v r b))
 sgetM mavar = mavar LVM.>>= \(Ur avar) -> ytkvarv avar LVM.>>= ymkvar . sget'l
 
--- class (KnownNat v, YulO1 r) => SGettableNP v r np b where
---   sgetNP :: forall. np -> YLVM v v r b
-
--- instance (KnownNat v, YulO1 r) =>
---          SGettableNP v r (NP I '[]) (Ur (NP I '[])) where
---   sgetNP Nil = LVM.pure $ Ur Nil
-
--- instance ( YulO3 r a b
---          , YulVarRef v r (P'x ie r) vref_
---          , SReferenceable v r a b
---          , SGettableNP v r (NP I as) (Ur (NP I bs))
---          ) =>
---          SGettableNP v r (NP I (vref_ a : as)) (Ur (NP I (Rv v r b : bs))) where
---   sgetNP (a :* as) = LVM.do
---     Ur b <- sget a
---     Ur bs <- sgetNP as
---     LVM.pure $ Ur (b :* bs)
-
--- sgetN :: forall tpl_a tpl_b v r.
---   ( KnownNat v
---   , ConvertibleTupleNtoNP I tpl_a, ConvertibleTupleNtoNP I tpl_b
---   , SGettableNP v r (TupleNtoNP I tpl_a) (TupleNtoNP I tpl_b)
---   ) => tpl_a -> YLVM v v r tpl_b
--- sgetN tpl_a = let np_a = fromTupleNtoNP tpl_a
---                   np_b = sgetNP np_a :: YLVM v v r (TupleNtoNP I tpl_b)
---               in np_b LVM.>>= LVM.pure . fromNPtoTupleN
-
 ------------------------------------------------------------------------------------------------------------------------
 -- sput, sputM, sputMM
 ------------------------------------------------------------------------------------------------------------------------

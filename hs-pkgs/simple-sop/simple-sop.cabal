@@ -38,6 +38,7 @@ library
   -- modules
   exposed-modules:
     Data.SimpleNP
+    Data.SimpleNP.ConstructibleNP
     Data.TupleN.TH
     Data.TupleN
 

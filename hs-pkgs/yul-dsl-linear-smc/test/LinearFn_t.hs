@@ -86,7 +86,7 @@ bar3 = $lfn $ ylvm'pv
 test_with :: StaticFn (U256 -> U256 -> U256)
 test_with = $lfn $ yulports'vv
   \x1'v x2'v ->
-    let !(r :* Nil) = with'l (x1'v :* x2'v :* Nil)
+    let !(r :* Nil) = inpureNP'l (x1'v :* x2'v :* Nil)
           \(x1 :* x2 :* Nil) -> be ((x1 + x1 * x2) :* Nil)
     in r
 

@@ -77,16 +77,6 @@ instance forall x xs b r.
          UncurriableNP (x:xs) b (YulCat'P r) (YulCat'P r) Many (YulCat'P r) (YulCat'P r) Many where
   uncurryNP f xxs = let (x, xs) = uncons_NP xxs in uncurryNP @xs @b @(YulCat'P r) @(YulCat'P r) (f x) xs
 
--- instance ( YulO4 x (NP I xs) b r
---          , UncurriableNP (x:xs) b (YulCat'P r) (YulCat'P r) Many (YulCat'P r) (YulCat'P r) Many
---          , TupleNWithSameM (TupleN_M (YulCat'P r) (x:xs))
---          , ConvertibleNPtoTupleN (YulCat'P r) (NP (YulCat'P r) (x:xs))
---          , DistributiveNP (YulCat'P r) (x:xs)
---          )  =>
---          UncurriableTupleN (x:xs) b (YulCat'P r) (YulCat'P r) Many (YulCat'P r) (YulCat'P r) Many where
---   uncurryN f xs_tpl = uncurryNP @(x:xs) @b @(YulCat'P r) @(YulCat'P r) @Many @(YulCat'P r) @(YulCat'P r) @Many
---                       f (distributeNP (fromTupleNtoNP xs_tpl))
-
 --
 -- CurriableNP instances
 --

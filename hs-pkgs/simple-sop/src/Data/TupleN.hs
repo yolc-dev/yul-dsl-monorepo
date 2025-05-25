@@ -212,6 +212,7 @@ type ConvertibleTupleNtoNP m tpl = ( NPtoTupleN m (TupleNtoNP m tpl) ~ tpl
                                    , TupleN_M m (NP2List (TupleNtoNP m tpl)) ~ tpl
                                    , HavingFromTupleNtoNP m tpl
                                    , HavingFromNPtoTupleN m (TupleNtoNP m tpl)
+                                   , TupleNWithSameM tpl
                                    )
 
 -- | A constraint alias for NP types that are convertible to TupleN and vice versa.
@@ -219,4 +220,5 @@ type ConvertibleNPtoTupleN m np = ( TupleNtoNP m (NPtoTupleN m np) ~ np
                                   , TupleN_M m (NP2List np) ~ NPtoTupleN m np
                                   , HavingFromTupleNtoNP m (NPtoTupleN m np)
                                   , HavingFromNPtoTupleN m np
+                                  , TupleNWithSameM (NPtoTupleN m np)
                                   )

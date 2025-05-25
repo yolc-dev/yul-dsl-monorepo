@@ -23,7 +23,7 @@ module Data.Type.Function
   , UncurryNP'Head, UncurryNP'Tail
   , CurryNP, CurryNP_I
   , EquivalentNPOfFunction
-  , UncurriableNP (uncurryNP), UncurriableTupleN (uncurryN)
+  , UncurriableNP (uncurryNP), UncurriableNPDistributed, uncurryNPDistributed
   , CurriableNP (curryNP)
   , CallableFunctionNP (call), CallableFunctionN (callN)
   ) where
@@ -72,8 +72,8 @@ type family UncurryNP'Head f where
 
 -- | Convert a function in ts "NP m" form @np -> b@ to a curried function with multiplicity arrows in @p@.
 type family CurryNP np mb p where
-  CurryNP (NP m    '[]) b _ = b
-  CurryNP (NP m (x:xs)) b p = m x %p -> CurryNP (NP m xs) b p
+  CurryNP (NP m    '[]) mb _ = mb
+  CurryNP (NP m (x:xs)) mb p = m x %p -> CurryNP (NP m xs) mb p
 
 -- | Convert a function in ts "NP I" form @np -> b@ to a curried function.
 type family CurryNP_I np b where
@@ -89,19 +89,21 @@ type EquivalentNPOfFunction f xs b =
 
 -- | Uncurry a function into a function of @NP m2 xs@ to @m2b b@.
 class UncurriableNP xs b m1 m1b p1 m2 m2b p2 | m1 m1b -> p1, m2 -> p2 where
+  -- | Uncurry a NP-curried n-ary function into a sequenced-NP function 2-ary function.
   uncurryNP :: forall.
     CurryNP (NP m1 xs) (m1b b) p1 %p2 -> -- ^ from this lifted function. NOTE: using p2 to be consumed by m2.
     (m2 (NP I xs) %p2 -> m2b b)          -- ^ to this lifted function
 
-class ( UncurriableNP xs b m1 m1b p1 m2 m2b p2
-      , TupleNWithSameM (TupleN_M m2 xs)
-      , ConvertibleNPtoTupleN m2 (NP m2 xs)
-      , DistributiveNP m2 xs
-      ) =>
-      UncurriableTupleN xs b m1 m1b p1 m2 m2b p2 | m1 m1b -> p1, m2 -> p2 where
-  uncurryN :: forall.
-    CurryNP (NP m1 xs) (m1b b) p1 %p2 ->
-    (TupleN_M m2 xs %p1 -> m2b b)
+type UncurriableNPDistributed xs b m1 m1b m2 m2b p2 =
+  ( UncurriableNP xs b m1 m1b Many m2 m2b p2
+  , TraversableNP m2 xs
+  )
+
+uncurryNPDistributed :: forall m1 m1b m2 m2b p2 xs b.
+  UncurriableNPDistributed xs b m1 m1b m2 m2b p2 =>
+  CurryNP (NP m1 xs) (m1b b) Many %p2 ->
+  (NP m2 xs -> m2b b)
+uncurryNPDistributed f xs_np = uncurryNP @xs @b @m1 @m1b @_ @m2 @m2b @_ f (sequence_NP xs_np)
 
 -- | Curry a function of @NP m1 xs@ to @mb b@.
 class CurriableNP xs b m2 mb p2 m1 p1 | m2 mb -> p2, m1 -> p1 where

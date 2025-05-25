@@ -110,9 +110,7 @@ instance EncodableYulPortDiagram Pure (VersionedPort va) (VersionedPort va)
 instance EncodableYulPortDiagram PureInputPureOutput PurePort PurePort
 instance EncodableYulPortDiagram PureInputPureOutput (VersionedPort va) (VersionedPort va)
 
-instance va + vd ~ vb => EncodableYulPortDiagram (PureInputVersionedOutput vd) (VersionedPort va) (VersionedPort vd)
-
--- instance EncodableYulPortDiagram (VersionedInputOutput vd) PurePort (VersionedPort vd)
+instance va + vd ~ vb => EncodableYulPortDiagram (PureInputVersionedOutput vd) (VersionedPort va) (VersionedPort vb)
 
 instance va + vd ~ vb => EncodableYulPortDiagram (VersionedInputOutput vd) (VersionedPort va) (VersionedPort vb)
 
@@ -121,11 +119,7 @@ unsafe_uncurry_nil :: forall a b r ie oe m1.
   P'x oe r b ⊸
   (m1 a ⊸ P'x ie r (NP I '[])) ⊸
   (m1 a ⊸ P'x oe r b)
-unsafe_uncurry_nil b h a =
-  h a                   -- :: P'x ie v1 (NP I '[])
-  & coerceType'l @_ @() -- :: P'x ie v1 ()
-  & unsafeCoerceYulPort -- :: P'x ie vn ()
-  & \u -> ignore'l u b
+unsafe_uncurry_nil b h a = h a & coerceType'l @_ @() & unsafeCoerceYulPort & flip ignore'l b
 
 uncurry_nonnil :: forall m1 m2_ m2b_ m2 mb x xs b r a ie.
   ( YulO4 x (NP I xs) r a
@@ -135,7 +129,7 @@ uncurry_nonnil :: forall m1 m2_ m2b_ m2 mb x xs b r a ie.
   , m1 ~ m2
   ) =>
   (m1 x ⊸ CurryNP (NP m1 xs) (mb b) One) ⊸    -- ^ f: m1 x ⊸ m1 (xs ⊸...) ⊸ m1b b; the function to be uncurried
-  (m2 a ⊸ m2 (NP I (x : xs))) ⊸               -- ^ h: m2' (a ⊸ NP xxs)
+  (m2 a ⊸ m2 (NP I (x : xs))) ⊸               -- ^ h: m2' (a ⊸ NP xxs); the input reader
   ((m2 a ⊸ m2 (NP I xs)) ⊸ m2_ a (NP I xs)) ⊸ -- ^ mk: m2' (a ⊸ NP I xs) ⊸ m2_ a (NP I xs)
   (m2b_ a b ⊸ (m2 a ⊸ mb b)) ⊸                -- ^ un: m2b_ a b ⊸ (m2' a ⊸ m2b' b)
   (m2 a ⊸ mb b)
@@ -154,7 +148,6 @@ uncurry_nonnil f h mk un a =
 instance YulO3 b a r =>
          UncurriableNP '[] b (P'P r) (P'P r) One (YulCat'LPP r a) (YulCat'LPP r a) One where
   uncurryNP b (MkYulCat'LPP h) = MkYulCat'LPP (unsafe_uncurry_nil b h)
-  -- uncurryN b (MkYulCat'LPP h) = MkYulCat'LPP (unsafe_uncurry_nil b h)
 
 instance ( YulO5 x (NP I xs) b r a
          , UncurriableNP xs b (P'P r) (P'P r) One (YulCat'LPP r a) (YulCat'LPP r a) One

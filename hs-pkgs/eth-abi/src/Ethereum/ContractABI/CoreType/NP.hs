@@ -15,12 +15,14 @@ Ethereum contract ABI compatible tuples encoded as simple n-ary products 'Data.S
 -}
 module Ethereum.ContractABI.CoreType.NP
   ( module Data.SimpleNP
+  , module Data.SimpleNP.ConstructibleNP
   ) where
 
 -- cereal
 import Data.Serialize                    qualified as S
 --
 import Data.SimpleNP
+import Data.SimpleNP.ConstructibleNP
 --
 import Ethereum.ContractABI.ABITypeable  (ABITypeable (..))
 import Ethereum.ContractABI.ABITypeCodec (ABITypeCodec (..))
