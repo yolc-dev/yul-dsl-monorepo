@@ -147,7 +147,7 @@ dev:
 	nodemon -w hs-pkgs -w yol-demo -w examples -e "hs sol cabal" -i "#.*" -x "make $(DEV_TARGETS) || exit 1"
 
 repl-%:
-	$(CABAL_REPL) $*
+	$(CABAL_REPL) $$(echo $* | tr "," " ")
 
 .PHONY: all lint freeze build build-* clean clean-* test test-* dev repl-*
 
