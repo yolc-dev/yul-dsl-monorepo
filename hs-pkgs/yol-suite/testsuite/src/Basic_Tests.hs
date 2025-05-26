@@ -48,12 +48,14 @@ sgetTest = $lfn $ ylvm'pv
   \acc'uv -> LVM.do
     acc <- yrtakev acc'uv
     key <- embed (42 :: U32)
-    ymakev (sget'l (extendType'l @(REF U256) (keccak256'l (merge'l (key, acc)))))
+    let sref = extendType'l @(REF U256) (keccak256'l (merge'l (key, acc)))
+    ymakev (sget'l sref)
 
 shmapGetTest :: StaticFn (ADDR -> U256)
 shmapGetTest = $lfn $ ylvm'pv
   \acc -> LVM.do
-    sgetM $ (makeSMap "shmapGetTest" :: SMap (ADDR -> U256)) #-> acc
+    let smap = makeSMap "shmapGetTest" :: SMap (ADDR -> U256)
+    sgetM $ smap #-> acc
 
 varSharing :: PureFn (U256 -> U256 -> U256 -> U256)
 varSharing = $fn \a b c ->
@@ -87,6 +89,15 @@ lvmvar_test4 = $lfn $ ylvm'vv
     x2 <- ytakev x
     y1 <- ytakev y
     ymakev (x1 + x2 * y1)
+
+test_bool_l :: PureFn (U256 -> U256 -> U256 -> U256)
+test_bool_l = $lfn $ yulports'pp
+  \x_p a_p b_p ->
+    bool'l
+    (purelamN_1'l (MkSolo x_p) (forget (> 42))) -- boolean port
+    (a_p :* b_p :* Nil) -- capturing ports
+    (yulports'pp \a_p' b_p' -> ignore'l (discard'l b_p') a_p')
+    (ylvm'pp \_ b_uv -> yreturn b_uv)
 
 object = mkYulObject "BasicTests" yulNoop
   [ pureFn "embUnit$p" embUnit'p

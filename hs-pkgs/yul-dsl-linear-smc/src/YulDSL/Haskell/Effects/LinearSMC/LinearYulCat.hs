@@ -8,6 +8,8 @@ module YulDSL.Haskell.Effects.LinearSMC.LinearYulCat
   , DecodableYulPortDiagram (decode'l)
   , EncodableYulPortDiagram (encodeWith'l)
   , yulports'pp, yulports'pv, yulports'vv
+    -- $ControlFlows
+  , bool'l
   ) where
 -- base
 import GHC.TypeLits                             (type (+))
@@ -258,3 +260,36 @@ instance ( YulO5 x (NP I xs) b r a
          CurriableNP (x:xs) b (YulCat'LVV v1 v1 r a) (P'V vn r) One (P'V v1 r) One where
   curryNP cb x = curryNP @xs @b @(YulCat'LVV v1 v1 r a) @(P'V vn r) @_ @(P'V v1 r) @_
                  (\(MkYulCat'LVV fxs) -> cb (MkYulCat'LVV (\a -> (lcons_NP x (fxs a)))))
+
+
+------------------------------------------------------------------------------------------------------------------------
+-- $ControlFlows
+-- * Control Flows
+------------------------------------------------------------------------------------------------------------------------
+
+-- | Yul port boolean switch.
+bool'l :: forall xs b ie oe eff r.
+  ( YulO3 (NP I xs) b r
+  , DecodableYulPortDiagram ie ie eff
+  , DecodableYulPortDiagram ie oe eff
+  , EncodableYulPortDiagram eff ie oe
+  , LinearTraversableNP (P'x ie r) xs
+  )=>
+  P'x ie r BOOL ⊸
+  NP (P'x ie r) xs ⊸
+  (forall r'. YulO1 r' => P'x ie r' (NP I xs) ⊸ P'x oe r' b) ->
+  (forall r'. YulO1 r' => P'x ie r' (NP I xs) ⊸ P'x oe r' b) ->
+  P'x oe r b
+bool'l b xs ga gb =
+  encodeWith'l g id (lsequence_NonEmptyNP (b :* xs))
+  where
+    gc :: forall r'. YulO1 r' => P'x ie r' (NP I (BOOL:xs)) ⊸ P'x ie r' BOOL
+    gc bxs = let !(b', xs') = luncons_NP bxs in ignore'l (discard'l xs') b'
+    gh :: forall r'. YulO1 r' => (P'x ie r' (NP I xs) ⊸ P'x oe r' b) -> (P'x ie r' (NP I (BOOL:xs)) ⊸ P'x oe r' b)
+    gh h bxs = let !(b', xs') = luncons_NP bxs in h (ignore'l (discard'l b') xs')
+    g = YulSwitch
+      (decode'l gc >.> yulSafeCast)
+      [ (1, decode'l (gh ga))
+      , (0, decode'l (gh gb))
+      ]
+      yulRevert

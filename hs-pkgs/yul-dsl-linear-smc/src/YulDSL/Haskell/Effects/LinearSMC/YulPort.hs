@@ -23,9 +23,7 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
     -- $GeneralOps
   , discard'l, ignore'l, mkunit'l, emb'l, const'l, dup'l, merge'l, split'l
     -- $PureLam
-  , PureLamNP_L, purelamNP'l, PureLamN_L, purelamN'l
-    -- control flows
-  , bool'l
+  , PureLamNP_L, purelamNP'l, PureLamN_L, purelamN'l, purelamN_1'l
     -- $VersionThread
   , VersionThread, vtstart, vtstart_, vtstop, vtreturn, vtmkunit, vtgulp, vtseq
   ) where
@@ -243,31 +241,17 @@ purelamN'l xxs_tpl f = fromNPtoTupleN (purelamNP'l (fromTupleNtoNP xxs_tpl) f')
   where f' xxs_np = uncurryNPDistributed @m2 @m2 @m2 @m2 @Many @(x:xs) @(TupleN (b:bs)) f xxs_np
           >.> YulReduceType
 
-------------------------------------------------------------------------------------------------------------------------
--- $ControlFlows
-------------------------------------------------------------------------------------------------------------------------
-
--- | Yul port boolean switch.
-bool'l :: forall xs b ioe r.
-  ( YulO3 (NP I xs) b r
-  , LinearTraversableNP (P'x ioe r) xs
-  )=>
-  P'x ioe r BOOL ⊸
-  NP (P'x ioe r) xs ⊸
-  (forall r1. YulO1 r1 => P'x ioe r1 (NP I xs) ⊸ P'x ioe r1 b) ->
-  (forall r2. YulO1 r2 => P'x ioe r2 (NP I xs) ⊸ P'x ioe r2 b) ->
-  P'x ioe r b
-bool'l b xs ga gb =
-  encodeP'x g (lsequence_NonEmptyNP (b :* xs))
-  where
-    gc :: forall r3. YulO1 r3 =>
-      P'x ioe r3 (NP I (BOOL:xs)) ⊸ P'x ioe r3 BOOL
-    gc bxs = let !(b', xs') = luncons_NP bxs in ignore'l (discard'l xs') b'
-    gh :: forall r1. YulO1 r1 =>
-      (P'x ioe r1 (NP I xs) ⊸ P'x ioe r1 b) ->
-      (P'x ioe r1 (NP I (BOOL:xs)) ⊸ P'x ioe r1 b)
-    gh h bxs = let !(b', xs') = luncons_NP bxs in h (ignore'l (discard'l b') xs')
-    g = YulSwitch ((decodeP'x gc) >.> yulSafeCast) [(1, decodeP'x (gh ga)), (0, decodeP'x (gh gb))] yulRevert
+-- | Process a tupleN of yul ports with a pure yul lambda.
+purelamN_1'l :: forall x xs b m1 m2 r ioe.
+  ( PureLamN_L x xs b '[] m1 m2 r ioe
+  , UncurriableNPDistributed (x:xs) b m2 m2 m2 m2 Many
+  ) =>
+  TupleN_M m1 (x:xs) ⊸
+  CurryNP (NP m2 (x:xs)) (m2 b) Many ->
+  m1 b
+purelamN_1'l xxs_tpl f = let !(b :* Nil) = purelamNP'l (fromTupleNtoNP xxs_tpl) f' in b
+  where f' xxs_np = uncurryNP @(x:xs) @b @m2 @m2 @_ @m2 @m2 f (sequence_NP xxs_np)
+          >.> YulCoerceType @_ @b @(NP I '[b])
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $VersionThread
