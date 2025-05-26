@@ -32,17 +32,17 @@ getSolo (MkSolo a) = a
 -- Tuple1 is Solo and special.
 
 instance (YulO2 a r) =>
-         SingleCasePattern (YulCat eff r) (Solo a) (YulCat eff r a)
+         SingleCasePattern (YulCat eff r) (Solo a) (Solo (YulCat eff r a))
          YulCatObj Many where
-  is = (>.> YulCoerceType)
+  is a = MkSolo (a >.> YulCoerceType)
 instance (YulO2 a r, YulCat eff r ~ m) =>
-         PatternMatchable (YulCat eff r) (Solo a) (YulCat eff r a)
+         PatternMatchable (YulCat eff r) (Solo a) (Solo (YulCat eff r a))
          YulCatObj Many where
 -- Make injective pattern free from MkSolo.
 instance YulO2 a r =>
-         InjectivePattern (YulCat eff r) (Solo a) (YulCat eff r a)
+         InjectivePattern (YulCat eff r) (Solo a) (Solo (YulCat eff r a))
          YulCatObj Many where
-  be = (>.> YulCoerceType)
+  be (MkSolo a) = a >.> YulCoerceType
 
 -- Tuple2 is the base case.
 
