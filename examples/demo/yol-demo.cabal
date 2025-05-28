@@ -47,9 +47,11 @@ library
   hs-source-dirs:   src
   exposed-modules:  ERC20
                     Counter
+                    Demo
                     Project
   build-depends:    yul-dsl-linear-smc,
                     yol-suite,
+                    base,
                     -- text >= 2.0.1,
                     -- bytestring >= 0.11,
                     -- yul-dsl,

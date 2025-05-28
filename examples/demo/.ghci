@@ -6,8 +6,9 @@
 :{
 __import_modules = unlines
   [ ":module + YolSuite.ReplUtils"
-  , ":module + YulDSL.Core ERC20 Counter"
+  , ":module + YulDSL.Core ERC20 Counter Demo"
   , ":module - Prelude"
+  , ":set prompt \"yolc > \""
   ]
 :}
 

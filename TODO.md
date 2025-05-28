@@ -101,7 +101,7 @@ z  - [x] Co-cartesian related
     - [ ] 🟢 support dispatcher decoding tuples
     - [ ] 🟢 complete testsuite
   - Runtime
-    - [x] `yulRevert`, equivalent of `revert()`.
+    - [x] `yulRevert & __const_revert0_c_`, equivalent of `revert()`.
     - [ ] 🟢 `revertWithMessage`
     - [ ] 🟢 `revertWithError`
     - [x] `__caller`, equivalent of `msg.sender`.

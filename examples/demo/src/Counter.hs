@@ -18,24 +18,20 @@ globalCounterLoc :: PureFn (REF U256)
 globalCounterLoc = $fn do
   yulEmb (keyRef "Yolc.Demo.Counter.Storage.Counter.Global")
 
+getGlobalCounter :: StaticFn U256
+getGlobalCounter = $lfn $ ylvm'pv LVM.do
+  sgetM (ycall globalCounterLoc)
 
 incGlobalCounter :: OmniFn (U256 -> ())
 incGlobalCounter = $lfn $ ylvm'pv
   \inc -> LVM.do
-    Ur counterRef <- ycalluv globalCounterLoc
-
-    Ur currentValue <- sget counterRef
+    Ur currentValue <- ycall getGlobalCounter
 
     Ur newValue <- yrpurelamN_1 (currentValue, ver inc) \x y -> x + y
 
     ycalluv globalCounterLoc <<:= newValue
 
     yembed ()
-
-getGlobalCounter :: StaticFn U256
-getGlobalCounter = $lfn $ ylvm'pv LVM.do
-  Ur counterRef <- ycalluv globalCounterLoc
-  sget counterRef
 
 --
 -- User-owned counters using SMap
