@@ -68,18 +68,24 @@ transfer = $lfn $ ylvm'pv
 -- | Mint new tokens
 mint :: OmniFn (ADDR -> U256 -> ())
 mint = $lfn $ ylvm'pv
+  -- [solidity] function mint(address to, uint256 amount) returns ()
   \to amount -> LVM.do
+    -- [solidity] uint256 balanceBefore = balanceOf(to)
     Ur balanceBefore <- ycall balanceOf (ver to)
 
     -- calculate new balance
+    -- [solidity] uint256 newAmount = balanceBefore + amount
     Ur newAmount <- yrpurelamN_1 (balanceBefore, ver amount) \x y -> x + y
 
+    --
     -- ⚠️ NOTE: swap the following code blocks will not compile, because there can be reentrance!
 
     -- update balance
+    -- [solidity] balances[to] = newAmount
     balances #-> to <<:= newAmount
 
     -- call **untrusted** external contract onTokenMinted
+    -- [solidity] TokenMintHook(to).onTokenMinted(to, amount)
     ycall (to @-> onTokenMinted) (ver to) (ver amount)
 
     -- return () always, for demo purpose

@@ -48,6 +48,7 @@ library
   exposed-modules:  ERC20
                     Counter
                     Demo
+                    RaisingFund
                     Project
   build-depends:    yul-dsl-linear-smc,
                     yol-suite,

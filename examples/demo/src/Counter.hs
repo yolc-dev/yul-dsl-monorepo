@@ -45,13 +45,18 @@ getCounter = $lfn $ ylvm'pv \acc -> sgetM (userCounterMap #-> acc)
 
 incCounter :: OmniFn (U256 -> ())
 incCounter = $lfn $ ylvm'pv
+  -- [solidity]  function incCounter(uint256 inc) returns ()
   \inc -> LVM.do
+    -- [solidity] address acc = msg.sender
     Ur acc <- ycaller
 
+    -- [solidity] uint256 currentValue = userCounterMap[acc]
     Ur currentValue <- sgetM (userCounterMap #-> acc)
 
+    -- [solidity] uin256 newValue = currentValue + inc
     Ur newValue <- yrpurelamN_1 (currentValue, ver inc) \x y -> x + y
 
+    -- [solidity]  userCounterMap[acc] = newValue
     userCounterMap #-> acc <<:= newValue
 
     yembed ()

@@ -80,7 +80,7 @@ module YulDSL.Haskell.LibLinearSMC
   , module YulDSL.Haskell.Effects.LinearSMC
 
     -- * YLVM Utilities
-  , ycaller
+  , yaddress, ycaller, ychainid
 
     -- * Yul Port Utilities
   , keccak256'l
@@ -121,5 +121,15 @@ import YulDSL.Haskell.Effects.LinearSMC
 keccak256'l :: forall a eff r. YulO2 r a => P'x eff r a ⊸ P'x eff r B32
 keccak256'l = encodeP'x (YulJmpB (MkYulBuiltIn @"__keccak_c_" @a @B32))
 
+--
+-- Block and Transaction Properties
+--
+
+yaddress :: forall r v. (KnownNat v, YulO1 r) => YLVM v v r (Ur (Uv r ADDR))
+yaddress = embed () LVM.>>= ymakev . encodeP'x (YulJmpB (MkYulBuiltIn @"__address"))
+
 ycaller :: forall r v. (KnownNat v, YulO1 r) => YLVM v v r (Ur (Uv r ADDR))
 ycaller = embed () LVM.>>= ymakev . encodeP'x (YulJmpB (MkYulBuiltIn @"__caller"))
+
+ychainid :: forall r v. (KnownNat v, YulO1 r) => YLVM v v r (Ur (Uv r U256))
+ychainid = embed () LVM.>>= ymakev . encodeP'x (YulJmpB (MkYulBuiltIn @"__chainid"))

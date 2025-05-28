@@ -106,7 +106,7 @@ add_maybe_int96 = $fn
 
 add_maybe_int96' :: PureFn (Maybe I96 -> I96 -> Maybe I96)
 add_maybe_int96' = $fn
-  \a b -> (\a' -> a' + b) <$$> a
+  \a b -> (forget (+ b)) <$$> a
 
 shmapGetTest :: StaticFn (ADDR -> U256)
 shmapGetTest = $lfn $ ylvm'pv

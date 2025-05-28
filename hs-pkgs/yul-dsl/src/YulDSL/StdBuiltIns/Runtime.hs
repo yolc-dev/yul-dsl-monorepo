@@ -24,3 +24,17 @@ instance YulBuiltInPrefix "__caller" () ADDR where
   yulB_fname = yulB_prefix
   yulB_body _ = ([], [MkVar "r"], ["r := caller()"] , [])
   yulB_eval b = error ("NoImpl: yulB_eval " ++ yulB_prefix b)
+
+-- A wrapper to address() for specifying the non-pure effect constraint.
+instance YulBuiltInPrefix "__address" () ADDR where
+  type instance IsYulBuiltInNonPure "__address" = True
+  yulB_fname = yulB_prefix
+  yulB_body _ = ([], [MkVar "r"], ["r := address()"] , [])
+  yulB_eval b = error ("NoImpl: yulB_eval " ++ yulB_prefix b)
+
+-- A wrapper to address() for specifying the non-pure effect constraint.
+instance YulBuiltInPrefix "__chainid" () U256 where
+  type instance IsYulBuiltInNonPure "__chainid" = True
+  yulB_fname = yulB_prefix
+  yulB_body _ = ([], [MkVar "r"], ["r := chainid()"] , [])
+  yulB_eval b = error ("NoImpl: yulB_eval " ++ yulB_prefix b)

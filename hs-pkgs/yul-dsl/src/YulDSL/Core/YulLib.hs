@@ -33,6 +33,7 @@ yulSafeCast :: forall eff a b.
 yulSafeCast = YulJmpB (MkYulBuiltIn @(YulSafeCastBuiltin a b) @a @b)
 
 -- ^ Value casting with boolean for capturing casting failures.
+-- FIXME: to use Maybe type
 yulTryCast :: forall eff a b.
   (YulO2 a b, YulCastable a b, IsYulBuiltInNonPure (YulCastBuiltin a b) ~ False) =>
   YulCat eff a (BOOL, b)

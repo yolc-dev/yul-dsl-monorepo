@@ -1,6 +1,6 @@
 module YolSuite.ReplUtils
   ( module YulDSL.CodeGens.GraphVizGen
-  , printCat, printFn
+  , printCat, showFn, printFn, printYulObject
   , module YulDSL.CodeGens.YulGen
   , previewFn, previewFnVerbose
   ) where
@@ -19,6 +19,14 @@ printCat :: YulO2 a b => YulCat eff a b -> IO ()
 printCat cat = do
   config <- YOLCBuilder.getCodeGenConfig
   putStr $ T.unpack $ compileCat config cat
+
+-- | Preview a function in a display window.
+showFn :: forall fn efc xs b.
+  ( KnownNamedYulCat fn efc (NP I xs) b
+  , YulO2 (NP I xs) b
+  ) =>
+  fn -> IO ()
+showFn fn = withKnownNamedYulCat fn (print . snd)
 
 -- | Generate yul code of a function and print it to the screen.
 printFn :: forall fn efc xs b.
@@ -45,3 +53,8 @@ previewFnVerbose :: forall fn efc xs b.
   ) =>
   fn -> IO ()
 previewFnVerbose fn = withKnownNamedYulCat fn (previewYulCatVerbose . snd)
+
+printYulObject :: YulObject -> IO ()
+printYulObject mo = do
+  config <- YOLCBuilder.getCodeGenConfig
+  putStr $ T.unpack $ compileYulObject config mo
