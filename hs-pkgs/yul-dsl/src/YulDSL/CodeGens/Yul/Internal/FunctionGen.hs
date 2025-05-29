@@ -357,45 +357,46 @@ go_call effCode sel = pure $ MkCodeGen \ind (get_code_exprs -> (code, a_ins)) ->
     ( decor_code ind title $
       code <>
       declare_vars ind b_vars <>
-      T.unlines
-      ((T.init . ind) <$>
-        [ "let callTarget := " <> rhs_expr_to_code callTargetExpr
-        , "let callValue := " <> rhs_expr_to_code callValueExpr
-        , "let callGasLimit := " <> rhs_expr_to_code callGasLimitExpr
-        , "if iszero(callGasLimit) { callGasLimit := gas() }"
-        , "let memPos := allocate_unbounded()"
-        , "mstore(memPos, shl(224, " <> T.pack (showSelectorOnly sel) <> "))"
-        , "let memEnd := " <>
-          if (length a_ins > 2)
-          then T.pack (yulB_fname abienc_builtin) <> "(add(memPos, 4), " <> spread_rhs (drop 3 a_ins) <> ")"
-          else "add(memPos, 4)"
-        ]) <>
-      -- call(g, a, v, in, insize, out, outsize)
-      --
-      -- call contract at address a with input mem[in…(in+insize)) providing g gas and v wei and output area
-      -- mem[out…(out+outsize)) returning 0 on error (eg. out of gas) and 1 on success See more
-      ind ( "let success := call" <>
-            "( callGasLimit" <>
-            ", callTarget"<>
-            ", callValue" <>
-            ", memPos" <> -- in
-            ", sub(memEnd, memPos)" <> -- inSize
-            ", memPos" <> -- out
-            ", " <> T.pack (show dataSize) <>
-            ")" -- outSize
-          ) <>
-      T.unlines
-      ((T.init . ind) <$>
-        [ "if iszero(success) { revert_forward_1() }"
-        , "if success {"
-        , " let rsize := " <> T.pack (show dataSize)
-        , " if gt (rsize, returndatasize()) { rsize := returndatasize() }"
-        , " finalize_allocation(memPos, rsize)"
-        ] ++
-        ([ " " <> spread_vars b_vars <> " := " <>
-           T.pack (yulB_fname abidec_builtin) <> "(memPos, add(memPos, rsize))"
-         | not (null b_vars) ]) ++
-        [ "}" ])
+      cbracket ind "" \ind' ->
+        T.unlines
+        ((T.init . ind') <$>
+         [ "let callTarget := " <> rhs_expr_to_code callTargetExpr
+         , "let callValue := " <> rhs_expr_to_code callValueExpr
+         , "let callGasLimit := " <> rhs_expr_to_code callGasLimitExpr
+         , "if iszero(callGasLimit) { callGasLimit := gas() }"
+         , "let memPos := allocate_unbounded()"
+         , "mstore(memPos, shl(224, " <> T.pack (showSelectorOnly sel) <> "))"
+         , "let memEnd := " <>
+           if (length a_ins > 2)
+           then T.pack (yulB_fname abienc_builtin) <> "(add(memPos, 4), " <> spread_rhs (drop 3 a_ins) <> ")"
+           else "add(memPos, 4)"
+         ]) <>
+        -- call(g, a, v, in, insize, out, outsize)
+        --
+        -- call contract at address a with input mem[in…(in+insize)) providing g gas and v wei and output area
+        -- mem[out…(out+outsize)) returning 0 on error (eg. out of gas) and 1 on success See more
+        ind' ( "let success := call" <>
+              "( callGasLimit" <>
+              ", callTarget"<>
+              ", callValue" <>
+              ", memPos" <> -- in
+              ", sub(memEnd, memPos)" <> -- inSize
+              ", memPos" <> -- out
+              ", " <> T.pack (show dataSize) <>
+              ")" -- outSize
+            ) <>
+        T.unlines
+        ((T.init . ind') <$>
+         [ "if iszero(success) { revert_forward_1() }"
+         , "if success {"
+         , " let rsize := " <> T.pack (show dataSize)
+         , " if gt (rsize, returndatasize()) { rsize := returndatasize() }"
+         , " finalize_allocation(memPos, rsize)"
+         ] ++
+         ([ " " <> spread_vars b_vars <> " := " <>
+            T.pack (yulB_fname abidec_builtin) <> "(memPos, add(memPos, rsize))"
+          | not (null b_vars) ]) ++
+         [ "}" ])
     , fmap LetVar b_vars )
 
 go_sget :: forall a.

@@ -26,7 +26,7 @@ module YulDSL.Haskell.Effects.LinearSMC.YLVM
   , VersionableYulVarRef (ver)
     -- ** Make And Take Of Yul Variables
   , YulVarRef (ymakev, ytakev, yrtakev), YulVarRefNP (ymakevNP, ytakevNP, yrtakevNP), ymakevN, ytakevN, yrtakevN
-  , yembed, yreturn
+  , yembed, yembeduv, yreturn
     -- ** Process With Pure Lambdas
   , ypurelamN, ypurelamN_1, yrpurelamN, yrpurelamN_1
     -- * Control Flow With YLVM
@@ -374,6 +374,12 @@ yembed :: forall a v r ie vref_.
   ) =>
   a -> YLVM v v r (Ur (vref_ a))
 yembed a = embed a LVM.>>= ymakev
+
+-- | Embed a value into a yul variable.
+yembeduv :: forall a v r.
+  (KnownNat v, YulO2 a r) =>
+  a -> YLVM v v r (Ur (Uv r a))
+yembeduv = yembed
 
 -- | Return a yul variable unrestricted.
 yreturn :: forall a v r ie vref_.

@@ -1,7 +1,8 @@
 module Project where
 
-import ERC20 qualified
 import Counter qualified
+import ERC20 qualified
+import RaisingFund qualified
 import YolSuite.YOLC.Manifest
 
 manifest :: Manifest
@@ -10,7 +11,11 @@ manifest = MkManifest
                                , deploymentType = SingletonContract
                                , upgradabilityMode = NonUpgradable
                                }
-                  ,MkBuildUnit { mainObject = Counter.object
+                 , MkBuildUnit { mainObject = Counter.object
+                               , deploymentType = SingletonContract
+                               , upgradabilityMode = NonUpgradable
+                               }
+                 , MkBuildUnit { mainObject = RaisingFund.object
                                , deploymentType = SingletonContract
                                , upgradabilityMode = NonUpgradable
                                }

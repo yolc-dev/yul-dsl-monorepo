@@ -93,6 +93,11 @@ do
 
 -- Value Types
 instance YulCatObj BOOL
+
+-- All unsigned int can be casted to u256
+instance ValidINTn n => YulSafeCastable (INTx False n) U256 where
+  type instance YulSafeCastBuiltin (INTx False n) U256 = "__safecast_uint_t_"
+-- Boolean can be casted to any intx
 instance ValidINTx s n => YulSafeCastable BOOL (INTx s n) where
   type instance YulSafeCastBuiltin BOOL (INTx s n) = "__safecast_bool_t_"
 

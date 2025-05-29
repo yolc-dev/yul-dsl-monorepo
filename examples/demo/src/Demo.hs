@@ -11,7 +11,6 @@ Stability   : experimental
 
 module Demo where
 -- import Control.LinearlyVersionedMonad.LVM qualified as LVM
-import Prelude                            (Show)
 import Prelude.YulDSL
 
 {- |

@@ -295,6 +295,12 @@ min_int_val nbits = T.pack . show . fromJust $
 -- Safe value casting
 ------------------------------------------------------------------------------------------------------------------------
 
+instance ValidINTn n => YulBuiltInPrefix "__safecast_uint_t_" (INTx False n) U256 where
+  yulB_fname b = yulB_prefix b <> abiTypeCanonName @(INTx False n)
+  yulB_body _ = ([MkVar "x"], [MkVar "r"], [ "r := " <> T.pack (yulB_fname cleanup_f) <> "(x)"], [])
+    where cleanup_f = MkYulBuiltIn @"__cleanup_t_" @U256 @(INTx False n)
+  yulB_eval _ = fromJust . fromWord . toWord -- FIXME: use intxUpCast
+
 instance ValidINTx s n => YulBuiltInPrefix "__safecast_bool_t_" BOOL (INTx s n) where
   yulB_fname b = yulB_prefix b <> abiTypeCanonName @(INTx s n)
   yulB_body _ = ([MkVar "x"], [MkVar "r"], [ "r := x"], [])

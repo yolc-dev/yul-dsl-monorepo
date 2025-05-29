@@ -17,6 +17,7 @@ module YulDSL.Haskell.LibLinearSMC
     -- , module Data.Ord.Linear
   , Prelude.Enum (..)
   , Prelude.Bounded (..)
+  , Prelude.Show
 
     -- ** Numbers
   , Prelude.Int
@@ -125,11 +126,19 @@ keccak256'l = encodeP'x (YulJmpB (MkYulBuiltIn @"__keccak_c_" @a @B32))
 -- Block and Transaction Properties
 --
 
-yaddress :: forall r v. (KnownNat v, YulO1 r) => YLVM v v r (Ur (Uv r ADDR))
+yaddress :: forall r v.
+  (KnownNat v, YulO1 r) =>
+  YLVM v v r (Ur (Uv r ADDR))
 yaddress = embed () LVM.>>= ymakev . encodeP'x (YulJmpB (MkYulBuiltIn @"__address"))
 
-ycaller :: forall r v. (KnownNat v, YulO1 r) => YLVM v v r (Ur (Uv r ADDR))
+ycaller :: forall r v.
+  (KnownNat v, YulO1 r) =>
+  YLVM v v r (Ur (Uv r ADDR))
 ycaller = embed () LVM.>>= ymakev . encodeP'x (YulJmpB (MkYulBuiltIn @"__caller"))
 
-ychainid :: forall r v. (KnownNat v, YulO1 r) => YLVM v v r (Ur (Uv r U256))
-ychainid = embed () LVM.>>= ymakev . encodeP'x (YulJmpB (MkYulBuiltIn @"__chainid"))
+ychainid :: forall network r v.
+  ( KnownNat v, YulO2 r network
+  , ABITypeDerivedOf network ~ U256
+  ) =>
+  YLVM v v r (Ur (Uv r network))
+ychainid = embed () LVM.>>= ymakev . encodeP'x (YulJmpB (MkYulBuiltIn @"__chainid") >.> YulExtendType)

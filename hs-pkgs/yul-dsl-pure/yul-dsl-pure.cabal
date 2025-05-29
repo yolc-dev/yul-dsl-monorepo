@@ -54,6 +54,7 @@ library
     YulDSL.Haskell.YulCatObj.Maybe
     YulDSL.Haskell.YulCatObj.NP
     YulDSL.Haskell.YulCatObj.TPL
+    YulDSL.Haskell.YulCatObj.LabeledINTx
     YulDSL.Haskell.LibPure
 
 Test-Suite test-yul-dsl-pure
