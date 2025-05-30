@@ -12,3 +12,7 @@ remappings = [ "yol-build/=build/yol/yol-demo/contracts/"
              ]
 
 test = "examples/demo/test"
+
+[profile.fork-test]
+
+test = "examples/demo/fork-test"

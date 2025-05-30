@@ -23,19 +23,6 @@ object = mkYulObject "RaisingFund" yulNoop
   , omniFn "contribute" contribute
   ]
 
-data SupportedNetwork'
-  = BaseMainnet
-  | ArbOne
-  deriving Show
-
-type SupportedNetwork = LabeledU256 SupportedNetwork'
-
-instance IsLabledINTx SupportedNetwork' 32 where
-  fromLabelToINTx = \case
-    BaseMainnet -> 8453
-    ArbOne -> 42161
-  allINTxLabels = [BaseMainnet, ArbOne]
-
 usdcAddress :: PureFn ADDR
 usdcAddress = $lfn $ ylvm'pp $ LVM.do
   Ur chainid <- ychainid @SupportedNetwork
@@ -86,6 +73,22 @@ myContribution = $lfn $ ylvm'pv LVM.do
 
 
 
+----------------------------------------------------------------------------------------------------
+-- Supported Networks Data Type. TODO: Move to a common library.
+----------------------------------------------------------------------------------------------------
+
+data SupportedNetwork'
+  = BaseMainnet
+  | ArbOne
+  deriving Show
+
+type SupportedNetwork = LabeledU256 SupportedNetwork'
+
+instance IsLabledINTx SupportedNetwork' 32 where
+  minLabel = BaseMainnet
+  succLabel = \case
+    BaseMainnet -> (8453, Just ArbOne)
+    ArbOne -> (42161, Nothing)
 
 ----------------------------------------------------------------------------------------------------
 -- TODO: Auto-generated ABI Bindings

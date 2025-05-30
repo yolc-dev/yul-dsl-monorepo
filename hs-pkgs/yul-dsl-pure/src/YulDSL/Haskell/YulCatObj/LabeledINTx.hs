@@ -1,8 +1,7 @@
-{-# LANGUAGE AllowAmbiguousTypes  #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 module YulDSL.Haskell.YulCatObj.LabeledINTx where
 -- base
-import GHC.TypeLits             (type (<=))
+import Data.List                (unfoldr)
 --
 import YulDSL.Core
 --
@@ -10,8 +9,15 @@ import Control.PatternMatchable
 
 
 class ValidINTn n => IsLabledINTx l n | l -> n where
+  minLabel :: l
+
+  succLabel :: l -> (INTx False n, Maybe l)
+
   fromLabelToINTx :: l -> INTx False n
+  fromLabelToINTx = fst . succLabel
+
   allINTxLabels :: [l]
+  allINTxLabels = unfoldr ((\l -> (l, snd (succLabel l))) <$>) (Just minLabel)
 
 data LabledINTx l n = IsLabledINTx l n => MkLabledINTx { unLableINTx :: INTx False n }
 
@@ -27,13 +33,13 @@ instance IsLabledINTx l n => ABITypeCodec (LabledINTx l n)
 instance (Show l, IsLabledINTx l n) => Show (LabledINTx l n) where show = show . unLableINTx
 instance (Show l, IsLabledINTx l n) => YulCatObj (LabledINTx l n)
 
-instance (YulO1 r, IsLabledINTx l n, n <= 32) =>
+instance (YulO1 r, IsLabledINTx l n) =>
          PatternMatchable (YulCat eff r) (LabledINTx l n) l YulCatObj Many where
   match pats f =
     YulApply <.<
       yulSwitch
         (\pats' -> pats' >.> YulReduceType >.> yulSafeCast)
-        ((\l -> (intxUpCast (fromLabelToINTx l), const (f l))) <$> allINTxLabels)
+        ((\l -> (withValidINTn @n (intxUpCast (fromLabelToINTx l)), const (f l))) <$> allINTxLabels)
         (const yulRevert)
       `YulFork`
       pats
