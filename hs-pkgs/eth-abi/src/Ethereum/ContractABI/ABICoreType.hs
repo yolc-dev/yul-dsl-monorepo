@@ -19,7 +19,7 @@ module Ethereum.ContractABI.ABICoreType
   ( ABICoreType (..)
   -- for working with INTx, BYTEn
   , KnownNat, SNat, Nat, natSing, natVal, fromSNat
-  , ValidINTn, fromValidINTn, withSomeValidINTx
+  , ValidINTn, withValidINTn, fromValidINTn, withSomeValidINTx
   -- ABI type names
   , abiCoreTypeCanonName
   , abiCoreTypeCompactName, decodeAbiCoreTypeCompactName
@@ -98,10 +98,15 @@ fromValidINTn :: forall n. ValidINTn n => Int
 fromValidINTn = fromInteger . fromSNat $ natSing @n
 
 -- | A helper constraint to avoid KnownNat to be super class which may cause issues when unsafeAxiom.
-class ValidINTn_ n
+class ValidINTn_ n where
+
+-- | Provide basic constraints for a valid INTn: 1 <= n <= 32.
+withValidINTn :: forall n r. ValidINTn_ n => (forall. (1 <= n, n <= 32) => r) -> r
+withValidINTn r = r \\ (unsafeAxiom :: Dict (1 <= n, n <= 32))
 
 -- | A top-level splice that declares all the valid INTx n values.
-flip foldMap [1 .. 32] $ \i -> [d| instance ValidINTn_ $(TH.litT (TH.numTyLit i)) |]
+flip foldMap [1 .. 32] $ \i ->
+   [d| instance ValidINTn_ $(TH.litT (TH.numTyLit i)) |]
 
 -- | Work with the INTx signedness and data byte-size during runtime.
 withSomeValidINTx :: forall r. ()
@@ -112,8 +117,10 @@ withSomeValidINTx sval nval f =
   toKnownSBool sval $ \s ->
   withSomeSNat nval $ \maybeSn -> maybeSn >>=
   \sn -> withSomeValidINTn sn >>=
-  \validINTn -> withKnownNat sn (Just (f s sn) \\ validINTn)
-  where withSomeValidINTn :: forall n. SNat n -> Maybe (Dict (ValidINTn_ n, 1 <= n, n <= 32))
+  \(validINTn :: Dict (ValidINTn_ n))->
+    withKnownNat sn -- this must be used to provide the actual KnownNat instance
+    (withValidINTn @n (Just (f s sn)) \\ validINTn)
+  where withSomeValidINTn :: forall n. SNat n -> Maybe (Dict (ValidINTn_ n))
         withSomeValidINTn sn = let n = fromSNat sn
                                in if n >= 1 && n <= 32 then Just unsafeAxiom else Nothing
 
