@@ -209,10 +209,10 @@ z  - [x] Co-cartesian related
   - Program upgradability
     - [x] Non-upgreadable.
   - Contract verification support
-    - [ ] 🟢 EIP-1967 compatible "stunt contract" generator. A stunt contract includes both:
-          1. the program's interface necessary to interact with the program via EIP-1967-aware
+    - EIP-1967 compatible "stunt contract" generator. A stunt contract includes both:
+      1. [x] the program's interface necessary to interact with the program via EIP-1967-aware
              explorers,
-          2. a copy of Haskell main source code in a block of solidity comments.
+      2. [ ] 🟠 A copy of Haskell main source code in a block of solidity comments.
   - CLI
     - [x] ⭐ `yolc`, a MVP in shells script, prepares YOLC project and invoke YOLC builder.
 - [-] CodeGens/GraphVizGen. (Some constructors missing)

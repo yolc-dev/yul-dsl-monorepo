@@ -100,12 +100,13 @@ compile_main_object mo = do
                        (fromString "")
                        errors
 
+-- Interface function name.
 ifunc_name :: AnyExportedYulCat -> Maybe T.Text
 ifunc_name (MkAnyExportedYulCat (MkSelector (_, Just (MkFuncSig fname))) fnEff (_ :: NamedYulCat eff a b))
   = Just
     $ "  function " <> T.pack fname
     <> "(" <> T.intercalate ", " argTypes <>") external" <> effect fnEff
-    <> (if null retTypes then ";" else " returns (" <> T.intercalate ", " retTypes <> ");")
+    <> (if null retTypes then "" else " returns (" <> T.intercalate ", " retTypes <> ")")
     where argTypes = map (T.pack . abiCoreTypeCanonName) (abiTypeInfo @a)
           retTypes = map (T.pack . abiCoreTypeCanonName) (abiTypeInfo @b)
           effect PureEffect   = " pure"
@@ -118,13 +119,29 @@ build_interface :: BuildUnit -> IO BuildResult
 build_interface (MkBuildUnit { mainObject = MkYulObject
                                { yulObjectName    = oname
                                , yulObjectExports = sfns
-                               } }) =
+                               }}) =
   let iname = "I" ++ oname ++ "Program"
   in pure $ Right
      (T.unlines $
       [ "interface " <> T.pack iname <> " {"
       ] ++
-      mapMaybe ifunc_name sfns ++
+      mapMaybe (((<> ";") <$>) . ifunc_name) sfns ++
+      [
+      "}"
+      ])
+
+-- Compile stunt contract of the build unit.KnownBool
+build_stunt :: BuildUnit -> IO BuildResult
+build_stunt (MkBuildUnit { mainObject = MkYulObject
+                           { yulObjectName    = oname
+                           , yulObjectExports = sfns
+                           }}) =
+  let cname = oname ++ "ProgramStunt"
+  in pure $ Right
+     (T.unlines $
+      [ "contract " <> T.pack cname <> " {"
+      ] ++
+      mapMaybe (((<> " {}") <$>) . ifunc_name) sfns ++
       [
       "}"
       ])
@@ -143,7 +160,8 @@ build_program (MkBuildUnit { mainObject = mo }) = do
 -- Build manifest in the single-file output mode.
 buildManifest :: Manifest -> IO BuildResult
 buildManifest (MkManifest { buildUnits }) = do
-  sections <- sequence (concatMap (\bu -> [build_interface bu, build_program bu]) buildUnits)
+  let stages = [build_interface, build_stunt, build_program]
+  sections <- sequence (concatMap (\bu -> ($ bu) <$> stages) buildUnits)
   let (errors, codes) = partitionEithers (Right genPreamble : sections)
   pure $ if null errors then Right (T.intercalate "\n" codes)
          else Left (T.intercalate "\n" errors)
