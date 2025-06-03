@@ -30,10 +30,13 @@ module Ethereum.ContractABI.CoreType.INTx
   ) where
 
 -- base
+import Control.Exception                 (assert)
+import Control.Monad                     (replicateM)
 import Data.Bits                         (shift)
 import Data.Coerce                       (coerce)
 import Data.Maybe                        (fromJust)
 import Data.Proxy                        (Proxy (Proxy))
+import Data.Word                         (Word8)
 import GHC.TypeError                     (Assert, ErrorMessage (Text), TypeError)
 import GHC.TypeLits                      (type (+), type (<=), type (<=?))
 -- cereal
@@ -83,6 +86,28 @@ intxSafeCast :: forall (s1 :: Bool) (n1 :: Nat) (s2 :: Bool) (n2 :: Nat).
              => INTx s1 n1 -> Maybe (INTx s2 n2)
 intxSafeCast (INT x) = fromInteger x
 
+-- | Convert from valid integer to a list of word8.
+integerToWord8s :: forall s n. ValidINTx s n => Integer -> [Word8]
+integerToWord8s x =
+  let x' = if fromBoolKind @s then complement x else x
+      (res, ws) = foldl'
+        (\(res', ws') _ -> (res' `div` 256, fromInteger (res' `rem` 256) : ws'))
+        (x', [])
+        [0 .. fromValidINTn @n - 1]
+  in assert (res == 0) (if x < 0 then fmap (0xff -) ws else ws)
+  where complement y = if y < 0 then -y - 1 else y
+
+word8sToInteger :: forall s n. ValidINTx s n => [Word8] -> Integer
+word8sToInteger ws =
+  let isneg = if fromBoolKind @s then ws !! 0 >= 80 else False
+      ws' = if isneg then fmap (0xff -) ws else ws
+      x = assert (toInteger (length ws) == fromSNat (natSing @n))
+          (g 0 (reverse ws'))
+  in if isneg then -x - 1 else x
+  where g :: Int -> [Word8] -> Integer
+        g _ []     = 0
+        g i (x:xs) = (toInteger x) * (2 ^ i) + g (i + 8) xs
+
 ------------------------------------------------------------------------------------------------------------------------
 -- Type class instances
 ------------------------------------------------------------------------------------------------------------------------
@@ -97,8 +122,8 @@ instance forall s n. ValidINTx s n => ABITypeable (INTx s n) where
   abiTypeInfo = [INTx' (boolSing @s) (natSing @n)]
 
 instance forall s n. ValidINTx s n => ABITypeCodec (INTx s n) where
-  abiEncoder (INT x) = S.put x
-  abiDecoder = fmap INT S.get
+  abiEncoder = foldMap S.put . integerToWord8s @s @32 . toInteger
+  abiDecoder = INT . word8sToInteger @s @32 <$> replicateM (fromValidINTn @32) S.get
 
 --
 --  Num hierarchy classes for (Maybe INTx s n)

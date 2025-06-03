@@ -37,8 +37,8 @@ instance ABITypeable (NP f '[]) where
   abiDefault = Nil
   abiTypeInfo = []
 
-instance ( ABITypeable (f x), ABITypeable (NP f xs)
-         ) => ABITypeable (NP f (x : xs)) where
+instance (ABITypeable (f x), ABITypeable (NP f xs)) =>
+         ABITypeable (NP f (x : xs)) where
   type instance ABITypeDerivedOf (NP f (x : xs)) = NP f (x : xs)
   abiDefault = abiDefault :* abiDefault
   abiTypeInfo = abiTypeInfo @(f x) <> abiTypeInfo @(NP f xs)
@@ -47,8 +47,8 @@ instance ABITypeCodec (NP f '[]) where
   abiEncoder Nil = S.put ()
   abiDecoder = S.get @() >> pure Nil
 
-instance ( ABITypeable (f x), ABITypeCodec (f x), ABITypeCodec (NP f xs)
-         ) => ABITypeCodec (NP f (x : xs)) where
+instance (ABITypeable (f x), ABITypeCodec (f x), ABITypeCodec (NP f xs)) =>
+         ABITypeCodec (NP f (x : xs)) where
   abiEncoder (x :* xs) = do
     abiEncoder x
     abiEncoder xs
@@ -58,16 +58,18 @@ instance ( ABITypeable (f x), ABITypeCodec (f x), ABITypeCodec (NP f xs)
     pure (x :* xs)
 
 --
--- Identity type for "f"
+-- Identity type as "f"
 --
 
-instance ABITypeable a => ABITypeable (I a) where
+instance ABITypeable a =>
+         ABITypeable (I a) where
   type instance ABITypeDerivedOf (I a) = a
   abiDefault = I abiDefault
   abiTypeInfo = abiTypeInfo @a
   abiToCoreType (I x) = x
   abiFromCoreType = I
 
-instance ABITypeCodec a => ABITypeCodec (I a) where
+instance ABITypeCodec a =>
+         ABITypeCodec (I a) where
   abiEncoder (I a) = abiEncoder a
   abiDecoder = I <$> abiDecoder

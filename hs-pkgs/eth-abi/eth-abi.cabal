@@ -80,9 +80,11 @@ Test-Suite test-eth-abi
   type:             exitcode-stdio-1.0
   build-depends:    QuickCheck >= 2.14,
                     hspec >= 2.11,
+                    bytestring >= 0.11,
                     eth-abi
   hs-source-dirs:   test
   -- modules
   other-modules:
     INTx_prop
+    ABITypeCodec_golden
   main-is: Main.hs
