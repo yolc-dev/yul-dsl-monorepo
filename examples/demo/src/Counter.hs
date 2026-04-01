@@ -27,7 +27,7 @@ incGlobalCounter = $lfn $ ylvm'pv
   \inc -> LVM.do
     Ur currentValue <- ycall getGlobalCounter
 
-    Ur newValue <- yrpurelamN_1 (currentValue, ver inc) \x y -> x + y
+    Ur newValue <- (currentValue, ver inc) `yrpurelamN_1` \x y -> x + y
 
     ycalluv globalCounterLoc <<:= newValue
 
@@ -54,7 +54,7 @@ incCounter = $lfn $ ylvm'pv
     Ur currentValue <- sgetM (userCounterMap #-> acc)
 
     -- [solidity] uin256 newValue = currentValue + inc
-    Ur newValue <- yrpurelamN_1 (currentValue, ver inc) \x y -> x + y
+    Ur newValue <- (currentValue, ver inc) `yrpurelamN_1` \x y -> x + y
 
     -- [solidity]  userCounterMap[acc] = newValue
     userCounterMap #-> acc <<:= newValue

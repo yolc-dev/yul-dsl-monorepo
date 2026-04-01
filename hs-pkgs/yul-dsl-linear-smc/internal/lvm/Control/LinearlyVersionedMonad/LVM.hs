@@ -84,7 +84,9 @@ pure = Control.Functor.Linear.pure
 -- 1) Law of linearly versioned monad: @ ma [va \<= vb] \>>= mb [vb <= vc] ≡ mc [va <= vc] @
 (>>=) :: forall ctx va vb vc a b.
   (KnownNat va, KnownNat vb, KnownNat vc) =>
-  LVM ctx va vb a ⊸ (a ⊸ LVM ctx vb vc b) ⊸ LVM ctx va vc b
+  LVM ctx va vb a ⊸
+  (a ⊸ LVM ctx vb vc b) ⊸
+  LVM ctx va vc b
 ma >>= f = MkLVM \ctx -> let !(aleb, ctx', a) = unLVM ma ctx
                              !(blec, ctx'', a') = unLVM (f a) ctx'
                          in  (Dict \\ leTrans @va @vb @vc \\ aleb \\ blec, ctx'', a')
@@ -92,14 +94,18 @@ ma >>= f = MkLVM \ctx -> let !(aleb, ctx', a) = unLVM ma ctx
 -- | Reverse monad bind operator for 'LVM'.
 (=<<) :: forall ctx va vb vc a b.
   (KnownNat va, KnownNat vb, KnownNat vc) =>
-  (a ⊸ LVM ctx vb vc b) ⊸ LVM ctx va vb a ⊸ LVM ctx va vc b
+  (a ⊸ LVM ctx vb vc b) ⊸
+  LVM ctx va vb a ⊸
+  LVM ctx va vc b
 (=<<) = flip (>>=)
 
 -- | Monad bind & discard operator, working with the QualifiedDo syntax.
 (>>) :: forall ctx va vb vc a b m.
   ( KnownNat va, KnownNat vb, KnownNat vc
   , ContextualConsumable ctx m a) =>
-  LVM ctx va vb a ⊸ LVM ctx vb vc b ⊸ LVM ctx va vc b
+  LVM ctx va vb a ⊸
+  LVM ctx vb vc b ⊸
+  LVM ctx va vc b
 ma >> mb = ma >>= \a -> MkLVM \ctx ->
   let !(bltec, ctx', b) = unLVM mb ctx
   in (bltec, contextualConsume ctx' a, b)

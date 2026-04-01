@@ -57,18 +57,18 @@ shmapGetTest = $lfn $ ylvm'pv
     let smap = makeSMap "shmapGetTest" :: SMap (ADDR -> U256)
     sgetM $ smap #-> acc
 
-varSharing :: PureFn (U256 -> U256 -> U256 -> U256)
-varSharing = $fn \a b c ->
+varNoSharing :: PureFn (U256 -> U256 -> U256 -> U256)
+varNoSharing = $fn \a b c ->
   let z = a + b * c in z * z
 
 varSharingL :: PureFn (U256 -> U256 -> U256 -> U256)
 varSharingL = $lfn $ yulports'pp
   \a b c ->
-  let z = a + b * c in dup'l z & uncurry (*) -- (z1, z2) -> z1 * z2
+  let z = a + c * b in dup'l z & uncurry (*)
 
 lvmvar_test1 :: PureFn (U256 -> U256 -> U256)
 lvmvar_test1 = $lfn $ ylvm'pp
-  \x_ y_ -> ypurelamN_1 (x_, y_) \x y -> x * y + y
+  \x_ y_ -> (x_, y_) `ypurelamN_1` \x y -> x * y + y
 
 lvmvar_test2 :: PureFn (U256)
 lvmvar_test2 = $lfn $ ylvm'pp LVM.do
@@ -114,7 +114,7 @@ object = mkYulObject "BasicTests" yulNoop
   , staticFn "sgetTest" sgetTest
   , staticFn "shmapGetTest" shmapGetTest
 
-  , pureFn "varSharing" varSharing
+  , pureFn "varNoSharing" varNoSharing
   , pureFn "varSharingL" varSharingL
 
   , pureFn "lvmvar_test1" lvmvar_test1

@@ -36,7 +36,7 @@ transfer = $lfn $ ylvm'pv
     -- ✅ CORRECT CODE:
 
     Ur senderBalance <- ycall balanceOf (ver from)
-    Ur newSenderBalance <- yrpurelamN_1 (ver amount, senderBalance)
+    Ur newSenderBalance <- (ver amount, senderBalance) `yrpurelamN_1`
       \amount' senderBalance' ->
         if senderBalance' >= amount' then senderBalance' - amount'
         else yulRevert
@@ -75,14 +75,14 @@ mint = $lfn $ ylvm'pv
 
     -- calculate new balance
     -- [solidity] uint256 newAmount = balanceBefore + amount
-    Ur newAmount <- yrpurelamN_1 (balanceBefore, ver amount) \x y -> x + y
+    Ur newAmount <- (balanceBefore, ver amount) `yrpurelamN_1` \x y -> x + y
 
     --
     -- ⚠️ NOTE: swap the following code blocks will not compile, because there can be reentrance!
 
     -- update balance
     -- [solidity] balances[to] = newAmount
-    balances #-> to <<:= newAmount
+    balances #-> to <<:= (newAmount :: _) :: _
 
     -- call **untrusted** external contract onTokenMinted
     -- [solidity] TokenMintHook(to).onTokenMinted(to, amount)
