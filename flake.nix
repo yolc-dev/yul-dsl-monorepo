@@ -60,7 +60,7 @@
           haskell.packages.ghc98.hlint
           haskell.packages.ghc98.stylish-haskell # it doesn't work with 9.10
           # other dev tooling
-          nodePackages.nodemon
+          nodemon
           shellcheck
         ];
         localShellHook = ''
