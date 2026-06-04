@@ -57,8 +57,8 @@
           # haskell dev tooling
           cabal2nix
           haskell.packages.${ghcId}.haskell-language-server
-          haskell.packages.ghc98.hlint
-          haskell.packages.ghc98.stylish-haskell # it doesn't work with 9.10
+          haskell.packages.${ghcId}.hlint
+          haskell.packages.${ghcId}.stylish-haskell
           # other dev tooling
           nodemon
           shellcheck
