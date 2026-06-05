@@ -36,7 +36,7 @@
       devShells.default = pkgs.mkShell {
         buildInputs = with pkgs; commonDevInputs ++ [
           # local dev tooling
-          nodePackages.nodemon
+          nodemon
           # foundry and solc
           solc_0_8_28
           (solc.mkDefault pkgs pkgs.solc_0_8_28)

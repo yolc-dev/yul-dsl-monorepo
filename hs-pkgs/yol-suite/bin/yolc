@@ -112,11 +112,13 @@ main() {
     out_dir=${dist_path}/build
 
     run_cabal_path=(cabal --builddir="$out_dir/path" -v0 path --output-format=json)
-    cabal_package_db=$("${run_cabal_path[@]}" | jq -r '."store-dir" + "/" + .compiler.id + "-inplace/package.db"')
-    ghc_id=$("${run_cabal_path[@]}" | jq -r .compiler.id)
+    GHC=$("${run_cabal_path[@]}" | jq -r .compiler.path)
+    CABAL_COMPILER_ID=$("${run_cabal_path[@]}" | jq -r .compiler.id)
+    GHC_ID=$("$GHC" --info | ghci -e 'readFile "/dev/stdin" >>= putStrLn . snd . last . filter ((== "Project Unit Id") . fst) . (read :: String -> [(String, String)])')
+    cabal_package_db=$("${run_cabal_path[@]}" | jq -r '."store-dir" + "/'"${GHC_ID}"'/package.db"')
 
-    build_dir=$out_dir/${ghc_id}-default
-    dist_package_db=$(readlink -f "${build_dir}/packagedb/${ghc_id}")
+    build_dir=$out_dir/${CABAL_COMPILER_ID}-default
+    dist_package_db=$(readlink -f "${build_dir}/packagedb/${CABAL_COMPILER_ID}")
   fi
 
   is_verbose && {

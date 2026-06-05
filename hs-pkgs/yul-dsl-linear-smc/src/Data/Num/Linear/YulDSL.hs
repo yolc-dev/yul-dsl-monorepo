@@ -11,13 +11,6 @@ import Unsafe.Linear          qualified as UnsafeLinear
 import YulDSL.Core
 
 
---
--- FromInteger instances for ABI types
---
-
-instance FromInteger Integer where
-  fromInteger = id
-
 --  Num instances for (YulCat r (INTx s n))
 --
 
