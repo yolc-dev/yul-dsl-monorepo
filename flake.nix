@@ -43,10 +43,10 @@
           foundry-bin
           # haskell tooling
           cabal-install
-          haskell.compiler.ghc910
-          haskell.packages.ghc98.hlint_3_8
-          haskell.packages.ghc98.stylish-haskell # it doesn't work with 9.10
-          haskell.packages.ghc910.haskell-language-server
+          haskell.compiler.ghc912
+          haskell.packages.ghc912.hlint
+          haskell.packages.ghc912.stylish-haskell
+          haskell.packages.ghc912.haskell-language-server
         ];
         inherit shellHook;
       };
@@ -58,7 +58,7 @@
           foundry-bin
           # haskell tooling
           cabal-install
-          haskell.compiler.ghc910
+          haskell.compiler.ghc912
         ];
         inherit shellHook;
       };
