@@ -11,7 +11,7 @@ Stability   : experimental
 -}
 module YulDSL.Haskell.Effects.LinearSMC.LinearFn
   ( -- * Build Linear Yul Functions
-    StaticFn, OmniFn, lfn', lfn
+    lfn'
     -- * Call External Smart Contract Functions
   ) where
 -- base
@@ -77,49 +77,4 @@ instance ConstructibleLinearFn StaticFn (VersionedPort 0) (VersionedPort 0) wher
 instance ConstructibleLinearFn StaticFn PurePort (VersionedPort 0) where
   lfn' cid f = MkStaticFn (cid, decode'l f)
 
-instance (KnownNat vd, AssertOmniEffect (VersionedInputOutput vd)) =>
-         ConstructibleLinearFn OmniFn (VersionedPort 0) (VersionedPort vd) where
-  lfn' cid f = MkOmniFn (cid, decode'l f)
 
-instance (KnownNat vd, AssertOmniEffect (PureInputVersionedOutput vd)) =>
-         ConstructibleLinearFn OmniFn PurePort (VersionedPort vd) where
-  lfn' cid f = MkOmniFn (cid, decode'l f)
-
--- | Create a curruying linear function with pure input ports.
-lfn :: TH.Q TH.Exp
-lfn = [e| lfn' ("$lfn_" ++ $fnLocId) |]
-
-------------------------------------------------------------------------------------------------------------------------
--- Callable Linear Functions
-------------------------------------------------------------------------------------------------------------------------
-
-instance forall f x xs b g r.
-         ( YulO4 x (NP xs) b r
-         , EquivalentNPOfFunction f (x:xs) b
-         , CurriableNP g xs b (P'P r) (P'P r) (YulCat'LPP r ()) One
-         ) =>
-         CallableFunctionNP PureFn f x xs b (P'P r) (P'P r) One where
-  call (MkPureFn f') x =
-    let !(x', u) = mkUnit'l x
-    in curryNP @g @xs @b @(P'P r) @(P'P r) @(YulCat'LPP r ()) @One
-       \(MkYulCat'LPP fxs) -> encodeWith'l id (YulJmpU f') (consNP x' (fxs u))
-
-instance forall f x xs b va g r.
-         ( YulO4 x (NP xs) b r
-         , EquivalentNPOfFunction f (x:xs) b
-         , CurriableNP g xs b (P'V va r) (P'V va r) (YulCat'LVV va va r ()) One
-         ) =>
-         CallableFunctionNP PureFn f x xs b (P'V va r) (P'V va r) One where
-  call (MkPureFn f) x =
-    let f' = unsafeCoerceNamedYulCat f :: NamedYulCat (VersionedInputOutput 0) (NP (x:xs)) b
-        !(x', u) = mkUnit'l x
-    in curryNP @g @xs @b @(P'V va r) @(P'V va r) @(YulCat'LVV va va r ()) @One
-       \(MkYulCat'LVV fxs) -> encodeWith'l id (YulJmpU f') (consNP x' (fxs u))
-
-instance forall f x xs b va g r.
-         ( YulO4 x (NP xs) b r
-         , EquivalentNPOfFunction f (x:xs) b
-         , CurriableNP g xs b (P'V va r) (P'V va r) (YulCat'LVV va va r ()) One
-         ) =>
-         CallableFunctionNP StaticFn f x xs b (P'V va r) (P'V va r) One where
-  call (MkStaticFn f) = call (MkPureFn (unsafeCoerceNamedYulCat f))

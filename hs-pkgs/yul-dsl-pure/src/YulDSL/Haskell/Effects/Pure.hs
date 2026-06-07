@@ -20,7 +20,6 @@ module YulDSL.Haskell.Effects.Pure
     -- $PureFn
   , PureFn (MkPureFn), fn', fn, call0
     -- * Template Haskell Support
-  , fnLocId
     -- * Technical Notes
     -- $yulCatVal
 
