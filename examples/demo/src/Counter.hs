@@ -60,7 +60,12 @@ ma `lvmBind` f = LVM.MkLVM \ctx -> let !(aleb, ctx', a) = LVM.unLVM ma ctx
 lvmMap :: forall ctx va vb a b.
   (KnownNat va, KnownNat vb) =>
   (a ⊸ b) %1 -> LVM.LVM ctx va vb a ⊸ LVM.LVM ctx va vb b
-lvmMap f x = lvmBind x (\a -> LVM.pure (f a))
+lvmMap f x = LVM.MkLVM \ctx -> let !(aleb, ctx', a) = LVM.unLVM ma ctx
+                                   !a' = f a
+                               in  (aleb, ctx', a')
+
+
+--  lvmBind x (\a -> LVM.pure (f a))
 
 
 -- | A Storage Hash-Map (SHMap) with a U256 root-key.
