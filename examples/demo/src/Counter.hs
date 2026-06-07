@@ -1,6 +1,6 @@
 module Counter where
 import Control.LinearlyVersionedMonad            qualified as LVM
-import Prelude.Linear                            (fromString, ($))
+import Prelude.Linear                            (fromString)
 import YulDSL.Core
     ( ADDR
     , REF
@@ -63,7 +63,7 @@ lvmMap f ma = LVM.MkLVM \ctx -> let !(aleb, ctx', a) = LVM.unLVM ma ctx
 
 
 -- | A Storage Hash-Map (SHMap) with a U256 root-key.
-newtype SHMap b = SHMap U256
+data SHMap b = SHMap
 
 sget' :: ( KnownNat v
          , YulO1 r
@@ -81,10 +81,10 @@ shmapRef :: forall r b v.
   SHMap b ->
   P'P r ADDR ⊸
   YulMonad v v r (P'P r (REF b))
-shmapRef (SHMap key) a =
+shmapRef (SHMap ) a =
   lvmMap
   (\key' -> extendType'l (keccak256'l (merge'l (key', a))))
-  (embed key)
+  (embed (fromInteger 10))
 
 
 -- | Get a value from the storage hash-map.
@@ -94,10 +94,10 @@ shmapGet :: forall r v.
   ) =>
   P'P r ADDR ⊸
   YulMonad v v r (P'V v r U256)
-shmapGet a = lvmBind (shmapRef (SHMap (fromInteger 10) :: SHMap U256) a) sget'
+shmapGet a = lvmBind (shmapRef (SHMap  :: SHMap U256) a) sget'
 
 getCounter :: StaticFn (ADDR -> U256)
-getCounter = lfn' "test" $ yulmonad'p shmapGet
+getCounter = lfn' "test" (yulmonad'p shmapGet)
 
 
 object = mkYulObject "Counter" yulNoop
