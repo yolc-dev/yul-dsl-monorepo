@@ -48,10 +48,6 @@ ma `lvmBind` f = LVM.MkLVM \ctx -> let !(aleb, ctx', a) = LVM.unLVM ma ctx
 -- | A Storage Hash-Map (SHMap) with a U256 root-key.
 newtype SHMap a b = SHMap U256
 
--- | Create a storage hash-map with a root-key represented by a string.
-shmap :: forall s a b. s ~ (a -> b) => String -> SHMap a b
-shmap key = SHMap (fromInteger 10)
-
 -- | Get a storage reference from the storage hash-map.
 shmapRef :: forall a b ie r v.
   ( KnownNat v
@@ -83,10 +79,6 @@ object = mkYulObject "Counter" yulNoop
   [ staticFn "getCounter" getCounter
   ]
 
--- | Storage map of user counters
-counterMap :: SHMap ADDR U256
-counterMap = shmap "Yolc.Demo.Counter.Storage.Counter.PerUser"
-
 getCounter :: StaticFn (ADDR -> U256)
 getCounter = $lfn $ yulmonad'p
-  \acc -> counterMap `shmapGet` acc
+  \acc -> SHMap (fromInteger 10) `shmapGet` acc
