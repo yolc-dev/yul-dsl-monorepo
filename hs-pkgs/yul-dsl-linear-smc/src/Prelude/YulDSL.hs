@@ -15,7 +15,6 @@ module Prelude.YulDSL
     module Prelude.Linear
     -- * YulDSL/Haskell/LinearSMC
   , module YulDSL.Haskell.LibLinearSMC
-  , module YulDSL.Haskell.Data.SHMap
   ) where
 -- linear-base, replacing Eq/Ord with MPOrd
 import Prelude.Linear              hiding (Eq (..), Ord (..))
@@ -26,4 +25,3 @@ import YulDSL.Haskell.LibPure
 --
 import YulDSL.Haskell.LibLinearSMC
 --
-import YulDSL.Haskell.Data.SHMap
