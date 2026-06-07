@@ -5,13 +5,11 @@ import YulDSL.Core                               (ADDR, REF, U256, YulO1, mkYulO
 import YulDSL.Haskell.Effects.LinearSMC.LinearFn (StaticFn)
 import YulDSL.Haskell.Effects.LinearSMC.YulMonad (YulMonad, yulmonad'p)
 import YulDSL.Haskell.Effects.LinearSMC.YulPort  (P'P, P'V, ver'l)
-import YulDSL.Haskell.LibLinearSMC               (embed, extendType'l, keccak256'l, lfn', merge'l)
+import YulDSL.Haskell.LibLinearSMC               (extendType'l, keccak256'l, lfn')
 
 
 -- base
 import GHC.TypeLits                              (KnownNat)
--- linear-base
-import Prelude.Linear                            (fromInteger)
 
 
 -- constraints
@@ -31,11 +29,6 @@ infixl 1 \\
 -- | A Storage Hash-Map (SHMap) with a U256 root-key.
 data SHMap b = SHMap
 
-lvmMap :: forall ctx v b r. (YulO1 b, KnownNat v) =>
-  ((P'P r U256) ⊸ (P'V v r (REF b))) %1 -> LVM.LVM ctx v v (P'P r U256) ⊸ LVM.LVM ctx v v (P'V v r (REF b))
-lvmMap f ma = LVM.MkLVM \ctx -> let !(aleb, ctx', a) = LVM.unLVM ma ctx
-                                in  (aleb, ctx', f a)
-
 -- | Get a storage reference from the storage hash-map.
 getCounterRef' :: forall b r v.
   ( KnownNat v
@@ -45,15 +38,11 @@ getCounterRef' :: forall b r v.
   ) =>
   P'P r ADDR ⊸
   YulMonad v v r (P'V v r (REF b))
-getCounterRef' a =
-  lvmMap
-  (\key' -> extendType'l (keccak256'l (merge'l (ver'l key', ver'l a))))
-  (embed (fromInteger 10))
+getCounterRef' a = LVM.pure (extendType'l (keccak256'l (ver'l a)))
 
 getCounterRef :: StaticFn (ADDR -> REF U256)
 getCounterRef = lfn' "getRef" (yulmonad'p getCounterRef')
 
 object = mkYulObject "Counter" yulNoop
-  [ -- staticFn "getCounter" getCounter
-  staticFn "getCounterRef" getCounterRef
+  [ staticFn "getCounterRef" getCounterRef
   ]
