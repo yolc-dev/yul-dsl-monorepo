@@ -1,30 +1,28 @@
 module Counter where
-import YulDSL.Core ( staticFn, mkYulObject
-                   , yulNoop, ADDR, U256
-                   , YulO1, REF)
-import Prelude.Linear (fromString, ($))
-import Control.LinearlyVersionedMonad qualified as LVM
-import YulDSL.Haskell.LibLinearSMC (lfn, keccak256'l, embed, merge'l, extendType'l)
-import YulDSL.Haskell.Effects.LinearSMC.YulPort (P'x, P'V)
-import YulDSL.Haskell.Effects.LinearSMC.YulMonad (YulMonad, yulmonad'p)
+import Control.LinearlyVersionedMonad            qualified as LVM
+import Prelude.Linear                            (fromString, ($))
+import YulDSL.Core                               (ADDR, REF, U256, YulO1, mkYulObject, staticFn, yulNoop)
 import YulDSL.Haskell.Effects.LinearSMC.LinearFn (StaticFn)
-import YulDSL.Haskell.Effects.LinearSMC.Storage (SReferenceable, sget, sput)
+import YulDSL.Haskell.Effects.LinearSMC.Storage  (SReferenceable, sget, sput)
+import YulDSL.Haskell.Effects.LinearSMC.YulMonad (YulMonad, yulmonad'p)
+import YulDSL.Haskell.Effects.LinearSMC.YulPort  (P'V, P'x)
+import YulDSL.Haskell.LibLinearSMC               (embed, extendType'l, keccak256'l, lfn, merge'l)
 
 
 -- base
-import GHC.TypeLits                   (KnownNat)
+import GHC.TypeLits                              (KnownNat, type (+))
 -- linear-base
-import Prelude.Linear                 (String, fromInteger, undefined)
+import Prelude.Linear                            (String, fromInteger, undefined)
 
 
 -- constraints
-import Data.Constraint hiding ((\\))
-import Data.Constraint.Nat    (leTrans)
+import Data.Constraint                           hiding ((\\))
+import Data.Constraint.Nat                       (leTrans)
 -- deepseq
-import Control.DeepSeq (rnf)
+import Control.DeepSeq                           (rnf)
 -- linear-base
-import Prelude.Linear  (Consumable (consume), flip)
-import Unsafe.Linear   qualified as UnsafeLinear
+import Prelude.Linear                            (Consumable (consume), flip)
+import Unsafe.Linear                             qualified as UnsafeLinear
 
 
 -- Linear version of (\\) for internal use.
@@ -59,8 +57,7 @@ shmapRef :: forall a b ie r v.
   P'x ie r a ⊸
   YulMonad v v r (P'x ie r (REF b))
 shmapRef (SHMap key) a =
-  lvmBind (embed key) \key' ->
-      LVM.pure (extendType'l (keccak256'l (merge'l (key', a))))
+  lvmBind (embed key) \key' -> LVM.pure (extendType'l (keccak256'l (merge'l (key', a))))
 
 -- | Get a value from the storage hash-map.
 shmapGet :: forall a b ie r v.
@@ -72,11 +69,22 @@ shmapGet :: forall a b ie r v.
   SHMap a b ->
   P'x ie r a ⊸
   YulMonad v v r (P'V v r b)
-shmapGet m a = shmapRef m a `lvmBind` sget
+shmapGet m@(SHMap key) a =
+  lvmBind
+    (shmapRef m a)
+    -- (lvmBind (embed key) \key' -> LVM.pure (extendType'l (keccak256'l (merge'l (key', a)))))
+    sget
 
 getCounter :: StaticFn (ADDR -> U256)
-getCounter = $lfn $ yulmonad'p
-  \acc -> SHMap (fromInteger 10) `shmapGet` acc
+getCounter = $lfn $ yulmonad'p f
+
+f :: ( KnownNat v
+     , YulO1 r
+     , YulO1 a
+     , SReferenceable ie v r (REF U256) U256
+     ) => P'x ie r a %1 -> YulMonad v v r (P'V v r U256)
+f = \acc -> SHMap (fromInteger 10) `shmapGet` acc
+
 
 object = mkYulObject "Counter" yulNoop
   [ staticFn "getCounter" getCounter
