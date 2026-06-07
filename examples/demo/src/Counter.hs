@@ -32,3 +32,5 @@ getCounterRef = lfn' "getRef" (yulmonad'p getCounterRef')
 object = mkYulObject "Counter" yulNoop
   [ staticFn "getCounterRef" getCounterRef
   ]
+
+

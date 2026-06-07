@@ -2,7 +2,7 @@
 {-# LANGUAGE AllowAmbiguousTypes  #-}
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE UndecidableInstances #-}
-module YulDSL.StdBuiltIns.ValueType where
+module YulDSL.StdBuiltIns.ValueType () where
 -- base
 import Data.Maybe                  (fromJust)
 -- eth-abi
