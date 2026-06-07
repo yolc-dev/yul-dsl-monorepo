@@ -44,16 +44,16 @@ ma `lvmBind` f = LVM.MkLVM \ctx -> let !(aleb, ctx', a) = LVM.unLVM ma ctx
 
 
 -- | A Storage Hash-Map (SHMap) with a U256 root-key.
-newtype SHMap a b = SHMap U256
+newtype SHMap b = SHMap U256
 
 -- | Get a storage reference from the storage hash-map.
 shmapRef :: forall ie r b v.
   ( KnownNat v
   , YulO1 b
   , YulO1 r
-  -- , YulO1 (REF b)
+  , YulO1 (REF b)
   ) =>
-  SHMap ADDR b ->
+  SHMap b ->
   P'x ie r ADDR ⊸
   YulMonad v v r (P'x ie r (REF b))
 shmapRef (SHMap key) a =
@@ -64,13 +64,10 @@ shmapGet :: forall ie r v.
   ( YulO1 r
   , SReferenceable ie v r (REF U256) U256
   ) =>
-  SHMap ADDR U256 ->
+  SHMap U256 ->
   P'x ie r ADDR ⊸
   YulMonad v v r (P'V v r U256)
-shmapGet m@(SHMap key) a =
-  lvmBind
-    (shmapRef m a)
-    sget
+shmapGet m a = lvmBind (shmapRef m a) sget
 
 getCounter :: StaticFn (ADDR -> U256)
 getCounter = lfn' "asdfasdf" $ yulmonad'p f
