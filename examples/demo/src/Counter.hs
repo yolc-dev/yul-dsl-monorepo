@@ -57,6 +57,10 @@ ma `lvmBind` f = LVM.MkLVM \ctx -> let !(aleb, ctx', a) = LVM.unLVM ma ctx
                                        !(blec, ctx'', a') = LVM.unLVM (f a) ctx'
                                    in  (Dict \\ leTrans @va @vb @vc \\ aleb \\ blec, ctx'', a')
 
+lvmMap :: forall ctx va vb a b.
+  (KnownNat va, KnownNat vb) =>
+  (a ⊸ b) %1 -> LVM.LVM ctx va vb a ⊸ LVM.LVM ctx va vb b
+lvmMap f x = lvmBind x (\a -> LVM.pure (f a))
 
 
 -- | A Storage Hash-Map (SHMap) with a U256 root-key.
@@ -79,7 +83,7 @@ shmapRef :: forall ie r b v.
   P'x ie r ADDR ⊸
   YulMonad v v r (P'x ie r (REF b))
 shmapRef (SHMap key) a =
-  lvmBind (embed key) \key' -> LVM.pure (extendType'l (keccak256'l (merge'l (key', a))))
+  lvmMap (\key' -> extendType'l (keccak256'l (merge'l (key', a)))) (embed key)
 
 -- | Get a value from the storage hash-map.
 shmapGet :: forall r v.
