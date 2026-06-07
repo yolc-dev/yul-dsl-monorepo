@@ -2,7 +2,7 @@
 module YulDSL.Haskell.Effects.LinearSMC.YulMonad
   ( -- * Yul Monad
     YulMonad
-  , ypure, yembed
+  , ypure
     -- * Yul Monadic Diagrams
   , yulmonad'p
   --
@@ -44,10 +44,6 @@ runYulMonad u m = let ud = MkUnitDumpster (unsafeCoerceYulPort u)
 ypure :: forall a v r. KnownNat v => P'V v r a ⊸ YulMonad v v r (P'V v r a)
 ypure = LVM.pure
 
--- | Generate a unit monadically.
-yembed :: forall a v r. (KnownNat v, YulO2 r a) => a -> YulMonad v v r (P'V v r a)
-yembed = embed
-
 --------------------------------------------------------------------------------
 -- YulMonad Context
 --------------------------------------------------------------------------------
@@ -88,16 +84,6 @@ instance YulO2 r a => ContextualEmbeddable (YulMonadCtx r) (P'x eff r) a where
                                                x'v = emb'l x'p u'
                                            in (MkYulMonadCtx ud', x'v)
 
-------------------------------------------------------------------------------------------------------------------------
-
--- | Monadic yul port diagrams for versioned input and yul monad output.
-newtype YulCat'LVM v1 vn r a b = MkYulCat'LVM (P'V v1 r a ⊸ YulMonad v1 vn r b)
-
-
-
-
-------------------------------------------------------------------------------------------------------------------------
--- yulmonad'p
 ------------------------------------------------------------------------------------------------------------------------
 
 -- | Monadic yul port diagrams for pure input and yul monad output.
