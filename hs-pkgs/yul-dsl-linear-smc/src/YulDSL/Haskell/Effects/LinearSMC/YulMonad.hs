@@ -15,7 +15,6 @@ import YulDSL.Haskell.LibPure
 -- linearly-versioned-monad
 import Control.LinearlyVersionedMonad                (LVM, runLVM)
 import Control.LinearlyVersionedMonad                qualified as LVM
-import Control.LinearlyVersionedMonad.Combinators
 import Data.LinearContext
 --
 import YulDSL.Haskell.Effects.LinearSMC.LinearYulCat
@@ -74,33 +73,12 @@ instance YulO3 r a b => ContextualSeqable (YulMonadCtx r) (P'x eff1 r a) (P'x ef
 instance YulO2 r a => ContextualDupable (YulMonadCtx r) (P'x eff r a) where
   contextualDup ctx x = (ctx, dup2'l x)
 
-
 ------------------------------------------------------------------------------------------------------------------------
 
 -- | Monadic yul port diagrams for pure input and yul monad output.
 newtype YulCat'LPM v1 vn r a b = MkYulCat'LPM (P'P r a ⊸ YulMonad v1 vn r b)
 
-instance forall b v1 vn r a.
-         ( KnownNat v1, KnownNat vn
-         , YulO3 b r a
-         , LiftFunction b (P'P r) (P'V vn r) One ~ P'V vn r b
-         ) =>
-         UncurriableNP (P'V vn r b) '[] (P'V vn r b)
-         (P'P r) (YulMonad v1 vn r)
-         (YulCat'LPP r a) (YulCat'LPM v1 vn r a) One where
-  uncurryNP b (MkYulCat'LPP h) = MkYulCat'LPM \a ->
-    eject (unsafeCoerceYulPort (h a & coerceType'l @_ @())) LVM.>> b
 
-instance forall x xs b g v1 vn r a.
-         ( EquivalentNPOfFunction g xs (P'V vn r b)
-         , YulO5 x (NP xs) b r a
-         , UncurriableNP g xs (P'V vn r b) (P'P r) (YulMonad v1 vn r) (YulCat'LPP r a) (YulCat'LPM v1 vn r a) One
-         ) =>
-         UncurriableNP (x -> g) (x:xs) (P'V vn r b)
-         (P'P r) (YulMonad v1 vn r) (YulCat'LPP r a) (YulCat'LPM v1 vn r a) One where
-  uncurryNP f (MkYulCat'LPP h) = MkYulCat'LPM
-    (uncurryNP'lx @g @x @xs @(P'V vn r b) @(P'P r) @(YulMonad v1 vn r) @(YulCat'LPP r) @(YulCat'LPM v1 vn r)
-     f h MkYulCat'LPP (\(MkYulCat'LPM g) -> g))
 
 yulmonad'p :: forall xs b r vd m1 m1b m2 m2b f' b'.
   ( KnownNat vd
