@@ -1,9 +1,12 @@
 module Counter where
-import Prelude.YulDSL (extendType'l, bytesnToInteger, stringKeccak256
-                      , embed, merge'l, sget, keccak256'l
-                      , mkYulObject, sput, yulmonad'p, lfn
-                      , ($), staticFn, yulNoop, ADDR, U256
-                      , StaticFn, fromString, P'V, P'x, YulMonad, YulO1, REF, SReferenceable)
+import YulDSL.Core ( bytesnToInteger, stringKeccak256
+                   , staticFn, mkYulObject
+                   , yulNoop, ADDR, U256
+                   , YulO1, REF)
+import Prelude.Linear (fromString, ($))
+import YulDSL.Haskell.LibLinearSMC (SReferenceable, lfn, sget, sput, keccak256'l, embed, merge'l, extendType'l)
+import YulDSL.Haskell.Effects.LinearSMC (YulMonad, P'x, P'V, StaticFn, yulmonad'p)
+
 
 -- base
 import GHC.TypeLits                   (KnownNat)
@@ -28,8 +31,6 @@ import Unsafe.Linear   qualified as UnsafeLinear
 (\\) = flip (UnsafeLinear.toLinear2 (withDict))
 infixl 1 \\
 
--- | A Storage Hash-Map (SHMap) with a U256 root-key.
-newtype SHMap a b = SHMap U256
 
 
 
@@ -40,6 +41,11 @@ lvmBind :: forall ctx va vb vc a b.
 ma `lvmBind` f = LVM.MkLVM \ctx -> let !(aleb, ctx', a) = LVM.unLVM ma ctx
                                        !(blec, ctx'', a') = LVM.unLVM (f a) ctx'
                                    in  (Dict \\ leTrans @va @vb @vc \\ aleb \\ blec, ctx'', a')
+
+
+
+-- | A Storage Hash-Map (SHMap) with a U256 root-key.
+newtype SHMap a b = SHMap U256
 
 -- | Create a storage hash-map with a root-key represented by a string.
 shmap :: forall s a b. s ~ (a -> b) => String -> SHMap a b
