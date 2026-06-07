@@ -1,10 +1,14 @@
 module Counter where
-import Prelude.YulDSL (extendType'l, bytesnToInteger, stringKeccak256, embed, merge'l, sget, keccak256'l, mkYulObject, sput, yulmonad'p, lfn, ($), staticFn, yulNoop, ADDR, U256, StaticFn, fromString, P'V, P'x, YulMonad, YulO3, YulO4, REF, SReferenceable)
+import Prelude.YulDSL (extendType'l, bytesnToInteger, stringKeccak256
+                      , embed, merge'l, sget, keccak256'l
+                      , mkYulObject, sput, yulmonad'p, lfn
+                      , ($), staticFn, yulNoop, ADDR, U256
+                      , StaticFn, fromString, P'V, P'x, YulMonad, YulO1, REF, SReferenceable)
 
 -- base
-import GHC.TypeLits                   (KnownNat, type (+))
+import GHC.TypeLits                   (KnownNat)
 -- linear-base
-import Prelude.Linear                 (String, fromInteger, type (~))
+import Prelude.Linear                 (String, fromInteger)
 -- yul-dsl
 --
 import Control.LinearlyVersionedMonad qualified as LVM
@@ -21,7 +25,10 @@ shmap key = SHMap (fromInteger (bytesnToInteger (stringKeccak256 key)))
 
 -- | Get a storage reference from the storage hash-map.
 shmapRef :: forall a b ie r v.
-  ( KnownNat v, YulO3 r a b
+  ( KnownNat v
+  , YulO1 r
+  , YulO1 a
+  , YulO1 b
   ) =>
   SHMap a b ->
   P'x ie r a ⊸
@@ -32,7 +39,9 @@ shmapRef (SHMap key) a = LVM.do
 
 -- | Get a value from the storage hash-map.
 shmapGet :: forall a b ie r v.
-  ( YulO4 r a b (REF b)
+  ( YulO1 r
+  , YulO1 a
+  , YulO1 b
   , SReferenceable ie v r (REF b) b
   ) =>
   SHMap a b ->
