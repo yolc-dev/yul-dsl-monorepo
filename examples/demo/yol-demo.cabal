@@ -24,6 +24,8 @@ common yol-module-options
                           -Wunused-packages
                           -Wno-name-shadowing
                           -Wno-missing-signatures
+                          -ddump-simpl
+                          -ddump-to-file
     default-extensions:   UnicodeSyntax
                           ViewPatterns
                           BlockArguments

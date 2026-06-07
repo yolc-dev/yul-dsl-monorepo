@@ -12,7 +12,7 @@ import YulDSL.Core
     , yulNoop
     )
 import YulDSL.Haskell.Effects.LinearSMC.LinearFn (StaticFn)
-import YulDSL.Haskell.Effects.LinearSMC.Storage  (SReferenceable, sget)
+import YulDSL.Haskell.Effects.LinearSMC.Storage  (SReferenceable)
 import YulDSL.Haskell.Effects.LinearSMC.YulMonad (YulMonad, ypure, yulmonad'p)
 import YulDSL.Haskell.Effects.LinearSMC.YulPort
     ( P'P
@@ -60,12 +60,9 @@ ma `lvmBind` f = LVM.MkLVM \ctx -> let !(aleb, ctx', a) = LVM.unLVM ma ctx
 lvmMap :: forall ctx va vb a b.
   (KnownNat va, KnownNat vb) =>
   (a ⊸ b) %1 -> LVM.LVM ctx va vb a ⊸ LVM.LVM ctx va vb b
-lvmMap f x = LVM.MkLVM \ctx -> let !(aleb, ctx', a) = LVM.unLVM ma ctx
-                                   !a' = f a
-                               in  (aleb, ctx', a')
-
-
---  lvmBind x (\a -> LVM.pure (f a))
+lvmMap f ma = LVM.MkLVM \ctx -> let !(aleb, ctx', a) = LVM.unLVM ma ctx
+                                    !a' = f a
+                                in  (aleb, ctx', a')
 
 
 -- | A Storage Hash-Map (SHMap) with a U256 root-key.
@@ -89,6 +86,7 @@ shmapRef :: forall ie r b v.
   YulMonad v v r (P'x ie r (REF b))
 shmapRef (SHMap key) a =
   lvmMap (\key' -> extendType'l (keccak256'l (merge'l (key', a)))) (embed key)
+
 
 -- | Get a value from the storage hash-map.
 shmapGet :: forall r v.
