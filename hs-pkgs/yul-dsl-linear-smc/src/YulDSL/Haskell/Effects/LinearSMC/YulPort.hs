@@ -10,7 +10,7 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
   , unsafeUncurryNil'lx, uncurryNP'lx
     -- * General Yul Port Operations
     -- $GeneralOps
-  , discard'l, ignore'l, mkUnit'l, emb'l, const'l, dup2'l, merge'l, split'l
+  , discard'l, ignore'l, mkUnit'l, emb'l, const'l, dup2'l
     -- * Type Operations
     -- $TypeOps
   , coerceType'l, reduceType'l, extendType'l

@@ -26,7 +26,6 @@ import YulDSL.Core
 import YulDSL.Haskell.LibPure
 --
 import YulDSL.Haskell.Effects.LinearSMC.LinearYulCat
-import YulDSL.Haskell.Effects.LinearSMC.YulMonad
 import YulDSL.Haskell.Effects.LinearSMC.YulPort
 
 ------------------------------------------------------------------------------------------------------------------------

@@ -2,7 +2,6 @@
 module YulDSL.Haskell.Effects.LinearSMC.YulMonad
   ( -- * Yul Monad
     YulMonad
-  , ypure
     -- * Yul Monadic Diagrams
   , yulmonad'p
   --
@@ -40,10 +39,6 @@ runYulMonad u m = let ud = MkUnitDumpster (unsafeCoerceYulPort u)
                       !(MkYulMonadCtx (MkUnitDumpster u')) = ctx'
                   in ignore'l (unsafeCoerceYulPort u') a
 
--- An alias to 'LVM.pure' to avoid naming conflict with Monad pure function.
-ypure :: forall a v r. KnownNat v => P'V v r a ⊸ YulMonad v v r (P'V v r a)
-ypure = LVM.pure
-
 --------------------------------------------------------------------------------
 -- YulMonad Context
 --------------------------------------------------------------------------------
@@ -79,10 +74,6 @@ instance YulO3 r a b => ContextualSeqable (YulMonadCtx r) (P'x eff1 r a) (P'x ef
 instance YulO2 r a => ContextualDupable (YulMonadCtx r) (P'x eff r a) where
   contextualDup ctx x = (ctx, dup2'l x)
 
-instance YulO2 r a => ContextualEmbeddable (YulMonadCtx r) (P'x eff r) a where
-  contextualEmbed (MkYulMonadCtx ud) x'p = let !(ud', u') = ud_dupu ud
-                                               x'v = emb'l x'p u'
-                                           in (MkYulMonadCtx ud', x'v)
 
 ------------------------------------------------------------------------------------------------------------------------
 
@@ -129,8 +120,3 @@ yulmonad'p :: forall xs b r vd m1 m1b m2 m2b f' b'.
 yulmonad'p f =
   let !(MkYulCat'LPM f') = uncurryNP @f' @xs @b' @m1 @m1b @m2 @m2b @One f (MkYulCat'LPP id)
   in \xs -> mkUnit'l xs & \(xs', u) -> runYulMonad u (f' xs')
-
-------------------------------------------------------------------------------------------------------------------------
--- Run YulPorts Within a Pure Yul Function
-------------------------------------------------------------------------------------------------------------------------
-

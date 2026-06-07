@@ -16,7 +16,7 @@ module YulDSL.Haskell.Effects.Pure
   (
     -- $PureEffectKind
     PureEffectKind (Pure, Total)
-  , PureY, YulCat'P
+  , YulCat'P
     -- $PureFn
   , PureFn (MkPureFn), fn', fn, call0
     -- * Template Haskell Support
