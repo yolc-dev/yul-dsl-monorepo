@@ -8,14 +8,12 @@ module YulDSL.Haskell.Effects.LinearSMC.YulMonad
   ) where
 import GHC.TypeLits                                  (KnownNat)
 -- linear-base
-import Control.Functor.Linear qualified
 import Prelude.Linear
 -- yul-dsl-pure
 import YulDSL.Haskell.LibPure
 -- linearly-versioned-monad
 import Control.LinearlyVersionedMonad                (LVM, runLVM)
-import Control.LinearlyVersionedMonad                qualified as LVM
-import Data.LinearContext
+import Data.LinearContext (ContextualConsumable(..))
 --
 import YulDSL.Haskell.Effects.LinearSMC.LinearYulCat
 import YulDSL.Haskell.Effects.LinearSMC.YulPort
@@ -45,12 +43,6 @@ runYulMonad u m = let ud = MkUnitDumpster (unsafeCoerceYulPort u)
 -- A dumpster of units and its utility functions start with "ud_".
 newtype UnitDumpster r = MkUnitDumpster (P'V 0 r ())
 
--- Duplicate a unit.
-ud_dupu :: forall eff r. YulO1 r
-        => UnitDumpster r ⊸ (UnitDumpster r, P'x eff r ())
-ud_dupu (MkUnitDumpster u) = let !(u1, u2) = dup2'l u
-                             in (MkUnitDumpster u1, unsafeCoerceYulPort u2)
-
 -- Gulp an input port.
 ud_gulp :: forall eff r a. YulO2 r a
         => P'x eff r a ⊸ UnitDumpster r ⊸ UnitDumpster r
@@ -64,14 +56,6 @@ instance YulO2 r a => ContextualConsumable (YulMonadCtx r) (P'x eff r a) where
 
   contextualConsume (MkYulMonadCtx ud) x = MkYulMonadCtx (ud_gulp x ud)
 
-instance YulO3 r a b => ContextualSeqable (YulMonadCtx r) (P'x eff1 r a) (P'x eff2 r b) where
-  contextualSeq (MkYulMonadCtx ud) a b = let ud' = ud_gulp a ud
-                                             !(ud'', u') = ud_dupu ud'
-                                             b' = ignore'l u' b
-                                         in (MkYulMonadCtx ud'', b')
-
-instance YulO2 r a => ContextualDupable (YulMonadCtx r) (P'x eff r a) where
-  contextualDup ctx x = (ctx, dup2'l x)
 
 ------------------------------------------------------------------------------------------------------------------------
 

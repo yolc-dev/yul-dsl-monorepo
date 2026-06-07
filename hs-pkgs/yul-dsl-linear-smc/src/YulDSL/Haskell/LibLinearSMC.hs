@@ -7,12 +7,10 @@ import GHC.TypeLits                     (KnownNat)
 import Prelude.Linear
 -- yul-dsl
 import YulDSL.Core
-import YulDSL.StdBuiltIns.ABICodec      ()
 -- yul-dsl-pure
 import YulDSL.Haskell.LibPure
 -- (lvm)
 --
-import Data.Num.Linear.YulDSL           ()
 import YulDSL.Haskell.Effects.LinearSMC.YulPort
 
 
