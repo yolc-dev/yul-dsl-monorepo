@@ -17,8 +17,7 @@ import YulDSL.Haskell.Effects.LinearSMC.YulMonad (YulMonad, ypure, yulmonad'p)
 import YulDSL.Haskell.Effects.LinearSMC.YulPort
     ( P'P
     , P'V
-    , P'x
-    , PortEffect (PurePort)
+    , PortEffect (PurePort, VersionedPort)
     , Versionable'L
     , encodeP'x
     , reduceType'l
@@ -70,22 +69,24 @@ newtype SHMap b = SHMap U256
 
 sget' :: ( KnownNat v
          , YulO1 r
-         , Versionable'L ie v
-         ) => P'x ie r (REF U256) ⊸ YulMonad v v r (P'V v r U256)
+         , Versionable'L (VersionedPort v) v
+         ) => P'P r (REF U256) ⊸ YulMonad v v r (P'V v r U256)
 sget' s = ypure (encodeP'x YulSGet (reduceType'l (ver'l s)))
 
 -- | Get a storage reference from the storage hash-map.
-shmapRef :: forall ie r b v.
+shmapRef :: forall r b v.
   ( KnownNat v
   , YulO1 b
   , YulO1 r
   -- , YulO1 (REF b)
   ) =>
   SHMap b ->
-  P'x ie r ADDR ⊸
-  YulMonad v v r (P'x ie r (REF b))
+  P'P r ADDR ⊸
+  YulMonad v v r (P'P r (REF b))
 shmapRef (SHMap key) a =
-  lvmMap (\key' -> extendType'l (keccak256'l (merge'l (key', a)))) (embed key)
+  lvmMap
+  (\key' -> extendType'l (keccak256'l (merge'l (key', a))))
+  (embed key)
 
 
 -- | Get a value from the storage hash-map.
