@@ -15,7 +15,7 @@ import YulDSL.Haskell.Effects.LinearSMC.Storage (SReferenceable, sget, sput)
 -- base
 import GHC.TypeLits                   (KnownNat)
 -- linear-base
-import Prelude.Linear                 (String, fromInteger)
+import Prelude.Linear                 (String, fromInteger, undefined)
 
 
 -- constraints
@@ -77,7 +77,7 @@ shmapGet :: forall a b ie r v.
   SHMap a b ->
   P'x ie r a ⊸
   YulMonad v v r (P'V v r b)
-shmapGet m a = shmapRef m a LVM.>>= sget
+shmapGet m a = shmapRef m a `lvmBind` sget
 
 
 object = mkYulObject "Counter" yulNoop

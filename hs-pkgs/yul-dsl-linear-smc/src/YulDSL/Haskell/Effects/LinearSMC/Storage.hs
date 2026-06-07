@@ -108,10 +108,6 @@ instance ( KnownNat v, KnownNat (v + 1), YulO1 r
          , SReferenceable ie v r a b
          , SPuttableNP v r (NP xs)
          ) => SPuttableNP v r (NP ((P'x ie r a, P'V v r b):xs)) where
-  sputNP ((a, b) :* xs) = let x'  = sput a b :: YulMonad v (v + 1) r (P'V (v + 1) r ())
-                              x'' = LVM.unsafeCoerceLVM x' :: YulMonad v v r (P'V (v + 1) r ())
-                              xs' = sputNP xs :: YulMonad v (v + 1) r (P'V (v + 1) r ())
-                          in x'' LVM.>> xs'
 
 sputN :: forall tpl v r.
   ( ConvertibleTupleNtoNP tpl
@@ -132,8 +128,3 @@ sputs :: forall v r.
   ( KnownNat v, KnownNat (v + 1), YulO1 r
   ) => NonEmpty (StorageAssignment v r) ⊸ YulMonad v (v + 1) r (P'V (v + 1) r ())
 sputs (sa :| []) = sassign sa
-sputs (sa :| (sa':sas)) =
-  let x  = sassign sa LVM.>>= LVM.pure . unsafeCoerceYulPort:: YulMonad v (v + 1) r (P'V v r ())
-      x' = LVM.unsafeCoerceLVM x :: YulMonad v v r (P'V v r ())
-      xs = sputs (sa' :| sas)
-  in x' LVM.>> xs
