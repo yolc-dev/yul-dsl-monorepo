@@ -33,7 +33,7 @@ shmapRef (SHMap key) a = LVM.do
 
 -- | Get a value from the storage hash-map.
 shmapGet :: forall a b ie r v.
-  ( YulO3 r a b
+  ( YulO4 r a b (REF b)
   , SReferenceable ie v r (REF b) b
   ) =>
   SHMap a b ->
