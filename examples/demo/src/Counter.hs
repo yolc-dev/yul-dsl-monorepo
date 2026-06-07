@@ -49,12 +49,6 @@ infixl 1 \\
 -- | A Storage Hash-Map (SHMap) with a U256 root-key.
 data SHMap b = SHMap
 
-sget' :: ( KnownNat v
-         , YulO1 r
-         , Versionable'L (VersionedPort v) v
-         ) => P'P r (REF U256) ⊸ P'V v r U256
-sget' s = encodeP'x YulSGet (reduceType'l (ver'l s))
-
 
 lvmMap1 :: forall ctx v b r. (YulO1 b, KnownNat v) =>
   ((P'P r U256) ⊸ (P'P r (REF b))) %1 -> LVM.LVM ctx v v (P'P r U256) ⊸ LVM.LVM ctx v v (P'P r (REF b))
@@ -83,6 +77,7 @@ lvmMap2 :: forall ctx v a b r. (YulO1 a, YulO1 b, KnownNat v) =>
 lvmMap2 f ma = LVM.MkLVM \ctx -> let !(aleb, ctx', a) = LVM.unLVM ma ctx
                                  in  (aleb, ctx', f a)
 
+
 -- | Get a value from the storage hash-map.
 shmapGet :: forall r v.
   ( YulO1 r
@@ -90,7 +85,9 @@ shmapGet :: forall r v.
   ) =>
   P'P r ADDR ⊸
   YulMonad v v r (P'V v r U256)
-shmapGet a = lvmMap2 sget' (shmapRef (SHMap :: SHMap U256) a)
+shmapGet a = lvmMap2
+  (\s -> encodeP'x YulSGet (reduceType'l (ver'l s)))
+  (shmapRef (SHMap :: SHMap U256) a)
 
 getCounter :: StaticFn (ADDR -> U256)
 getCounter = lfn' "test" (yulmonad'p shmapGet)
