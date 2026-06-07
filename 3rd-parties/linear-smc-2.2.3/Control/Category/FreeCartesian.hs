@@ -125,7 +125,7 @@ trieComp f Z k = normalize f k -- Nothing after, so we expand the fork, so that 
 trieComp f g k = k (f :∘ g) id
 
 unsafeCoerceSource :: k a b -> k a' b
-unsafeCoerceSource = undefined -- unsafeCoerce
+unsafeCoerceSource = unsafeCoerce
 
 -- | Normalised fork, in the case where the heads of the components are not themselves forks.
 -- Attempt a merge and return Right if successful, otherwise Left and the ordering of componets.

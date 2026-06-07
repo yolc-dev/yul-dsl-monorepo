@@ -74,11 +74,10 @@ shmapGet :: forall a b ie r v.
   YulMonad v v r (P'V v r b)
 shmapGet m a = shmapRef m a `lvmBind` sget
 
+getCounter :: StaticFn (ADDR -> U256)
+getCounter = $lfn $ yulmonad'p
+  \acc -> SHMap (fromInteger 10) `shmapGet` acc
 
 object = mkYulObject "Counter" yulNoop
   [ staticFn "getCounter" getCounter
   ]
-
-getCounter :: StaticFn (ADDR -> U256)
-getCounter = $lfn $ yulmonad'p
-  \acc -> SHMap (fromInteger 10) `shmapGet` acc
