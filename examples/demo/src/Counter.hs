@@ -48,19 +48,18 @@ infixl 1 \\
 
 
 
-lvmBind :: forall ctx v a b.
-  (KnownNat v) =>
-  LVM.LVM ctx v v a ⊸ (a ⊸ LVM.LVM ctx v v b) ⊸ LVM.LVM ctx v v b
+lvmBind :: forall ctx v r. KnownNat v =>
+  LVM.LVM ctx v v (P'P r (REF U256)) ⊸
+  (P'P r (REF U256) ⊸ LVM.LVM ctx v v (P'V v r U256)) ⊸
+  LVM.LVM ctx v v (P'V v r U256)
 ma `lvmBind` f = LVM.MkLVM \ctx -> let !(aleb, ctx', a) = LVM.unLVM ma ctx
                                        !(blec, ctx'', a') = LVM.unLVM (f a) ctx'
                                    in  (Dict \\ aleb \\ blec, ctx'', a')
 
-lvmMap :: forall ctx va vb a b.
-  (KnownNat va, KnownNat vb) =>
-  (a ⊸ b) %1 -> LVM.LVM ctx va vb a ⊸ LVM.LVM ctx va vb b
+lvmMap :: forall ctx v b r. (YulO1 b, KnownNat v) =>
+  ((P'P r U256) ⊸ (P'P r (REF b))) %1 -> LVM.LVM ctx v v (P'P r U256) ⊸ LVM.LVM ctx v v (P'P r (REF b))
 lvmMap f ma = LVM.MkLVM \ctx -> let !(aleb, ctx', a) = LVM.unLVM ma ctx
-                                    !a' = f a
-                                in  (aleb, ctx', a')
+                                in  (aleb, ctx', f a)
 
 
 -- | A Storage Hash-Map (SHMap) with a U256 root-key.
