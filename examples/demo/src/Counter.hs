@@ -9,15 +9,37 @@ import Prelude.YulDSL (extendType'l, bytesnToInteger, stringKeccak256
 import GHC.TypeLits                   (KnownNat)
 -- linear-base
 import Prelude.Linear                 (String, fromInteger)
--- yul-dsl
 --
 import Control.LinearlyVersionedMonad qualified as LVM
---import YulDSL.Haskell.LibLinearSMC
 
 
+-- constraints
+import Data.Constraint hiding ((\\))
+import Data.Constraint.Nat    (leTrans)
+-- deepseq
+import Control.DeepSeq (rnf)
+-- linear-base
+import Prelude.Linear  (Consumable (consume), flip)
+import Unsafe.Linear   qualified as UnsafeLinear
+
+
+-- Linear version of (\\) for internal use.
+(\\) :: HasDict c e => (c => r) ⊸ e ⊸ r
+(\\) = flip (UnsafeLinear.toLinear2 (withDict))
+infixl 1 \\
 
 -- | A Storage Hash-Map (SHMap) with a U256 root-key.
 newtype SHMap a b = SHMap U256
+
+
+
+
+lvmBind :: forall ctx va vb vc a b.
+  (KnownNat va, KnownNat vb, KnownNat vc) =>
+  LVM.LVM ctx va vb a ⊸ (a ⊸ LVM.LVM ctx vb vc b) ⊸ LVM.LVM ctx va vc b
+ma `lvmBind` f = LVM.MkLVM \ctx -> let !(aleb, ctx', a) = LVM.unLVM ma ctx
+                                       !(blec, ctx'', a') = LVM.unLVM (f a) ctx'
+                                   in  (Dict \\ leTrans @va @vb @vc \\ aleb \\ blec, ctx'', a')
 
 -- | Create a storage hash-map with a root-key represented by a string.
 shmap :: forall s a b. s ~ (a -> b) => String -> SHMap a b
@@ -33,9 +55,9 @@ shmapRef :: forall a b ie r v.
   SHMap a b ->
   P'x ie r a ⊸
   YulMonad v v r (P'x ie r (REF b))
-shmapRef (SHMap key) a = LVM.do
-  key' <- embed key
-  LVM.pure (extendType'l (keccak256'l (merge'l (key', a))))
+shmapRef (SHMap key) a =
+  lvmBind (embed key) \key' ->
+      LVM.pure (extendType'l (keccak256'l (merge'l (key', a))))
 
 -- | Get a value from the storage hash-map.
 shmapGet :: forall a b ie r v.

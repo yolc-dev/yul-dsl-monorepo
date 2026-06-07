@@ -1,6 +1,6 @@
 module Project where
 
-import Counter qualifie
+import Counter qualified
 import YolSuite.YOLC.Manifest
 
 manifest :: Manifest

@@ -52,7 +52,9 @@ library
                     yol-suite,
                     yul-dsl,
                     base,
-                    linear-base
+                    linear-base,
+                    constraints,
+                    deepseq
                     -- text >= 2.0.1,
                     -- bytestring >= 0.11,
                     -- yul-dsl,
