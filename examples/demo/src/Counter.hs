@@ -1,31 +1,23 @@
 module Counter where
-import Control.LinearlyVersionedMonad            qualified as LVM
-import Prelude.Linear                            (fromString)
-import YulDSL.Core                               (ADDR, REF, U256, YulO1, mkYulObject, staticFn, yulNoop)
-import YulDSL.Haskell.Effects.LinearSMC.LinearFn (StaticFn)
-import YulDSL.Haskell.Effects.LinearSMC.YulMonad (YulMonad, yulmonad'p)
-import YulDSL.Haskell.Effects.LinearSMC.YulPort  (P'P, P'V, ver'l)
-import YulDSL.Haskell.LibLinearSMC               (extendType'l, keccak256'l, lfn')
-
-
--- base
-import GHC.TypeLits                              (KnownNat)
+import Prelude.Linear                           (fromString)
+import YulDSL.Core                              (ADDR, NP, REF, U256, YulO1, mkYulObject, pureFn, yulNoop)
+import YulDSL.Haskell.Effects.LinearSMC.YulPort (P'P)
+import YulDSL.Haskell.Effects.Pure              (PureFn)
+import YulDSL.Haskell.LibLinearSMC              (extendType'l, keccak256'l, lfn')
 
 
 -- | Get a storage reference from the storage hash-map.
-getCounterRef' :: forall b r v.
-  ( KnownNat v
-  , YulO1 b
+getCounterRef' :: forall b r.
+  ( YulO1 b
   , YulO1 r
   -- , YulO1 (REF b)
   ) =>
-  P'P r ADDR ⊸
-  YulMonad v v r (P'V v r (REF b))
-getCounterRef' a = LVM.pure (extendType'l (keccak256'l (ver'l a)))
+  P'P r (NP '[ADDR]) ⊸ P'P r (REF b)
+getCounterRef' a = extendType'l (keccak256'l a)
 
-getCounterRef :: StaticFn (ADDR -> REF U256)
-getCounterRef = lfn' "getRef" (yulmonad'p getCounterRef')
+getCounterRef :: PureFn (ADDR -> REF U256)
+getCounterRef = lfn' "getRef" getCounterRef'
 
 object = mkYulObject "Counter" yulNoop
-  [ staticFn "getCounterRef" getCounterRef
+  [ pureFn "getCounterRef" getCounterRef
   ]
