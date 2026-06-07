@@ -15,7 +15,6 @@ module YulDSL.Haskell.Effects.LinearSMC.LinearFn
     -- * Call External Smart Contract Functions
   ) where
 -- base
-import GHC.TypeLits                                  (KnownNat, type (+), type (<=))
 -- template-haskell
 -- linear-base
 import Prelude.Linear

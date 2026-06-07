@@ -11,7 +11,7 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
   , discard'l, ignore'l, mkUnit'l, dup2'l
     -- * Type Operations
     -- $TypeOps
-  , coerceType'l, reduceType'l, extendType'l
+  , coerceType'l, extendType'l
   ) where
 -- base
 import Control.Monad                       (replicateM)
@@ -131,11 +131,6 @@ coerceType'l :: forall a b eff r.
   P'x eff r a ⊸ P'x eff r b
 coerceType'l = encodeP'x YulCoerceType
 
-reduceType'l :: forall a eff r.
-  (YulO3 a (ABITypeDerivedOf a) r) =>
-  P'x eff r a ⊸ P'x eff r (ABITypeDerivedOf a)
-reduceType'l = encodeP'x YulReduceType
-
 extendType'l :: forall a eff r.
   (YulO3 a (ABITypeDerivedOf a) r) =>
   P'x eff r (ABITypeDerivedOf a) ⊸ P'x eff r a
@@ -171,17 +166,3 @@ instance (YulO1 r, ValidINTx s n) => MPOrd (P'x eff r (INTx s n)) (P'x eff r BOO
 
 --
 -- Num instances for (P'x eff r)
---
-
-instance (YulO1 r, ValidINTx s n) => Additive (P'x eff r (INTx s n)) where
-  a + b = encodeP'x (YulJmpB (MkYulBuiltIn @"__checked_add_t_")) (merge'l (a, b))
-
-instance (YulO1 r, ValidINTx s n) => AddIdentity (P'x eff r (INTx s n)) where
-  -- Note: uni-port is forbidden in linear-smc, but linear-base AdditiveGroup requires this instance.
-  zero = error "unit is undefined for linear ports"
-
-instance (YulO1 r, ValidINTx s n) => AdditiveGroup (P'x eff r (INTx s n)) where
-  a - b = encodeP'x (YulJmpB (MkYulBuiltIn @"__checked_sub_t_")) (merge'l (a, b))
-
-instance (YulO1 r, ValidINTx s n) => Multiplicative (P'x eff r (INTx s n)) where
-  a * b = encodeP'x (YulJmpB (MkYulBuiltIn @"__checked_mul_t_")) (merge'l (a, b))
