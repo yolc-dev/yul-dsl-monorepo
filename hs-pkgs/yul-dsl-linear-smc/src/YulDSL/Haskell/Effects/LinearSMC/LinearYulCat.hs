@@ -7,10 +7,7 @@ module YulDSL.Haskell.Effects.LinearSMC.LinearYulCat
     decode'l, YulCat'LPP(..)
   ) where
 -- base
-import GHC.TypeLits                             (KnownNat, type (+))
-import Prelude                                  qualified as BasePrelude
 -- linear-base
-import Prelude.Linear
 -- yul-dsl-pure
 import YulDSL.Haskell.LibPure
 --
