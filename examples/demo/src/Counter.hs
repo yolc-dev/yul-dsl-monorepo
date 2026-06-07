@@ -34,7 +34,6 @@ import Prelude.Linear                            (fromInteger)
 
 -- constraints
 import Data.Constraint                           hiding ((\\))
-import Data.Constraint.Nat                       (leTrans)
 -- linear-base
 import Prelude.Linear                            (flip)
 import Unsafe.Linear                             qualified as UnsafeLinear
@@ -49,12 +48,12 @@ infixl 1 \\
 
 
 
-lvmBind :: forall ctx va vb vc a b.
-  (KnownNat va, KnownNat vb, KnownNat vc) =>
-  LVM.LVM ctx va vb a ⊸ (a ⊸ LVM.LVM ctx vb vc b) ⊸ LVM.LVM ctx va vc b
+lvmBind :: forall ctx v a b.
+  (KnownNat v) =>
+  LVM.LVM ctx v v a ⊸ (a ⊸ LVM.LVM ctx v v b) ⊸ LVM.LVM ctx v v b
 ma `lvmBind` f = LVM.MkLVM \ctx -> let !(aleb, ctx', a) = LVM.unLVM ma ctx
                                        !(blec, ctx'', a') = LVM.unLVM (f a) ctx'
-                                   in  (Dict \\ leTrans @va @vb @vc \\ aleb \\ blec, ctx'', a')
+                                   in  (Dict \\ aleb \\ blec, ctx'', a')
 
 lvmMap :: forall ctx va vb a b.
   (KnownNat va, KnownNat vb) =>
