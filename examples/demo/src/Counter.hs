@@ -6,7 +6,7 @@ import YulDSL.Haskell.Effects.LinearSMC.LinearFn (StaticFn)
 import YulDSL.Haskell.Effects.LinearSMC.Storage  (SReferenceable, sget, sput)
 import YulDSL.Haskell.Effects.LinearSMC.YulMonad (YulMonad, yulmonad'p)
 import YulDSL.Haskell.Effects.LinearSMC.YulPort  (P'V, P'x)
-import YulDSL.Haskell.LibLinearSMC               (embed, extendType'l, keccak256'l, lfn, merge'l)
+import YulDSL.Haskell.LibLinearSMC               (embed, extendType'l, keccak256'l, lfn', merge'l)
 
 
 -- base
@@ -76,7 +76,7 @@ shmapGet m@(SHMap key) a =
     sget
 
 getCounter :: StaticFn (ADDR -> U256)
-getCounter = $lfn $ yulmonad'p f
+getCounter = lfn' "asdfasdf" $ yulmonad'p f
 
 f :: ( KnownNat v
      , YulO1 r
