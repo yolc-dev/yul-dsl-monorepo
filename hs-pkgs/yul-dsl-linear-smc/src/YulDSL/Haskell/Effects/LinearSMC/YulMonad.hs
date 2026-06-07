@@ -1,7 +1,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 module YulDSL.Haskell.Effects.LinearSMC.YulMonad
   ( -- * Yul Monad
-    YulMonad, runYulMonad
+    YulMonad
   , ypure, yembed
     -- * Yul Monadic Diagrams
   , yulmonad'p
@@ -93,48 +93,7 @@ instance YulO2 r a => ContextualEmbeddable (YulMonadCtx r) (P'x eff r) a where
 -- | Monadic yul port diagrams for versioned input and yul monad output.
 newtype YulCat'LVM v1 vn r a b = MkYulCat'LVM (P'V v1 r a ⊸ YulMonad v1 vn r b)
 
-instance forall b v1 vn r a.
-         ( KnownNat v1, KnownNat vn
-         , YulO2 a r
-         , EquivalentNPOfFunction b '[] b
-         , LiftFunction b (P'V v1 r) (YulMonad v1 vn r) One ~ YulMonad v1 vn r b
-         , LiftFunction b (YulCat'LVV v1 v1 r a) (YulCat'LVM v1 vn r a) One ~ YulCat'LVM v1 vn r a b
-         ) =>
-         UncurriableNP b '[] b
-         (P'V v1 r) (YulMonad v1 vn r)
-         (YulCat'LVV v1 v1 r a) (YulCat'LVM v1 vn r a) One where
-  uncurryNP b (MkYulCat'LVV h) = MkYulCat'LVM \a ->
-    eject (h a) LVM.>> b
 
-instance forall x xs b g v1 vn r a.
-         ( YulO4 x (NP xs) r a
-         , UncurriableNP g xs b (P'V v1 r) (YulMonad v1 vn r) (YulCat'LVV v1 v1 r a) (YulCat'LVM v1 vn r a) One
-         ) =>
-         UncurriableNP (x -> g) (x:xs) b
-         (P'V v1 r) (YulMonad v1 vn r)
-         (YulCat'LVV v1 v1 r a) (YulCat'LVM v1 vn r a) One where
-  uncurryNP f (MkYulCat'LVV h) = MkYulCat'LVM
-    (uncurryNP'lx @g @x @xs @b @(P'V v1 r) @(YulMonad v1 vn r) @(YulCat'LVV v1 v1 r) @(YulCat'LVM v1 vn r)
-     f h MkYulCat'LVV (\(MkYulCat'LVM g) -> g))
-
-instance forall b v1 vn r a.
-         ( YulO2 r a
-         , EquivalentNPOfFunction b '[] b
-         , LiftFunction (CurryNP (NP '[]) b) (P'V v1 r) (YulMonad v1 vn r) One ~ YulMonad v1 vn r b
-         , LiftFunction (CurryNP (NP '[]) b) (YulCat'LVV v1 v1 r a) (YulMonad v1 vn r) One ~ YulMonad v1 vn r b
-         ) =>
-         CurriableNP b '[] b
-         (P'V v1 r) (YulMonad v1 vn r) (YulCat'LVV v1 v1 r a) One where
-  curryNP fNP = fNP (MkYulCat'LVV (\a -> coerceType'l (discard'l a)))
-
-instance forall g x xs b r a v1 vn.
-         ( YulO4 x (NP xs) r a
-         , CurriableNP g xs b (P'V v1 r) (YulMonad v1 vn r) (YulCat'LVV v1 v1 r a) One
-         ) =>
-         CurriableNP (x -> g) (x:xs) b
-         (P'V v1 r) (YulMonad v1 vn r) (YulCat'LVV v1 v1 r a) One where
-  curryNP fNP x = curryNP @g @xs @b @(P'V v1 r) @(YulMonad v1 vn r) @(YulCat'LVV v1 v1 r a) @One
-                    (\(MkYulCat'LVV fxs) -> fNP (MkYulCat'LVV (\a -> (consNP x (fxs a)))))
 
 
 ------------------------------------------------------------------------------------------------------------------------
