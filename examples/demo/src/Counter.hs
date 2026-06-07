@@ -12,20 +12,6 @@ import YulDSL.Haskell.LibLinearSMC               (extendType'l, keccak256'l, lfn
 import GHC.TypeLits                              (KnownNat)
 
 
--- constraints
-import Data.Constraint                           hiding ((\\))
--- linear-base
-import Prelude.Linear                            (flip)
-import Unsafe.Linear                             qualified as UnsafeLinear
-
-
--- Linear version of (\\) for internal use.
-(\\) :: HasDict c e => (c => r) ⊸ e ⊸ r
-(\\) = flip (UnsafeLinear.toLinear2 (withDict))
-infixl 1 \\
-
-
-
 -- | A Storage Hash-Map (SHMap) with a U256 root-key.
 data SHMap b = SHMap
 
