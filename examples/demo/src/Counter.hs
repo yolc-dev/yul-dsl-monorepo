@@ -12,9 +12,6 @@ import YulDSL.Haskell.LibLinearSMC               (extendType'l, keccak256'l, lfn
 import GHC.TypeLits                              (KnownNat)
 
 
--- | A Storage Hash-Map (SHMap) with a U256 root-key.
-data SHMap b = SHMap
-
 -- | Get a storage reference from the storage hash-map.
 getCounterRef' :: forall b r v.
   ( KnownNat v
@@ -32,5 +29,3 @@ getCounterRef = lfn' "getRef" (yulmonad'p getCounterRef')
 object = mkYulObject "Counter" yulNoop
   [ staticFn "getCounterRef" getCounterRef
   ]
-
-
