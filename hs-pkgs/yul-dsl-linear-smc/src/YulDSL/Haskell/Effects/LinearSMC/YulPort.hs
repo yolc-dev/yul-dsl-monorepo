@@ -185,38 +185,3 @@ instance (YulO1 r, ValidINTx s n) => AdditiveGroup (P'x eff r (INTx s n)) where
 
 instance (YulO1 r, ValidINTx s n) => Multiplicative (P'x eff r (INTx s n)) where
   a * b = encodeP'x (YulJmpB (MkYulBuiltIn @"__checked_mul_t_")) (merge'l (a, b))
-
---
--- TupleN
---
-
--- Tuple1 is Solo and special.
-
-instance (YulO2 a r) =>
-         SingleCasePattern (P'x eff r) (Solo a) (P'x eff r a)
-         YulCatObj One where
-  is = coerceType'l
-instance (YulO2 a r, YulCat eff r ~ m) =>
-         PatternMatchable (P'x eff r) (Solo a) (P'x eff r a)
-         YulCatObj One where
-instance YulO2 a r =>
-         InjectivePattern (P'x eff r) (Solo a) (P'x eff r a)
-         YulCatObj One where
-  be = coerceType'l
-
--- Tuple2 is the base case.
-
-instance (YulO3 a1 a2 r) =>
-         SingleCasePattern (P'x eff r) (a1, a2) (P'x eff r a1, P'x eff r a2)
-         YulCatObj One where
-  is = split'l
-instance (YulO3 a1 a2 r) =>
-         PatternMatchable (P'x eff r) (a1, a2) (P'x eff r a1, P'x eff r a2)
-         YulCatObj One
-instance (YulO3 a1 a2 r, P'x eff r ~ m) =>
-         InjectivePattern (P'x eff r) (a1, a2) (P'x eff r a1, P'x eff r a2)
-         YulCatObj One where
-  be = merge'l
-
-
--- Tuple{[4..15]} instances

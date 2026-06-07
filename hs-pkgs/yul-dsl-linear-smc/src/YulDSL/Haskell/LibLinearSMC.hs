@@ -1,6 +1,5 @@
 module YulDSL.Haskell.LibLinearSMC
   ( module YulDSL.Haskell.LibPure
-  , module YulDSL.Haskell.Effects.LinearSMC
   , keccak256'l
   ) where
 -- linear-base
@@ -12,10 +11,10 @@ import YulDSL.StdBuiltIns.ABICodec      ()
 -- yul-dsl-pure
 import YulDSL.Haskell.LibPure
 -- (lvm)
-import Control.LinearlyVersionedMonad   qualified as LVM
 --
 import Data.Num.Linear.YulDSL           ()
-import YulDSL.Haskell.Effects.LinearSMC
+import YulDSL.Haskell.Effects.LinearSMC.YulPort
+
 
 
 keccak256'l :: forall a eff r. YulO2 r a => P'x eff r a ⊸ P'x eff r B32
