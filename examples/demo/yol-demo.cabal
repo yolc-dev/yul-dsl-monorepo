@@ -50,6 +50,9 @@ library
                     Project
   build-depends:    yul-dsl-linear-smc,
                     yol-suite,
+                    yul-dsl,
+                    base,
+                    linear-base
                     -- text >= 2.0.1,
                     -- bytestring >= 0.11,
                     -- yul-dsl,
