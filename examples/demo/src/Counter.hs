@@ -2,8 +2,9 @@ module Counter where
 import Prelude.Linear                           (fromString)
 import YulDSL.Core                              (ADDR, NP, REF, U256, YulO1, mkYulObject, pureFn, yulNoop)
 import YulDSL.Haskell.Effects.LinearSMC.YulPort (P'P)
+import YulDSL.Haskell.Effects.LinearSMC.LinearFn (lfn')
 import YulDSL.Haskell.Effects.Pure              (PureFn)
-import YulDSL.Haskell.LibLinearSMC              (extendType'l, keccak256'l, lfn')
+import YulDSL.Haskell.LibLinearSMC              (extendType'l, keccak256'l)
 
 
 -- | Get a storage reference from the storage hash-map.

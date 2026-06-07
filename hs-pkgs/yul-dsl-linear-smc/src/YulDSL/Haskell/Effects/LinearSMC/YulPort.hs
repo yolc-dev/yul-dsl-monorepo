@@ -5,12 +5,10 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
     -- $LinearPortDefs
     PortEffect (PurePort, VersionedPort)
   , P'x (MkP'x), unP'x, P'V, P'P, encodeP'x, decodeP'x
-  , Versionable'L (ver'l)
   , unsafeCoerceYulPort, unsafeCoerceYulPortDiagram
-  , unsafeUncurryNil'lx, uncurryNP'lx
     -- * General Yul Port Operations
     -- $GeneralOps
-  , discard'l, ignore'l, mkUnit'l, emb'l, const'l, dup2'l
+  , discard'l, ignore'l, mkUnit'l, dup2'l
     -- * Type Operations
     -- $TypeOps
   , coerceType'l, reduceType'l, extendType'l
@@ -79,50 +77,7 @@ unsafeCoerceYulPortDiagram :: forall (eff1 :: PortEffect) (eff2 :: PortEffect) (
     (P'x eff1 r a ⊸ P'x eff2 r b) ⊸ (P'x eff3 r a ⊸ P'x eff3 r b)
 unsafeCoerceYulPortDiagram f x = unsafeCoerceYulPort (f (unsafeCoerceYulPort x))
 
--- Versionable ports
-
-class Versionable'L ie v where
-  ver'l :: forall a r. YulO2 a r => P'x ie r a ⊸ P'V v r a
-
-instance Versionable'L (VersionedPort v) v where
-  ver'l = id
-
-instance Versionable'L PurePort v where
-  ver'l = unsafeCoerceYulPort
-
 -- uncurryNP'lx
-
-unsafeUncurryNil'lx :: forall a b r ie oe m1.
-  YulO3 a b r =>
-  P'x oe r b ⊸
-  (m1 a ⊸ P'x ie r (NP '[])) ⊸
-  (m1 a ⊸ P'x oe r b)
-unsafeUncurryNil'lx b h a =
-  h a                   -- :: P'V v1 (NP '[])
-  & coerceType'l @_ @() -- :: P'V v1 ()
-  & unsafeCoerceYulPort -- :: P'V vn ()
-  & \u -> ignore'l u b
-
-uncurryNP'lx :: forall g x xs b m1 m1b m2_ m2b_ r a ie.
-  ( YulO4 x (NP xs) r a
-  , P'x ie r ~ m1
-  , UncurryNP'Fst g ~ xs, UncurryNP'Snd g ~ b
-  , LiftFunction b (m2_ a) (m2b_ a) One ~ (m2b_ a) b
-  , UncurriableNP g xs b m1 m1b (m2_ a) (m2b_ a) One
-  , YulCatObj (NP xs)
-  ) =>
-  (m1 x ⊸ LiftFunction g m1 m1b One) ⊸      -- f
-  (m1 a ⊸ m1 (NP (x : xs))) ⊸               -- h
-  ((m1 a ⊸ m1 (NP xs)) ⊸ (m2_ a) (NP xs)) ⊸ -- mk
-  ((m2b_ a) b ⊸ (m1 a ⊸ m1b b)) ⊸           -- un
-  (m1 a ⊸ m1b b)
-uncurryNP'lx f h mk un xxs =
-  dup2'l xxs
-  & \(xxs1, xxs2) -> unconsNP @m1 @x @xs @One (h xxs1)
-  & \(x, xs) -> let g = uncurryNP @g @xs @b @m1 @m1b @(m2_ a) @(m2b_ a) @One
-                        (f x)
-                        (mk (\a -> ignore'l (discard'l a) xs))
-                in (un g) xxs2
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $GeneralOps
@@ -194,12 +149,6 @@ instance YulO3 x (NP xs) r => ConstructibleNP (P'x eff r) x xs One where
   consNP x xs = coerceType'l (merge'l (x, xs))
   unconsNP = split'l . coerceType'l
 
-instance YulO1 r => LinearTraversableNP (P'x eff r) '[] where
-  linearSequenceNP snil = (Nil, coerceType'l snil)
-instance YulO1 r => LinearDistributiveNP (P'x eff r) '[] where
-  linearDistributeNP Nil = coerceType'l
-instance (YulO3 x (NP xs) r , LinearTraversableNP (P'x eff r) xs) => LinearTraversableNP (P'x eff r) (x:xs)
-instance (YulO3 x (NP xs) r , LinearDistributiveNP (P'x eff r) xs) => LinearDistributiveNP (P'x eff r) (x:xs)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Instances
@@ -269,26 +218,5 @@ instance (YulO3 a1 a2 r, P'x eff r ~ m) =>
          YulCatObj One where
   be = merge'l
 
--- Tuple3 code is the example for the TH to mimic how to generate more instances inductively:
-
-instance (YulO4 a1 a2 a3 r) =>
-         SingleCasePattern (P'x eff r) (a1, a2, a3) (P'x eff r a1, P'x eff r a2, P'x eff r a3)
-         YulCatObj One where
-  is mtpl =
-    let mxxs = (coerceType'l . reduceType'l) mtpl
-        !(mx1, mxs) = split'l mxxs
-        mxs' = extendType'l mxs :: P'x eff r (a2, a3)
-        !(mx2, mx3) = is mxs'
-    in (mx1, mx2, mx3)
-instance (YulO4 a1 a2 a3 r) =>
-         PatternMatchable (P'x eff r) (a1, a2, a3) (P'x eff r a1, P'x eff r a2, P'x eff r a3)
-         YulCatObj One
-instance (YulO4 a1 a2 a3 r) =>
-         InjectivePattern (P'x eff r) (a1, a2, a3) (P'x eff r a1, P'x eff r a2, P'x eff r a3)
-         YulCatObj One where
-  be (mx1, mx2, mx3) =
-    let mxs = be (mx2, mx3) :: P'x eff r (a2, a3)
-        mxs' = reduceType'l mxs
-    in (extendType'l . coerceType'l . merge'l) (mx1, mxs')
 
 -- Tuple{[4..15]} instances

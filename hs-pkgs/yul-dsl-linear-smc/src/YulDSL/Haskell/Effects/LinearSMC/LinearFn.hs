@@ -17,7 +17,6 @@ module YulDSL.Haskell.Effects.LinearSMC.LinearFn
 -- base
 import GHC.TypeLits                                  (KnownNat, type (+), type (<=))
 -- template-haskell
-import Language.Haskell.TH                           qualified as TH
 -- linear-base
 import Prelude.Linear
 -- yul-dsl
@@ -32,15 +31,11 @@ import YulDSL.Haskell.Effects.LinearSMC.YulPort
 -- Linear Non-Pure Effects
 ------------------------------------------------------------------------------------------------------------------------
 
-class ConstructibleLinearFn fn (ie :: PortEffect) (oe :: PortEffect) where
-  -- | Define a `YulCat` morphism from a yul port diagram.
-  lfn' :: forall f xs b.
-    ( YulO2 (NP xs) b
-    , EquivalentNPOfFunction f xs b
-    ) =>
-    String ->
-    (forall r. YulO1 r => P'x ie r (NP xs) ⊸ P'x oe r b) ->
-    fn f
-
-instance ConstructibleLinearFn PureFn PurePort PurePort where
-  lfn' cid f = MkPureFn (cid, decode'l f)
+lfn' :: forall f xs b.
+  ( YulO2 (NP xs) b
+  , EquivalentNPOfFunction f xs b
+  ) =>
+  String ->
+  (forall r. YulO1 r => P'x PurePort r (NP xs) ⊸ P'x PurePort r b) ->
+  PureFn f
+lfn' cid f = MkPureFn (cid, decode'l f)
