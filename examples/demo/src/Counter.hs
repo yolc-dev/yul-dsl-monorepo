@@ -1,11 +1,29 @@
 module Counter where
 import Control.LinearlyVersionedMonad            qualified as LVM
 import Prelude.Linear                            (fromString, ($))
-import YulDSL.Core                               (ADDR, REF, U256, YulO1, mkYulObject, staticFn, yulNoop)
+import YulDSL.Core
+    ( ADDR
+    , REF
+    , U256
+    , YulCat (YulSGet)
+    , YulO1
+    , mkYulObject
+    , staticFn
+    , yulNoop
+    )
 import YulDSL.Haskell.Effects.LinearSMC.LinearFn (StaticFn)
 import YulDSL.Haskell.Effects.LinearSMC.Storage  (SReferenceable, sget)
-import YulDSL.Haskell.Effects.LinearSMC.YulMonad (YulMonad, yulmonad'p)
-import YulDSL.Haskell.Effects.LinearSMC.YulPort  (P'P, P'V, P'x, PortEffect (PurePort))
+import YulDSL.Haskell.Effects.LinearSMC.YulMonad (YulMonad, ypure, yulmonad'p)
+import YulDSL.Haskell.Effects.LinearSMC.YulPort
+    ( P'P
+    , P'V
+    , P'x
+    , PortEffect (PurePort)
+    , Versionable'L
+    , encodeP'x
+    , reduceType'l
+    , ver'l
+    )
 import YulDSL.Haskell.LibLinearSMC               (embed, extendType'l, keccak256'l, lfn', merge'l)
 
 
@@ -44,6 +62,12 @@ ma `lvmBind` f = LVM.MkLVM \ctx -> let !(aleb, ctx', a) = LVM.unLVM ma ctx
 -- | A Storage Hash-Map (SHMap) with a U256 root-key.
 newtype SHMap b = SHMap U256
 
+sget' :: ( KnownNat v
+         , YulO1 r
+         , Versionable'L ie v
+         ) => P'x ie r (REF U256) ⊸ YulMonad v v r (P'V v r U256)
+sget' s = ypure (encodeP'x YulSGet (reduceType'l (ver'l s)))
+
 -- | Get a storage reference from the storage hash-map.
 shmapRef :: forall ie r b v.
   ( KnownNat v
@@ -64,7 +88,7 @@ shmapGet :: forall r v.
   ) =>
   P'P r ADDR ⊸
   YulMonad v v r (P'V v r U256)
-shmapGet a = lvmBind (shmapRef (SHMap (fromInteger 10) :: SHMap U256) a) sget
+shmapGet a = lvmBind (shmapRef (SHMap (fromInteger 10) :: SHMap U256) a) sget'
 
 getCounter :: StaticFn (ADDR -> U256)
 getCounter = lfn' "test" $ yulmonad'p shmapGet
