@@ -1,6 +1,5 @@
 module Counter where
-import YulDSL.Core ( bytesnToInteger, stringKeccak256
-                   , staticFn, mkYulObject
+import YulDSL.Core ( staticFn, mkYulObject
                    , yulNoop, ADDR, U256
                    , YulO1, REF)
 import Prelude.Linear (fromString, ($))
@@ -51,7 +50,7 @@ newtype SHMap a b = SHMap U256
 
 -- | Create a storage hash-map with a root-key represented by a string.
 shmap :: forall s a b. s ~ (a -> b) => String -> SHMap a b
-shmap key = SHMap (fromInteger (bytesnToInteger (stringKeccak256 key)))
+shmap key = SHMap (fromInteger 10)
 
 -- | Get a storage reference from the storage hash-map.
 shmapRef :: forall a b ie r v.

@@ -1,34 +1,33 @@
-{-# LANGUAGE EmptyCase #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE QuantifiedConstraints #-}
-{-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE TypeInType #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE AllowAmbiguousTypes        #-}
+{-# LANGUAGE ConstraintKinds            #-}
+{-# LANGUAGE EmptyCase                  #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TupleSections #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ViewPatterns #-}
-{-# LANGUAGE PatternSynonyms #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE LinearTypes #-}
+{-# LANGUAGE InstanceSigs               #-}
+{-# LANGUAGE LambdaCase                 #-}
+{-# LANGUAGE LinearTypes                #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE PatternSynonyms            #-}
+{-# LANGUAGE QuantifiedConstraints      #-}
+{-# LANGUAGE RankNTypes                 #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE StandaloneDeriving         #-}
+{-# LANGUAGE TupleSections              #-}
+{-# LANGUAGE TypeApplications           #-}
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE TypeInType                 #-}
+{-# LANGUAGE TypeOperators              #-}
+{-# LANGUAGE UndecidableInstances       #-}
 
 module Control.Category.FreeCartesian (Cat, π1, π2, embed, (▴), toSMC) where
 
-import Prelude hiding ((.),id,curry,Ordering(..))
 import Control.Category.Constrained
+import Prelude                      hiding (Ordering (..), curry, id, (.))
 import Unsafe.Coerce
 -- import Control.Category.InitialSMC (type TensorClosed)
- 
+
 data Trie  k con a b where
   (:▴:) :: (con b, con c) => Trie k con a b -> Trie k con a c -> Trie k con a (b,c) -- fork
   Z :: Trie  k con a a -- Stop
@@ -108,7 +107,7 @@ f ▴ g = \case Z -> h
 --   P2 -> R
 --   (f :▵: g) -> \case Z -> h
 --                      e -> h :∘ e
---      where h = toTrie f :▴: toTrie g   
+--      where h = toTrie f :▴: toTrie g
 
 -- toTrie :: (con a, con b, TensorClosed con) => FreeCartesian  k con a b -> Trie k con a b
 -- toTrie f = toBranch f Z
@@ -180,15 +179,14 @@ fork f g k = case fork2 f g k of
 normalize :: forall a b con k ξ. (Obj k ~ con, Monoidal k, con a, con b, TensorClosed con)
   => Trie k con a b -> (forall c. con c => Trie k con a c -> k c b -> ξ) -> ξ
 normalize t0 k = case t0 of
-  Z -> k Z id
+  Z       -> k Z id
   f :▴: g -> normalize f $ \f' s -> normalize g $ \g' t -> (fork f' g') $ \f'g u -> k f'g ((s × t) . u)
-  L f -> objprod @con @a // normalize f $ \f' s -> k (L f') s
-  R f -> objprod @con @a // normalize f $ \f' s -> k (R f') s
-  f :∘ g -> normalize g $ \g' s -> trieComp f g' $ \fg' t -> k fg' (s . t)
-  φ :. f -> normalize f $ \f' s -> ee φ f' $ \φf' t -> k φf' (s . t)
+  L f     -> objprod @con @a // normalize f $ \f' s -> k (L f') s
+  R f     -> objprod @con @a // normalize f $ \f' s -> k (R f') s
+  f :∘ g  -> normalize g $ \g' s -> trieComp f g' $ \fg' t -> k fg' (s . t)
+  φ :. f  -> normalize f $ \f' s -> ee φ f' $ \φf' t -> k φf' (s . t)
 
 toSMC :: forall a b con k. (Obj k ~ con, Monoidal k, con a, con b, TensorClosed con) => Cat k con a b -> k a b
 toSMC t = normalize (t Z) $ \f g -> case f of
   Z -> g
   _ -> error "toSMC: normalisation process failed"
-
