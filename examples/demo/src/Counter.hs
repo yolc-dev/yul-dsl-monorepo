@@ -4,16 +4,18 @@ import YulDSL.Core ( bytesnToInteger, stringKeccak256
                    , yulNoop, ADDR, U256
                    , YulO1, REF)
 import Prelude.Linear (fromString, ($))
-import YulDSL.Haskell.LibLinearSMC (SReferenceable, lfn, sget, sput, keccak256'l, embed, merge'l, extendType'l)
-import YulDSL.Haskell.Effects.LinearSMC (YulMonad, P'x, P'V, StaticFn, yulmonad'p)
+import Control.LinearlyVersionedMonad qualified as LVM
+import YulDSL.Haskell.LibLinearSMC (lfn, keccak256'l, embed, merge'l, extendType'l)
+import YulDSL.Haskell.Effects.LinearSMC.YulPort (P'x, P'V)
+import YulDSL.Haskell.Effects.LinearSMC.YulMonad (YulMonad, yulmonad'p)
+import YulDSL.Haskell.Effects.LinearSMC.LinearFn (StaticFn)
+import YulDSL.Haskell.Effects.LinearSMC.Storage (SReferenceable, sget, sput)
 
 
 -- base
 import GHC.TypeLits                   (KnownNat)
 -- linear-base
 import Prelude.Linear                 (String, fromInteger)
---
-import Control.LinearlyVersionedMonad qualified as LVM
 
 
 -- constraints
