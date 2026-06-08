@@ -32,25 +32,12 @@ module YulDSL.Core.YulCat
   ) where
 -- base
 import Data.Kind                    (Constraint, Type)
--- bytestring
--- memory
--- crypton
--- text
--- eth-abi
 import Ethereum.ContractABI
---
--- constraints
--- template-haskell
--- eth-abi
 
 
 -- | All objects in the yul category is simply a 'YulCatObj'.
 class (ABITypeable a, ABITypeCodec a) => YulCatObj a where
   -- | Possible breakdown of the product object of the category.
-
---
--- Shorthand for declaring multi-objects constraint:
---
 
 type YulO1 a = YulCatObj a
 type YulO2 a b = (YulCatObj a, YulO1 b)
@@ -66,7 +53,6 @@ instance (YulCatObj x, YulCatObj (NP xs)) => YulCatObj (NP (x:xs))
 
 -- TupleN (3..15)
 instance YulCatObj ()
-instance YulCatObj a => YulCatObj (Solo a)
 instance (YulCatObj a1, YulCatObj a2) => YulCatObj (a1, a2)
 
 -- Value Types
@@ -87,9 +73,9 @@ instance YulCatObj a => YulCatObj (REF a)
 type YulCat ::  Type -> Type -> Type
 
 data YulCat a b where
-  YulExtendType :: forall eff a b. (YulO2 a b, a ~ ABITypeDerivedOf b) => YulCat a b
-  YulComp :: forall eff a b c.  YulCat c b %1-> YulCat a c %1-> YulCat a b
-  YulJmpB :: forall eff a b p. ( YulO2 a b) =>  YulCat a b
+  YulExtendType :: forall a b. (YulO2 a b, a ~ ABITypeDerivedOf b) => YulCat a b
+  YulComp :: forall a b c.  YulCat c b %1-> YulCat a c %1-> YulCat a b
+  YulJmpB :: forall a b. ( YulO2 a b) =>  YulCat a b
 
 
 
@@ -97,10 +83,9 @@ yulCatCompactShow :: YulCat a b -> String
 yulCatCompactShow = go
   where
     go :: YulCat a' b' -> String
-    go (YulExtendType @_ @a @b)    = "Te" <> abi_type_name @b
+    go (YulExtendType  @a @b)    = "Te" <> abi_type_name @b
     go (YulComp cb ac)             = "(" <> go ac <> ");(" <> go cb <> ")"
-    go (YulJmpB @_ @a @b )        = "Jb "
-    go _ = error "no segfault"
+    go (YulJmpB  @a @b )        = "Jb "
     -- A 'abi_type_name variant, enclosing name with "@()".
     abi_type_name :: forall a. ABITypeable a => String
     abi_type_name = abiTypeCompactName @a

@@ -25,9 +25,9 @@ import YulDSL.Core.YulCat           (YulCat (..), YulCatObj )
 
 -- | Instance for linear-smc 'ProdObj' for the objects in the category.
 instance ProdObj YulCatObj where
-  prodobj = Dict
+  prodobj = undefined
   objprod = undefined
-  objunit = Dict
+  objunit = undefined
 
 instance Category YulCat where
   type Obj YulCat = YulCatObj
