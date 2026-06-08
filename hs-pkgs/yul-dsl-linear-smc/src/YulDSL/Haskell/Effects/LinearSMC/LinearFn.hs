@@ -27,7 +27,7 @@ import YulDSL.Haskell.Effects.LinearSMC.YulPort
 
 
 decode'l :: forall a b. YulO2 a b
-  => (forall r. YulO1 r => P'x PurePort r a ⊸ P'x PurePort r b)
+  => (forall r. YulO1 r => P'P r a ⊸ P'P r b)
   -> YulCat Pure a b
 decode'l f = YulUnsafeCoerceEffect (decodeP'x (unsafeCoerceYulPortDiagram f))
 
@@ -40,6 +40,6 @@ lfn' :: forall f xs b.
   , EquivalentNPOfFunction f xs b
   ) =>
   String ->
-  (forall r. YulO1 r => P'x PurePort r (NP xs) ⊸ P'x PurePort r b) ->
+  (forall r. YulO1 r => P'P r (NP xs) ⊸ P'P r b) ->
   PureFn f
 lfn' cid f = MkPureFn (cid, decode'l f)
