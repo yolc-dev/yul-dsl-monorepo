@@ -10,6 +10,11 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
     -- $TypeOps
   , extendType'l
   , lfn'
+  , -- $PureEffectKind
+    PureEffectKind (Pure)
+    -- $PureFn
+  , PureFn (MkPureFn)
+  , pureFn
   ) where
 -- linear-base
 import Prelude.Linear
@@ -71,3 +76,24 @@ extendType'l = encodeP'x YulExtendType
 
 keccak256'l :: forall a r. YulO2 r a => P'P r a ⊸ P'P r B32
 keccak256'l = encodeP'x (YulJmpB (MkYulBuiltIn @"__keccak_c_" @a @B32))
+
+
+
+------------------------------------------------------------------------------------------------------------------------
+-- $PureEffectKind
+-- * Pure Effect Kind
+------------------------------------------------------------------------------------------------------------------------
+
+-- | Data kind for pure morphisms in the yul category.
+data PureEffectKind = Pure  -- ^ Pure morphism, may not be total
+
+type instance IsEffectNotPure (eff :: PureEffectKind) = False
+type instance MayEffectWorld  (eff :: PureEffectKind) = False
+
+
+-- | Function without side effects, hence pure.
+data PureFn f where
+  MkPureFn :: forall f xs b. YulCat Pure (NP xs) b -> PureFn f
+
+pureFn :: (PureFn fn) -> String
+pureFn (MkPureFn fn) = show fn
