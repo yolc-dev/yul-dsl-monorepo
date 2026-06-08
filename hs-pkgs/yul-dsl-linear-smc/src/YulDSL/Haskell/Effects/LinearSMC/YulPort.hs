@@ -12,16 +12,8 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
 import Prelude.Linear
 import Control.Category.Linear             (P, decode, encode)
 import YulDSL.Core
-import YulDSL.Core.YulCat
-
-
 import Prelude (undefined)
--- base
--- constraints
--- linear-smc
 import Control.Category.Constrained (Cartesian (..), Category (..), Monoidal (..), ProdObj (..))
-
-
 import Data.Kind                    (Type)
 
 
@@ -64,7 +56,7 @@ instance YulCatObj a => YulCatObj (REF a)
 type YulCat ::  Type -> Type -> Type
 
 data YulCat a b where
-  YulExtendType :: forall a b. (YulO2 a b, a ~ ABITypeDerivedOf b) => YulCat a b
+  YulExtendType :: forall a b. (YulO2 (ABITypeDerivedOf b) b) => YulCat (ABITypeDerivedOf b) b
   YulComp :: forall a b c.  YulCat c b %1-> YulCat a c %1-> YulCat a b
   YulJmpB :: forall a b. ( YulO2 a b) =>  YulCat a b
 

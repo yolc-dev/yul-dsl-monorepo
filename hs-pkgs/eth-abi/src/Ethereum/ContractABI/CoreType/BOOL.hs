@@ -43,8 +43,6 @@ instance ABITypeable BOOL where
   abiTypeInfo = [BOOL']
 
 instance ABITypeCodec BOOL where
-  abiEncoder (BOOL x) = S.put x
-  abiDecoder = fmap BOOL S.get
 
 instance Bounded BOOL where
   minBound = false

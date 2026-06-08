@@ -13,5 +13,3 @@ This module provides the ordering related type classes suitable for eDSLs using 
 
 -}
 module Data.MPOrd where
--- yul-dsl
-import YulDSL.Core

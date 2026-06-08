@@ -36,15 +36,6 @@ instance ( ABITypeable x, ABITypeable (NP xs)
   abiTypeInfo = abiTypeInfo @x <> abiTypeInfo @(NP xs)
 
 instance ABITypeCodec (NP '[]) where
-  abiEncoder Nil = S.put ()
-  abiDecoder = S.get @() >> pure Nil
 
 instance ( ABITypeable x, ABITypeCodec x, ABITypeCodec (NP xs)
          ) => ABITypeCodec (NP (x : xs)) where
-  abiEncoder (x :* xs) = do
-    abiEncoder x
-    abiEncoder xs
-  abiDecoder = do
-    x <- abiDecoder
-    xs <- abiDecoder
-    pure (x :* xs)

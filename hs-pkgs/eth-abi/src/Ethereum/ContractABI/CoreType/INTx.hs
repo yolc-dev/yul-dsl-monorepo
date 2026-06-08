@@ -16,8 +16,6 @@ Ethereum contract ABI assorted integer types.
 
 module Ethereum.ContractABI.CoreType.INTx
   ( INTx, ValidINTx
-  , intxSign, intxNBits
-  , intxUpCast, intxSafeCast
     -- == Assorted INTx Types
   , U8,U16,U24,U32,U40,U48,U56,U64
   , U72,U80,U88,U96,U104,U112,U120,U128
@@ -60,22 +58,6 @@ intxSign = fromSBool (boolSing @s)
 intxNBits :: forall a (s :: Bool) (n :: Nat). (a ~ INTx s n, ValidINTn n) => Int
 intxNBits = fromEnum (8 * natVal (Proxy @n))
 
--- | Integer up-casting cases.
-intxUpCast :: forall (s1 :: Bool) (n1 :: Nat)  (s2 :: Bool) (n2 :: Nat).
-              ( KnownBool s1, KnownBool s2, ValidINTn n1, ValidINTn n2
-                -- this must be true in any case
-              , n1 <= n2
-                -- now check signedness
-              , Assert (
-                  -- same signedness
-                  (s1 && s2) ||
-                  (Not s1 && Not s2) ||
-                  -- for unsigned input, output can be signed but with larger data size
-                  -- Note: (<=?) maybe not work reliably, you may always fallback to intxSafeCast.
-                  (Not s1 && s2 && (n1 + 1 <=? n2)))
-                (TypeError (Text "Cannot safely up-cast intx")))
-           => INTx s1 n1 -> INTx s2 n2
-intxUpCast (INT x) = fromInteger x
 
 -- | Safe integer casting.
 intxSafeCast :: forall (s1 :: Bool) (n1 :: Nat) (s2 :: Bool) (n2 :: Nat).
@@ -96,8 +78,6 @@ instance forall s n. ValidINTx s n => ABITypeable (INTx s n) where
   abiTypeInfo = [INTx' (boolSing @s) (natSing @n)]
 
 instance forall s n. ValidINTx s n => ABITypeCodec (INTx s n) where
-  abiEncoder (INT x) = S.put x
-  abiDecoder = fmap INT S.get
 
 --
 --  Num hierarchy classes for (Maybe INTx s n)
@@ -199,8 +179,6 @@ instance ValidINTx s n => ABIWordValue (INTx s n) where
 -- Show instances
 --
 
-instance ValidINTx s n => Show (INTx s n) where
-  show (INT a) = show a
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Assorted Fixed-Precision Integer Aliases

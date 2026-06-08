@@ -66,8 +66,6 @@ instance (ValidINTn n) => ABITypeable (BYTESn n) where
   abiTypeInfo = [BYTESn' (natSing @n)]
 
 instance (ValidINTn n) => ABITypeCodec (BYTESn n) where
-  abiDecoder = fmap BYTESn S.get
-  abiEncoder = S.put . bytesnToWords
 
 instance ValidINTn n => Show (BYTESn n) where
   show b = "0x" ++ concatMap show_word8 (bytesnToWords b)
