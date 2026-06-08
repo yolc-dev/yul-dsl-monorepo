@@ -3,7 +3,7 @@
 module YulDSL.Haskell.Effects.LinearSMC.YulPort
   ( -- * Yul Port Definitions
     -- $LinearPortDefs
-    P'P (MkP'x), unP'x, encodeP'x, decodeP'x
+    P'P (MkP'x), unP'x, encodeP'x, decodeP'x, keccak256'l
     -- * General Yul Port Operations
     -- $GeneralOps
     -- * Type Operations
@@ -20,20 +20,8 @@ import Control.Category.Linear             (P, decode, encode)
 import YulDSL.Core
 import YulDSL.Haskell.Effects.Pure
 
---
---
 import Control.Category.Constrained.YulDSL ()
--- base
--- template-haskell
--- linear-base
-import Prelude.Linear
--- yul-dsl
-import YulDSL.Core
--- yul-dsl-pure
-import YulDSL.Haskell.Effects.Pure
---
 
-import Data.Kind     (Type)
 --
 
 
@@ -80,3 +68,6 @@ extendType'l :: forall a r.
   (YulO3 a (ABITypeDerivedOf a) r) =>
   P'P r (ABITypeDerivedOf a) ⊸ P'P r a
 extendType'l = encodeP'x YulExtendType
+
+keccak256'l :: forall a r. YulO2 r a => P'P r a ⊸ P'P r B32
+keccak256'l = encodeP'x (YulJmpB (MkYulBuiltIn @"__keccak_c_" @a @B32))
