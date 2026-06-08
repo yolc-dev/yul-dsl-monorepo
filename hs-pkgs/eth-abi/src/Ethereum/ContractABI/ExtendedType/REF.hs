@@ -36,4 +36,4 @@ type ValidSlot n = (KnownNat n, n <= (2 ^ 248))
 
 instance ABITypeable a => ABITypeable (REF a) where
   type instance ABITypeDerivedOf (REF a) = B32
-  abiFromCoreType (BYTESn n) = REF n
+  abiFromCoreType x =x

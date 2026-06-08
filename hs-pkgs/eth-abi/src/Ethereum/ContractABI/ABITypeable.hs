@@ -20,13 +20,7 @@ module Ethereum.ContractABI.ABITypeable
  ) where
 
 -- base
-import Data.Kind                        (Constraint, Type)
-import Data.List                        (intercalate)
-import Data.Type.Equality               (type (==))
---
-import Ethereum.ContractABI.ABICoreType
 
--- | Type information for all core and derived contract ABI types.
 class ABITypeable a where
   -- | Convert @a@ to the ABI core type it derives from.
   type ABITypeDerivedOf a
@@ -36,10 +30,6 @@ class ABITypeable a where
   -- Invariant: @abi_type_info a == abi_type_info \@(ABITypeDerivedOf a)@
   abiTypeInfo :: String
   -- ^ The default implementation must be implemented by core types.
-  default abiTypeInfo :: ABITypeable (ABITypeDerivedOf a) => String
-  abiTypeInfo = abiTypeInfo @(ABITypeDerivedOf a)
 
   -- | Convert a value from the core type to the extended type.
-  abiFromCoreType :: ABITypeDerivedOf a -> a
-  default abiFromCoreType :: ABITypeDerivedOf a ~ a => ABITypeDerivedOf a -> a
-  abiFromCoreType = id
+  abiFromCoreType :: a -> a
