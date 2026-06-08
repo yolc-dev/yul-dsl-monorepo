@@ -14,8 +14,8 @@ getCounterRef' :: forall b r.
   P'P r (NP '[ADDR]) ⊸ P'P r (REF b)
 getCounterRef' a = extendType'l (keccak256'l a)
 
-getCounterRef :: PureFn (ADDR -> REF U256)
-getCounterRef = lfn' getCounterRef'
+getCounterRef :: PureFn
+getCounterRef = lfn' @(REF U256) getCounterRef'
 
 object :: String
 object = pureFn getCounterRef

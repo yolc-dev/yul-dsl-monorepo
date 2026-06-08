@@ -29,12 +29,12 @@ import YulDSL.Core.YulCat
 
 --
 
-lfn' :: forall xs b.
+lfn' :: forall b xs.
   ( YulO2 (NP '[ADDR]) b
   , '[ADDR] ~ xs   -- crash stops after removing this line
   ) =>
   (forall r. YulO1 r => P'P r (NP '[ADDR]) ⊸ P'P r b) ->
-  PureFn (ADDR -> b)
+  PureFn
 lfn' f = MkPureFn (decodeP'x f)
 
 
@@ -75,8 +75,8 @@ extendType'l = encodeP'x YulExtendType
 keccak256'l :: forall a r. YulO2 r a => P'P r a ⊸ P'P r B32
 keccak256'l = encodeP'x YulJmpB
 
-data PureFn f where
-  MkPureFn :: forall f xs b. YulCat (NP xs) b -> PureFn f
+data PureFn where
+  MkPureFn :: forall xs b. YulCat (NP xs) b -> PureFn
 
-pureFn :: PureFn fn -> String
+pureFn :: PureFn -> String
 pureFn (MkPureFn fn) = yulCatCompactShow fn
