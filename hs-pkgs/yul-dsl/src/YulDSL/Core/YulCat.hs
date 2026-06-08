@@ -28,7 +28,7 @@ module YulDSL.Core.YulCat
   , YulCallTarget, YulCallGasLimit, YulCallValue
   , NamedYulCat, ClassifiedYulCat (withClassifiedYulCat)
   -- * YulCat Stringify Functions
-  , yulCatCompactShow, yulCatToUntypedLisp, yulCatFingerprint
+  , yulCatCompactShow, yulCatFingerprint
   ) where
 -- base
 import Data.Kind                    (Constraint, Type)
@@ -156,31 +156,7 @@ class ClassifiedYulCat fn (efc :: YulCatEffectClass) a b | fn -> efc a b where
     (forall k (eff :: k). NamedYulCat eff a b -> r) %1->
     r
 
-------------------------------------------------------------------------------------------------------------------------
--- SimpleNP Instances
-------------------------------------------------------------------------------------------------------------------------
 
---
--- TranversableNP and DistributiveNP instances
---
-
-instance (YulO3 x (NP xs) r, YulCat eff r ~ s) =>
-         ConstructibleNP (YulCat eff r) x xs Many where
-  consNP sx sxs = YulCoerceType `YulComp` YulFork sx sxs
-  unconsNP xxs = (x, xs)
-    where xxs' = YulCoerceType `YulComp` xxs
-          x    = YulExl `YulComp` xxs'
-          xs   = YulExr `YulComp` xxs'
-
-instance YulO1 r => TraversableNP (YulCat eff r) '[] where
-  sequenceNP _ = Nil
-instance YulO1 r => DistributiveNP (YulCat eff r) '[] where
-  distributeNP _ = YulEmb Nil `YulComp` YulDis
-
-instance (YulO3 x (NP xs) r, TraversableNP (YulCat eff r) xs) =>
-         TraversableNP (YulCat eff r) (x:xs)
-instance (YulO3 x (NP xs) r, DistributiveNP (YulCat eff r) xs) =>
-         DistributiveNP (YulCat eff r) (x:xs)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Base Library Instances
@@ -214,52 +190,6 @@ yulCatCompactShow = go
     -- TODO escape the value of x
     -- escape = show
 
-yulCatToUntypedLisp :: forall eff a b. YulCat eff a b -> Code
-yulCatToUntypedLisp = go init_ind
-  where
-    go :: forall eff' a' b'. Indenter -> YulCat eff' a' b' -> Code
-    go _ YulReduceType               = T.empty
-    go _ YulExtendType               = T.empty
-    go _ YulCoerceType               = T.empty
-    --
-    go _ YulId                       = T.empty
-    go ind (YulComp cb ac)           = gcomp ind cb ac
-    go ind (YulProd ab cd)           = g2 ind "prod" ab cd
-    go ind YulSwap                   = ind $ T.pack "swap"
-    go ind (YulFork ab ac)           = g2 ind "fork" ab ac
-    go ind YulExl                    = ind $ T.pack "exl"
-    go ind YulExr                    = ind $ T.pack "exr"
-    go ind YulDis                    = ind $ T.pack "dis"
-    go ind YulDup                    = ind $ T.pack "dup"
-    go ind (YulEmb x)                = ind $ T.pack (show x)
-    go ind (YulITE a b)              = g2 ind "ite" a b
-    go ind (YulJmpU (cid, _))        = ind $ T.pack ("(jmpu " ++ cid ++ ")")
-    go ind (YulJmpB p)               = ind $ T.pack ("(jmpb " ++ yulB_fname p ++ ")")
-    go ind (YulCall sel)             = ind $ T.pack ("(call " ++ showSelectorOnly sel ++ ")")
-    go ind YulSGet                   = ind $ T.pack "sget"
-    go ind YulSPut                   = ind $ T.pack "sput"
-    go ind (YulUnsafeCoerceEffect c) = go ind c
-    --
-    gcomp :: forall eff' a' b' c'. Indenter -> YulCat eff' c' b' -> YulCat eff' a' c' -> Code
-    gcomp ind cb ac = let c1 = go ind ac
-                          c2 = go ind cb
-                      in if T.null c1 || T.null c2
-                         then c1 <> c2
-                         else c1 <> ind (T.pack ";;") <> c2
-    g2 :: forall eff' m n p q. Indenter -> String -> YulCat eff' m n -> YulCat eff' p q -> Code
-    g2 ind op c1 c2 =
-      let op' = T.pack "(" <> T.pack op
-          ind' = indent ind
-          s1 = go ind' c1
-          s2 = go ind' c2
-      in if T.null s1 && T.null s2
-         then T.empty
-         else if T.null s1
-              then ind (op' <> T.pack " id (") <> s2 <> ind (T.pack "))")
-              else if T.null s2
-                   then ind (op' <> T.pack " (") <> s1 <> ind' (T.pack ") id)")
-                   else ind (op' <> T.pack " (") <> s1 <> ind' (T.pack ") (") <> s2 <> ind (T.pack "))")
-
 -- | Obtain the sha1 finger print of a 'YulCat'.
 yulCatFingerprint :: YulCat eff a b -> String
 yulCatFingerprint = concatMap (printf "%02x") . BS.unpack . BA.convert . hash . show
@@ -267,16 +197,3 @@ yulCatFingerprint = concatMap (printf "%02x") . BS.unpack . BA.convert . hash . 
 
 instance Show (YulCat eff a b) where show = yulCatCompactShow
 deriving instance Show AnyYulCat
-
---
--- Num Instance
---
-
--- ^ 'Num' instance for INTx.
-instance (YulO1 r, ValidINTx s n) => Num (YulCat eff r (INTx s n)) where
-  a + b = YulJmpB (MkYulBuiltIn @"__checked_add_t_") `YulComp` YulProd a b `YulComp` YulDup
-  a - b = YulJmpB (MkYulBuiltIn @"__checked_sub_t_") `YulComp` YulProd a b `YulComp` YulDup
-  a * b = YulJmpB (MkYulBuiltIn @"__checked_mul_t_") `YulComp` YulProd a b `YulComp` YulDup
-  abs = YulComp (YulJmpB (MkYulBuiltIn @"__checked_abs_t_"))
-  signum = YulComp (YulJmpB (MkYulBuiltIn @"__checked_sig_t_"))
-  fromInteger a = YulEmb (fromInteger a) `YulComp` YulDis
