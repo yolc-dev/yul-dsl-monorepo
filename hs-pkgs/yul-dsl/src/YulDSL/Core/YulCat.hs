@@ -27,6 +27,8 @@ module YulDSL.Core.YulCat
     YulCat (..)
   -- * YulCat Stringify Functions
   , yulCatCompactShow
+  , YulCatObj
+  , YulO1, YulO2, YulO3
   ) where
 -- base
 import Data.Kind                    (Constraint, Type)
@@ -38,8 +40,47 @@ import Data.Kind                    (Constraint, Type)
 import Ethereum.ContractABI
 --
 import YulDSL.Core.YulBuiltIn
-import YulDSL.Core.YulCatObj
 import YulDSL.StdBuiltIns.ValueType ()
+-- constraints
+import Data.Constraint      (Dict (Dict))
+-- template-haskell
+import Language.Haskell.TH  qualified as TH
+-- eth-abi
+
+
+-- | All objects in the yul category is simply a 'YulCatObj'.
+class (ABITypeable a, ABITypeCodec a, Show a) => YulCatObj a where
+  -- | Possible breakdown of the product object of the category.
+
+--
+-- Shorthand for declaring multi-objects constraint:
+--
+
+type YulO1 a = YulCatObj a
+type YulO2 a b = (YulCatObj a, YulO1 b)
+type YulO3 a b c = (YulCatObj a, YulO2 b c)
+
+--
+-- Enumerate known YulCat objects:
+--
+
+-- NP
+instance YulCatObj (NP '[])
+instance (YulCatObj x, YulCatObj (NP xs)) => YulCatObj (NP (x:xs))
+
+-- TupleN (3..15)
+instance YulCatObj ()
+instance YulCatObj a => YulCatObj (Solo a)
+instance (YulCatObj a1, YulCatObj a2) => YulCatObj (a1, a2)
+
+-- Value Types
+instance YulCatObj BOOL
+instance ValidINTx s n => YulCatObj (INTx s n)
+instance YulCatObj ADDR
+instance ValidINTn n => YulCatObj (BYTESn n)
+
+-- REF
+instance YulCatObj a => YulCatObj (REF a)
 
 
 ------------------------------------------------------------------------------------------------------------------------

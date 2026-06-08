@@ -25,6 +25,10 @@ import Control.Category.Linear             (P, decode, encode)
 import YulDSL.Core
 
 import Control.Category.Constrained.YulDSL ()
+import YulDSL.StdBuiltIns.ABICodec  ()
+import YulDSL.Core.YulBuiltIn
+import YulDSL.Core.YulCat
+
 
 --
 
