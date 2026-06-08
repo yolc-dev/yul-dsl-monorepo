@@ -5,7 +5,6 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
     -- $LinearPortDefs
     PortEffect (PurePort)
   , P'P (MkP'x), unP'x, encodeP'x, decodeP'x
-  , unsafeCoerceYulPort, unsafeCoerceYulPortDiagram
     -- * General Yul Port Operations
     -- $GeneralOps
     -- * Type Operations
@@ -59,15 +58,6 @@ decodeP'x :: forall a b.
   YulCat PortEffect a b
 decodeP'x f = decode (\a -> unP'x (f (MkP'x a)))
 
--- | Unsafe coerce yul port' effects.
-unsafeCoerceYulPort :: forall  r a.
-  P'P r a ⊸ P'P r a
-unsafeCoerceYulPort = MkP'x . unP'x
-
--- | Unsafe coerce yul port diagram's effects.
-unsafeCoerceYulPortDiagram :: forall  r a b.
-    (P'P r a ⊸ P'P r b) ⊸ (P'P r a ⊸ P'P r b)
-unsafeCoerceYulPortDiagram f x = unsafeCoerceYulPort (f (unsafeCoerceYulPort x))
 ------------------------------------------------------------------------------------------------------------------------
 
 extendType'l :: forall a r.
