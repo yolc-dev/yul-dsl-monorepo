@@ -26,7 +26,7 @@ module YulDSL.Core.YulCat
   ( -- * YulCat, the Categorical DSL of Yul
     YulCat (..), AnyYulCat (..)
   , YulCallTarget, YulCallGasLimit, YulCallValue
-  , NamedYulCat, ClassifiedYulCat (withClassifiedYulCat), unsafeCoerceNamedYulCat
+  , NamedYulCat, ClassifiedYulCat (withClassifiedYulCat)
   -- * YulCat Stringify Functions
   , yulCatCompactShow, yulCatToUntypedLisp, yulCatFingerprint
   ) where
@@ -155,11 +155,6 @@ class ClassifiedYulCat fn (efc :: YulCatEffectClass) a b | fn -> efc a b where
     fn ->
     (forall k (eff :: k). ClassifiedYulCatEffect eff => NamedYulCat eff a b -> r) %1->
     r
-
--- | Unsafely convert between yul morphisms of different effects.
-unsafeCoerceNamedYulCat :: forall eff1 eff2 a b. YulO2 a b  =>
-  NamedYulCat eff1 a b -> NamedYulCat eff2 a b
-unsafeCoerceNamedYulCat (n, cat) = (n, YulUnsafeCoerceEffect cat)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- SimpleNP Instances
