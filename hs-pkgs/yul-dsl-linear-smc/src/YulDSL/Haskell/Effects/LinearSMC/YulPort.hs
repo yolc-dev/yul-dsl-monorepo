@@ -14,7 +14,6 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
   , U256
   , REF
   ) where
-import Prelude (undefined)
 import Prelude.Linear
 import Control.Category.Linear             (P, decode, encode)
 import Control.Category.Constrained (Cartesian (..), Category (..), Monoidal (..), ProdObj (..))
@@ -105,10 +104,10 @@ instance Monoidal YulCat where
 --
 
 lfn' :: forall b xs.
-  ( YulO2 U256 (REF b)
-  , '[U256] ~ xs   -- crash stops after removing this line
+  ( YulO1 (REF b)
+  , U256 ~ xs   -- crash stops after removing this line
   ) =>
-  (forall r. YulO1 r => P'P r (U256 ) ⊸ P'P r (REF b)) ->
+  (forall r. YulO1 r => P'P r U256 ⊸ P'P r (REF b)) ->
   String
 lfn' f = yulCatCompactShow (decode f)
 
