@@ -80,9 +80,6 @@ data YulCat eff a b where
   -- * Storage Primitives
   --
 
-  -- ^ Unsafe coerce between different effects.
-  YulUnsafeCoerceEffect :: forall k1 k2 (eff1 :: k1) (eff2 :: k2) a b.
-    YulCat eff1 a b %1-> YulCat eff2 a b
 
 
 
@@ -105,7 +102,6 @@ yulCatCompactShow = go
     go (YulExtendType @_ @a @b)    = "Te" <> abi_type_name @b
     go (YulComp cb ac)             = "(" <> go ac <> ");(" <> go cb <> ")"
     go (YulJmpB @_ @a @b p)        = "Jb "
-    go (YulUnsafeCoerceEffect c)   = go c
     go _ = error "no segfault"
     -- A 'abi_type_name variant, enclosing name with "@()".
     abi_type_name :: forall a. ABITypeable a => String
