@@ -16,7 +16,7 @@ contract ABI types to support the entire contract ABI specification.
 
 -}
 module Ethereum.ContractABI.ABICoreType
-  ( SNat, Nat, natVal, fromSNat
+  ( Nat
   , ValidINTn
   -- ABI type names
   , ABITypeable(..)
@@ -28,9 +28,6 @@ import Control.Exception            (assert)
 import GHC.TypeLits
     ( KnownNat
     , Nat
-    , SNat
-    , fromSNat
-    , natVal
     , type (<=)
     )
 -- template-haskell

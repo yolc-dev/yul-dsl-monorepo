@@ -38,9 +38,9 @@ instance YulCatObj ()
 instance (YulCatObj a1, YulCatObj a2) => YulCatObj (a1, a2)
 
 -- Value Types
-instance ValidINTx s n => YulCatObj (INTx s n)
+instance YulCatObj U256
 instance YulCatObj ADDR
-instance ValidINTn n => YulCatObj (BYTESn n)
+instance YulCatObj (BYTESn 32)
 
 -- REF
 instance YulCatObj a => YulCatObj (REF a)
