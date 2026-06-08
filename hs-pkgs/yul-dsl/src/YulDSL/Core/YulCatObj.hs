@@ -1,4 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
 {-|
 
 Copyright   : (c) 2023-2025 Miao, ZhiCheng
@@ -54,16 +53,6 @@ instance (YulCatObj x, YulCatObj (NP xs)) => YulCatObj (NP (x:xs))
 instance YulCatObj ()
 instance YulCatObj a => YulCatObj (Solo a)
 instance (YulCatObj a1, YulCatObj a2) => YulCatObj (a1, a2) where yul_prod_objs = Dict
-do
-  insts <- mapM
-    (\n -> do
-      as <- replicateM n (TH.newName "a")
-      -- NOTE! Haskell2010 only demands the Show instance to support up to Tuple15
-      [d| instance $(tupleNFromVarsTWith (TH.conT ''YulCatObj `TH.appT`) as) =>
-                   YulCatObj $(tupleNFromVarsT as)
-        |]
-    ) [3..15]
-  pure (concat insts)
 
 -- Value Types
 instance YulCatObj BOOL

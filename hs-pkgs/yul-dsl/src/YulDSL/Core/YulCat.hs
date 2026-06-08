@@ -28,7 +28,7 @@ module YulDSL.Core.YulCat
   , YulCallTarget, YulCallGasLimit, YulCallValue
   , NamedYulCat, ClassifiedYulCat (withClassifiedYulCat)
   -- * YulCat Stringify Functions
-  , yulCatCompactShow, yulCatFingerprint
+  , yulCatCompactShow
   ) where
 -- base
 import Data.Kind                    (Constraint, Type)
@@ -190,10 +190,6 @@ yulCatCompactShow = go
     -- TODO escape the value of x
     -- escape = show
 
--- | Obtain the sha1 finger print of a 'YulCat'.
-yulCatFingerprint :: YulCat eff a b -> String
-yulCatFingerprint = concatMap (printf "%02x") . BS.unpack . BA.convert . hash . show
-  where hash s = Hash.hash (BS_Char8.pack s) :: Hash.Digest Hash.Keccak_256
 
 instance Show (YulCat eff a b) where show = yulCatCompactShow
 deriving instance Show AnyYulCat
