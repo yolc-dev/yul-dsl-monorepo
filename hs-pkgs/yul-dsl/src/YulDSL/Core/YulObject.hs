@@ -15,8 +15,6 @@ module YulDSL.Core.YulObject
   (-- $AnyExportedYulCat
     AnyExportedYulCat (MkAnyExportedYulCat), withAnyExportedYulCat
   , pureFn
-    -- $YulObject
-  , YulObject (..), mkYulObject
   ) where
 -- base
 import Data.List                                  (intercalate)
@@ -62,31 +60,3 @@ show_fn_spec (SELECTOR (sel, fsig)) cat@(cid, _) =
   in "fn " <> fspec <> "(" <> abiTypeCanonName @(NP xs) <> ") -> " <> abiTypeCanonName @b <> "\n" <>
      show cat
 
-------------------------------------------------------------------------------------------------------------------------
--- $YulObject
-
--- | A Yul Object per spec.
---
--- Note:
---   * Do not confuse this with 'YulCatObj' which is for "objects" in the category of 'YulCat'.
---   * Specification: https://docs.soliditylang.org/en/latest/yul.html#specification-of-yul-object
-data YulObject = MkYulObject { yulObjectName    :: String              -- ^ object name
-                             , yulObjectCtor    :: AnyYulCat           -- ^ constructor
-                             , yulObjectExports :: [AnyExportedYulCat] -- ^ list of exported yul functions
-                             , yulSubObjects    :: [YulObject]         -- ^ dependent objects
-                             -- , TODO support object data
-                             }
-
-instance Show YulObject where
-  show o = "-- Functions:\n\n"
-           <> intercalate "\n\n" (fmap show (yulObjectExports  o))
-
-mkYulObject :: String
-            -> AnyYulCat
-            -> [AnyExportedYulCat]
-            -> YulObject
-mkYulObject name ctor afns = MkYulObject { yulObjectName    = name
-                                         , yulObjectCtor    = ctor
-                                         , yulObjectExports = afns
-                                         , yulSubObjects    = []
-                                         }

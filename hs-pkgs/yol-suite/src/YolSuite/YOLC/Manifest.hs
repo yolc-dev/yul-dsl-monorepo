@@ -1,7 +1,5 @@
 module YolSuite.YOLC.Manifest where
 
-import YulDSL.Core.YulObject (YulObject)
-
 data DeploymentType = SingletonContract
                     | FactoryContract
                     | SharedLibrary
@@ -12,10 +10,7 @@ data Upgradability = NonUpgradable
                    | BeaconUpgradability
                    deriving Show
 
-data BuildUnit = MkBuildUnit { mainObject        :: YulObject
-                             , deploymentType    :: DeploymentType
-                             , upgradabilityMode :: Upgradability
-                             } deriving Show
+data BuildUnit = MkBuildUnit  deriving Show
 
 {- HLint ignore Manifest "Use newtype instead of data" -}
 data Manifest = MkManifest { buildUnits      :: [BuildUnit]
