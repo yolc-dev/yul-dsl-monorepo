@@ -30,10 +30,6 @@ instance (ValidINTn n) => ABITypeable (BYTESn n) where
 instance (ValidINTn n) => ABITypeCodec (BYTESn n) where
 
 
-instance ValidINTn n => Bounded (BYTESn n) where
-  minBound = BYTESn 0
-  maxBound = BYTESn $ toInteger (minBound @(INTx False n))
-
 --
 -- Internal function
 --
