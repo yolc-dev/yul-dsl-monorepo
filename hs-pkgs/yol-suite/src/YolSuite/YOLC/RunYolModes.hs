@@ -35,8 +35,8 @@ yulProjectMode = YOLCBuilder.buildManifest
 showFnMode :: Show fn => fn -> IO RunYolResult
 showFnMode = pure . Right . T.pack . show
 
-showObjectMode :: YulObject -> IO RunYolResult
-showObjectMode = pure . Right . T.pack . show
+showObjectMode :: YulObject -> RunYolResult
+showObjectMode = Right . T.pack . show
 
 showProjectMode :: Manifest -> IO RunYolResult
 showProjectMode = pure . Right . T.pack . show
