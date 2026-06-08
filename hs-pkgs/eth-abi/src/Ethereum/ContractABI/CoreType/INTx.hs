@@ -47,13 +47,6 @@ newtype INTx (s :: Bool) (n :: Nat) = INT Integer
 -- | A constraint alias for 'KnownBool' and 'ValidINTn'.
 type ValidINTx s n = (KnownBool s, ValidINTn n)
 
--- | Sign of the INTx type. Use type application on @a@.
-intxSign :: forall a (s :: Bool) (n :: Nat). (a ~ INTx s n, ValidINTx s n) => Bool
-intxSign = fromSBool (boolSing @s)
-
--- | Number of bits for the INTx type. Use type application on @a@.
-intxNBits :: forall a (s :: Bool) (n :: Nat). (a ~ INTx s n, ValidINTn n) => Int
-intxNBits = fromEnum (8 * natVal (Proxy @n))
 
 
 ------------------------------------------------------------------------------------------------------------------------
