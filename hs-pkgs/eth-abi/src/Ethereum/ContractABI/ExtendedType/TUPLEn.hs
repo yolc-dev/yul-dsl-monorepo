@@ -22,8 +22,6 @@ module Ethereum.ContractABI.ExtendedType.TUPLEn
 import Control.Monad                     (replicateM)
 -- (simple-np)
 import Data.TupleN
--- template-haskell
-import Language.Haskell.TH               qualified as TH
 --
 import Ethereum.ContractABI.ABITypeable  (ABITypeable (..))
 import Ethereum.ContractABI.ABITypeCodec (ABITypeCodec (..))

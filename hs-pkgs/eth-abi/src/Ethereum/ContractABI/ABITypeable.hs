@@ -18,8 +18,7 @@ Portability : GHC2024
 module Ethereum.ContractABI.ABITypeable
  ( ABITypeable (..)
  , AnyABITypeable (MkAnyABITypeable)
- , AnyABITypeDerivedOf (MkAnyABIDerivedType)
- , abiTypeCanonName, abiTypeCompactName
+ , abiTypeCompactName
  , IsABICoreType
  ) where
 
@@ -58,13 +57,6 @@ data AnyABITypeable (c :: Type -> Constraint) = forall a. c a => MkAnyABITypeabl
 
 instance Show (AnyABITypeable Show) where
   show (MkAnyABITypeable a) = show a
-
--- | Existential type of all abi types that derive from the same core type @c@.
-data AnyABITypeDerivedOf c = forall a. (ABITypeable a, c ~ ABITypeDerivedOf a) => MkAnyABIDerivedType a
-
--- | Canonical name of the type that is used for computing the function selector.
-abiTypeCanonName :: forall a. ABITypeable a => String
-abiTypeCanonName = intercalate "," (fmap abiCoreTypeCanonName (abiTypeInfo @a))
 
 -- | A 'abiTypeCanonName' variant that is compact to saving characters.
 abiTypeCompactName :: forall a. ABITypeable a => String

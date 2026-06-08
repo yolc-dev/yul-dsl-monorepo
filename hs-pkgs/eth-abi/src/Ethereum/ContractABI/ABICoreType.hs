@@ -21,8 +21,7 @@ module Ethereum.ContractABI.ABICoreType
   , SNat, Nat, natSing, natVal, fromSNat
   , ValidINTn, fromValidINTn, withSomeValidINTx
   -- ABI type names
-  , abiCoreTypeCanonName
-  , abiCoreTypeCompactName, decodeAbiCoreTypeCompactName
+  , abiCoreTypeCompactName
   -- EVM word representations
   , WORD, integerToWord, wordToInteger, defWord, maxWord
   , ABIWordValue (ABIWordNBytes, toWord, fromWord)
@@ -109,13 +108,6 @@ withSomeValidINTx sval nval f =
         withSomeValidINTn sn = let n = fromSNat sn
                                in if n >= 1 && n <= 32 then Just unsafeAxiom else Nothing
 
--- | Canonical names for the core types used for computing the function selectors.
-abiCoreTypeCanonName :: ABICoreType -> String
-abiCoreTypeCanonName BOOL'       = "bool"
-abiCoreTypeCanonName (INTx' s n) = (if fromSBool s then "int" else "uint") <> show (natVal n * 8)
-abiCoreTypeCanonName ADDR'       = "address"
-abiCoreTypeCanonName (BYTESn' n) = "bytes" ++ show (natVal n)
-abiCoreTypeCanonName (ARRAY' a)  = abiCoreTypeCanonName a ++ "[]"
 
 -- | Compact but unambiguous names for the core types..
 abiCoreTypeCompactName :: ABICoreType -> String
@@ -126,32 +118,6 @@ abiCoreTypeCompactName (BYTESn' n) = "B" ++ show (natVal n)
 abiCoreTypeCompactName (ARRAY' a)  = "[" ++ abiCoreTypeCompactName a ++ "]"
 
 -- | Decode result from 'abiCoreTypeCompactName'.
-decodeAbiCoreTypeCompactName :: String -> [ABICoreType]
-decodeAbiCoreTypeCompactName part =
-  case RP.readP_to_S (RP.manyTill parseOne RP.eof) part of
-    [(rs, "")] -> rs
-    []         -> error ("Invalid abiCoreTypeCompactName, no match: " ++ part)
-    xs         -> error ("Invalid abiCoreTypeCompactName, non-unique match: " ++ show xs)
-  where parseOne :: RP.ReadP ABICoreType
-        parseOne = do
-          a <- RP.get
-          case a of
-            'b' -> pure BOOL'
-            'i' -> parseINTx True
-            'u' -> parseINTx False
-            'a' -> pure ADDR'
-            '[' -> do
-              a' <- parseOne
-              _ <- RP.char ']'
-              pure (ARRAY' a')
-            _ -> RP.pfail
-        parseINTx :: Bool -> RP.ReadP ABICoreType
-        parseINTx s = do
-          digits <- RP.many1 $ RP.satisfy isDigit
-          maybe RP.pfail pure (withSomeValidINTx s (read digits) INTx')
-
-instance Show ABICoreType where show = abiCoreTypeCanonName
-
 {- * EVM word representations  -}
 
 -- | Raw storage value for ABI value types.

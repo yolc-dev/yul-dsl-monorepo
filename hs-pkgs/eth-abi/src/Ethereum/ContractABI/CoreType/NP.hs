@@ -18,7 +18,6 @@ module Ethereum.ContractABI.CoreType.NP
   ) where
 
 -- cereal
-import Data.Serialize                    qualified as S
 --
 import Data.SimpleNP
 --
