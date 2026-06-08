@@ -18,6 +18,7 @@ module YulDSL.Haskell.Effects.Pure
     PureEffectKind (Pure)
     -- $PureFn
   , PureFn (MkPureFn)
+  , pureFn
   ) where
 -- template-haskell
 -- TO BE MOVED
@@ -40,12 +41,8 @@ type instance MayEffectWorld  (eff :: PureEffectKind) = False
 
 -- | Function without side effects, hence pure.
 data PureFn f where
-  MkPureFn :: forall f xs b.
-    ( EquivalentNPOfFunction f xs b
-    , YulO2 (NP xs) b
-    ) =>
-    NamedYulCat Pure (NP xs) b -> PureFn f
+  MkPureFn :: forall f xs b. NamedYulCat Pure (NP xs) b -> PureFn f
 
-instance EquivalentNPOfFunction f xs b => ClassifiedYulCat (PureFn f) PureEffect (NP xs) b where
-  withClassifiedYulCat (MkPureFn f) g = g f
+pureFn :: (PureFn fn) -> String
+pureFn (MkPureFn fn) = show fn
 

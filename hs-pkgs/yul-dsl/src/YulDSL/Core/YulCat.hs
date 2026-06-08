@@ -25,7 +25,7 @@ safety to the practice of EVM programming.
 module YulDSL.Core.YulCat
   ( -- * YulCat, the Categorical DSL of Yul
     YulCat (..), AnyYulCat (..)
-  , NamedYulCat, ClassifiedYulCat (withClassifiedYulCat)
+  , NamedYulCat
   -- * YulCat Stringify Functions
   , yulCatCompactShow
   ) where
@@ -55,7 +55,7 @@ type YulCat :: forall effKind. effKind -> Type -> Type -> Type
 data AnyYulCat = forall eff a b. (YulO2 a b) => MkAnyYulCat (YulCat eff a b)
 
 -- | Named YulCat morphism.
-type NamedYulCat eff a b = (String, YulCat eff a b)
+type NamedYulCat eff a b = (YulCat eff a b)
 
 --  Note: Unlike its moniker name "Cat" may suggest, the constructors of this data type are morphisms of the Yul
 --  category.
@@ -90,17 +90,6 @@ data YulCat eff a b where
   -- ^ Unsafe coerce between different effects.
   YulUnsafeCoerceEffect :: forall k1 k2 (eff1 :: k1) (eff2 :: k2) a b.
     YulCat eff1 a b %1-> YulCat eff2 a b
-
--- | Yul morphisms with classified effect.
-class ClassifiedYulCat fn (efc :: YulCatEffectClass) a b | fn -> efc a b where
-  -- | Process the named YulCat morphism with its classified effect enclosed within a continuation.
-  --
-  -- The law of sound classification:
-  -- @ fromSYulCatEffectClass (yulCatEffectClassSing @efc) == classifyYulCatEffect @eff @
-  withClassifiedYulCat :: forall r.
-    fn ->
-    (forall k (eff :: k). NamedYulCat eff a b -> r) %1->
-    r
 
 
 

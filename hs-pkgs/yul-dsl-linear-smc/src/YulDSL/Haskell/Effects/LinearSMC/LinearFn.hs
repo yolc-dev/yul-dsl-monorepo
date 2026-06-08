@@ -39,7 +39,6 @@ lfn' :: forall f xs b.
   ( YulO2 (NP xs) b
   , EquivalentNPOfFunction f xs b
   ) =>
-  String ->
   (forall r. YulO1 r => P'P r (NP xs) ⊸ P'P r b) ->
   PureFn f
-lfn' cid f = MkPureFn (cid, decode'l f)
+lfn' f = MkPureFn (decode'l f)

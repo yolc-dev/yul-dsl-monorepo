@@ -14,7 +14,6 @@ documentation](https://docs.soliditylang.org/en/latest/yul.html#specification-of
 module YulDSL.Core.YulObject
   (-- $AnyExportedYulCat
     AnyExportedYulCat (MkAnyExportedYulCat)
-  , pureFn
   ) where
 -- base
 import Data.List                                  (intercalate)
@@ -33,10 +32,3 @@ import YulDSL.Core.YulEffect
 data AnyExportedYulCat where
   MkAnyExportedYulCat :: forall k { eff :: k } xs b. YulO2 (NP xs) b
                       => NamedYulCat eff (NP xs) b -> AnyExportedYulCat
-
-pureFn :: forall fn xs b.
-  ( ClassifiedYulCat fn PureEffect (NP xs) b
-  , YulO2 (NP xs) b
-  ) => fn -> String
-pureFn fn = case withClassifiedYulCat fn MkAnyExportedYulCat of
-              MkAnyExportedYulCat cat -> show cat
