@@ -13,14 +13,7 @@ Ethereum contract ABI address type.
 
 -}
 module Ethereum.ContractABI.CoreType.ADDR
-  ( ADDR
+  (
   ) where
 
-import Ethereum.ContractABI.ABICoreType
-
-data ADDR
-
-instance ABITypeable ADDR where
-  type instance ABITypeDerivedOf ADDR = ADDR
-  abiTypeInfo = "a"
 
