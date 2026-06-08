@@ -11,8 +11,6 @@ import YulDSL.Core.YulEffect
 
 data TestEffectKind = Pure | NonPure
 
-instance ClassifiedYulCatEffect Pure where classifyYulCatEffect = PureEffect
-
 type instance IsEffectNotPure Pure = False
 type instance MayEffectWorld  Pure = False
 

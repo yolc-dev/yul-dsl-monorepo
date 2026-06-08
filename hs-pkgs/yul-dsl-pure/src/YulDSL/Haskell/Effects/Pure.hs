@@ -43,17 +43,12 @@ import YulDSL.Core
 data PureEffectKind = Pure  -- ^ Pure morphism, may not be total
                     | Total -- ^ TODO, to further distinguish totality from other pure morphism.
 
-instance ClassifiedYulCatEffect Pure where classifyYulCatEffect = PureEffect
-instance ClassifiedYulCatEffect Total where classifyYulCatEffect = PureEffect
-
 type instance IsEffectNotPure (eff :: PureEffectKind) = False
 type instance MayEffectWorld  (eff :: PureEffectKind) = False
 
 -- | Pure yul category morphisms.
 type YulCat'P = YulCat Pure
 
--- | Pure 'YulCat' n-ary function form, with each morphism on the arrow sharing the same domain @a@.
-type PureY f = forall a. YulO1 a => LiftFunction f (YulCat'P a) (YulCat'P a) Many
 
 --
 -- UncurriableNP instances

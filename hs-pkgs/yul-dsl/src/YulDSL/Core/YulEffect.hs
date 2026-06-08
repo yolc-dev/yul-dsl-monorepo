@@ -2,8 +2,7 @@
 module YulDSL.Core.YulEffect
   ( IsEffectNotPure, MayEffectWorld
   , YulCatEffectClass (..), SYulCatEffectClass, KnownYulCatEffectClass(yulCatEffectClassSing, fromSYulCatEffectClass)
-  , ClassifiedYulCatEffect (classifyYulCatEffect)
-  , AssertPureEffect, AssertNonPureEffect, IsNonsenseEffect
+  , AssertPureEffect, AssertNonPureEffect
   ) where
 -- base
 import Data.Kind      (Constraint)
@@ -33,10 +32,6 @@ class KnownYulCatEffectClass (efc :: YulCatEffectClass) where
   fromSYulCatEffectClass :: SYulCatEffectClass efc -> YulCatEffectClass
 instance KnownYulCatEffectClass PureEffect where fromSYulCatEffectClass _ = PureEffect
 
--- | Singleton class for YulCat effect classification.
-class ClassifiedYulCatEffect (eff :: k) where
-  -- | Create classification data for known yul effect.
-  classifyYulCatEffect :: YulCatEffectClass
 
 -- | Assert whether an effect can be used for morphisms that are pure. (F, F)
 type AssertPureEffect :: k -> Constraint
@@ -48,8 +43,3 @@ type AssertNonPureEffect :: k -> Constraint
 type AssertNonPureEffect eff = Assert (IsEffectNotPure eff)
                                (Unsatisfiable (Text "non-pure effect expected"))
 
-
-
--- | This effect doesn't make sense. (F, T)
-type IsNonsenseEffect :: k -> Bool
-type IsNonsenseEffect eff = Not (IsEffectNotPure eff) && MayEffectWorld eff

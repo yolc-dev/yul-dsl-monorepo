@@ -153,7 +153,7 @@ class ClassifiedYulCat fn (efc :: YulCatEffectClass) a b | fn -> efc a b where
   -- @ fromSYulCatEffectClass (yulCatEffectClassSing @efc) == classifyYulCatEffect @eff @
   withClassifiedYulCat :: forall r.
     fn ->
-    (forall k (eff :: k). ClassifiedYulCatEffect eff => NamedYulCat eff a b -> r) %1->
+    (forall k (eff :: k). NamedYulCat eff a b -> r) %1->
     r
 
 ------------------------------------------------------------------------------------------------------------------------
