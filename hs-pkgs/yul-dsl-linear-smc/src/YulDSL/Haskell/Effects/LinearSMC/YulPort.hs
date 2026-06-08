@@ -1,5 +1,4 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE TemplateHaskell     #-}
 module YulDSL.Haskell.Effects.LinearSMC.YulPort
   (P'P ,  keccak256'l
   , extendType'l
@@ -19,12 +18,11 @@ import YulDSL.Core.YulCat
 import Prelude (undefined)
 -- base
 -- constraints
-import Data.Constraint              (Dict (Dict))
 -- linear-smc
 import Control.Category.Constrained (Cartesian (..), Category (..), Monoidal (..), ProdObj (..))
 
 
-import Data.Kind                    (Constraint, Type)
+import Data.Kind                    (Type)
 
 
 
@@ -50,7 +48,6 @@ instance YulCatObj ()
 instance (YulCatObj a1, YulCatObj a2) => YulCatObj (a1, a2)
 
 -- Value Types
-instance YulCatObj BOOL
 instance ValidINTx s n => YulCatObj (INTx s n)
 instance YulCatObj ADDR
 instance ValidINTn n => YulCatObj (BYTESn n)
