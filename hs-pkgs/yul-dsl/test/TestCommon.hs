@@ -6,13 +6,8 @@ import YulDSL.Core.YulEffect
 
 
 ------------------------------------------------------------------------------------------------------------------------
--- Pure effect for testing
+- Pure effect for testing
 ------------------------------------------------------------------------------------------------------------------------
 
 data TestEffectKind = Pure | NonPure
 
-type instance IsEffectNotPure Pure = False
-type instance MayEffectWorld  Pure = False
-
-type instance IsEffectNotPure NonPure = True
-type instance MayEffectWorld  NonPure = True

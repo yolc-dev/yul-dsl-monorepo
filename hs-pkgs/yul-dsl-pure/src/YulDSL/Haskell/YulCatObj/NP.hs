@@ -13,8 +13,3 @@ This module provides the instances for yul morphisms to NP structures.
 
 -}
 module YulDSL.Haskell.YulCatObj.NP () where
--- yul-dsl
-import YulDSL.Core
--- (control-extra)
-import Control.PatternMatchable
-

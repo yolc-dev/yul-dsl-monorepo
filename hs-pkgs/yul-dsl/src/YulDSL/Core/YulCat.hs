@@ -39,7 +39,6 @@ import Ethereum.ContractABI
 --
 import YulDSL.Core.YulBuiltIn
 import YulDSL.Core.YulCatObj
-import YulDSL.Core.YulEffect
 import YulDSL.StdBuiltIns.ValueType ()
 
 
@@ -50,51 +49,16 @@ import YulDSL.StdBuiltIns.ValueType ()
 -- | Use kind signature for the 'YulCat' to introduce the terminology in a lexical-orderly way.
 type YulCat :: forall effKind. effKind -> Type -> Type -> Type
 
---  Note: Unlike its moniker name "Cat" may suggest, the constructors of this data type are morphisms of the Yul
---  category.
 data YulCat eff a b where
-  -- * Type Conversions
-  --
   YulExtendType :: forall eff a b. (YulO2 a b, a ~ ABITypeDerivedOf b) => YulCat eff a b
-  -- ^ Convert between coercible yul objects.
-  YulCoerceType :: forall eff a b. (YulO2 a b, ABITypeCoercible a b) => YulCat eff a b
-
-  -- * SMC
-  --
-  -- ** Category
-  YulId   :: forall eff a.      YulCat eff a a
   YulComp :: forall eff a b c.  YulCat eff c b %1-> YulCat eff a c %1-> YulCat eff a b
-  -- ** Monoidal Category
-  YulProd :: forall eff a b c d.  YulCat eff a b %1-> YulCat eff c d %1-> YulCat eff (a, c) (b, d)
-  YulSwap :: forall eff a b.      YulCat eff (a, b) (b, a)
-
-  -- * Control Flow Primitives
-  --
-  -- ^ Embed a constant value @b@ and disregard any input object @a@.
   YulJmpB :: forall eff a b p.
     ( YulO2 a b, YulBuiltInPrefix p a b
-    , If (IsYulBuiltInNonPure p) (AssertNonPureEffect eff) (() :: Constraint)
     ) =>
     YulBuiltIn p a b -> YulCat eff a b
-  -- ^ Call an external contract at the address along with a possible msgValue.
-  -- * Storage Primitives
-  --
 
 
 
-
-------------------------------------------------------------------------------------------------------------------------
--- Base Library Instances
-------------------------------------------------------------------------------------------------------------------------
-
---
--- YulCat Stringify Functions and Show Instance
---
-
--- | Compact and unique representation of 'YulCat', which can be used for generate its fingerprint.
---
---   Note:
---   * It is done so for the compactness of the string representation of the 'YulCat'.
 yulCatCompactShow :: YulCat eff a b -> String
 yulCatCompactShow = go
   where

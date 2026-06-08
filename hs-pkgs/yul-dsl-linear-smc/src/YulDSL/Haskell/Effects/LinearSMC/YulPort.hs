@@ -59,9 +59,9 @@ encodeP'x :: forall a b r.
 encodeP'x c = MkP'x . encode c . unP'x
 
 decodeP'x :: forall a b.
-  YulO2 a b =>
-  (forall r. YulO1 r => P'P r a ⊸ P'P r b) ->
-  YulCat Pure a b
+  YulO2 (NP '[ADDR]) b =>
+  (forall r. YulO1 r => P'P r (NP '[ADDR]) ⊸ P'P r b) ->
+  YulCat Pure (NP '[ADDR]) b
 decodeP'x f = decode (\a -> unP'x (f (MkP'x a)))
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -75,6 +75,8 @@ keccak256'l :: forall a r. YulO2 r a => P'P r a ⊸ P'P r B32
 keccak256'l = encodeP'x (YulJmpB (MkYulBuiltIn @"__keccak_c_" @a @B32))
 
 
+    -- abi_type_name :: forall a. ABITypeable a => String
+    -- abi_type_name = abiTypeCompactName @a
 
 ------------------------------------------------------------------------------------------------------------------------
 -- $PureEffectKind
@@ -84,11 +86,6 @@ keccak256'l = encodeP'x (YulJmpB (MkYulBuiltIn @"__keccak_c_" @a @B32))
 -- | Data kind for pure morphisms in the yul category.
 data PureEffectKind = Pure  -- ^ Pure morphism, may not be total
 
-type instance IsEffectNotPure (eff :: PureEffectKind) = False
-type instance MayEffectWorld  (eff :: PureEffectKind) = False
-
-
--- | Function without side effects, hence pure.
 data PureFn f where
   MkPureFn :: forall f xs b. YulCat Pure (NP xs) b -> PureFn f
 

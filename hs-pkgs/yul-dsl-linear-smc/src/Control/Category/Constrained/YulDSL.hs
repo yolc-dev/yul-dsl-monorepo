@@ -14,6 +14,7 @@ Categories required for being a symmetric monoidal category.
 
 module Control.Category.Constrained.YulDSL () where
 
+import Prelude (undefined)
 -- base
 -- constraints
 import Data.Constraint              (Dict (Dict))
@@ -31,14 +32,14 @@ instance ProdObj YulCatObj where
 
 instance Category (YulCat eff) where
   type Obj (YulCat eff) = YulCatObj
-  id  = YulId
+  id  = undefined
   (∘) = YulComp
 
 instance Monoidal (YulCat eff) where
-  (×)     = YulProd
-  unitor  = YulCoerceType
-  unitor' = YulCoerceType
-  assoc   = YulCoerceType
-  assoc'  = YulCoerceType
-  swap    = YulSwap
+  (×)     = undefined
+  unitor  = undefined
+  unitor' = undefined
+  assoc   = undefined
+  assoc'  = undefined
+  swap    = undefined
 
