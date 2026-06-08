@@ -24,7 +24,6 @@ import Data.TupleN
 --
 import Ethereum.ContractABI.ABICoreType
 
-import Ethereum.ContractABI.CoreType.NP  (NP (..))
 
 -- ^ ABI typeable unit.
 instance ABITypeable () where

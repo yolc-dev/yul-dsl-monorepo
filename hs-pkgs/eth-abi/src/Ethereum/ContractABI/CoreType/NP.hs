@@ -14,22 +14,6 @@ Ethereum contract ABI compatible tuples encoded as simple n-ary products 'Data.S
 
 -}
 module Ethereum.ContractABI.CoreType.NP
-  ( module Data.SimpleNP
+  (
   ) where
-
--- cereal
---
-import Data.SimpleNP
---
-import Ethereum.ContractABI.ABICoreType
-
-
-instance ABITypeable (NP '[]) where
-  type instance ABITypeDerivedOf (NP '[]) = NP '[]
-  abiTypeInfo = []
-
-instance ( ABITypeable x, ABITypeable (NP xs)
-         ) => ABITypeable (NP (x : xs)) where
-  type instance ABITypeDerivedOf (NP (x : xs)) = NP (x : xs)
-  abiTypeInfo = abiTypeInfo @x <> abiTypeInfo @(NP xs)
 

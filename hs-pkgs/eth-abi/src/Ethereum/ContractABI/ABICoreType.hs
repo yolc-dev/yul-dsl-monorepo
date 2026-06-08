@@ -22,6 +22,7 @@ module Ethereum.ContractABI.ABICoreType
   , ADDR
   , U256
   , B32
+  , module Data.SimpleNP
   ) where
 
 -- base
@@ -34,6 +35,7 @@ import GHC.TypeLits
 --
 
 -- base
+import Data.SimpleNP
 import Data.Bits                         (shift)
 import Data.Coerce                       (coerce)
 import Data.Maybe                        (fromJust)
@@ -83,3 +85,18 @@ data B32
 instance ABITypeable B32 where
   type instance ABITypeDerivedOf B32 = B32
   abiTypeInfo = "b"
+
+-- cereal
+--
+--
+
+
+instance ABITypeable (NP '[]) where
+  type instance ABITypeDerivedOf (NP '[]) = NP '[]
+  abiTypeInfo = []
+
+instance ( ABITypeable x, ABITypeable (NP xs)
+         ) => ABITypeable (NP (x : xs)) where
+  type instance ABITypeDerivedOf (NP (x : xs)) = NP (x : xs)
+  abiTypeInfo = abiTypeInfo @x <> abiTypeInfo @(NP xs)
+
