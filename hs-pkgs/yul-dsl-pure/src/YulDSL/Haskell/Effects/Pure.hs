@@ -18,7 +18,7 @@ module YulDSL.Haskell.Effects.Pure
     PureEffectKind (Pure, Total)
   , YulCat'P
     -- $PureFn
-  , PureFn (MkPureFn), fn', fn
+  , PureFn (MkPureFn), fn'
     -- * Template Haskell Support
     -- * Technical Notes
     -- $yulCatVal
@@ -141,10 +141,6 @@ fn' :: forall f xs b m.
   PureFn (CurryNP (NP xs) b) -- ^ result type, or its short form @m b@
 fn' cid f = let cat = uncurryNP @f @xs @b @m @m @m @m f YulId in MkPureFn (cid, cat)
 
--- | Create a 'PureFn' with automatic id based on function definition source location.
-fn :: TH.Q TH.Exp
-fn = [e| fn' ("$pfn_" ++ $fnLocId) |]
-
 instance forall f x xs b g a.
          ( YulO4 x (NP xs) b a
          , EquivalentNPOfFunction f (x:xs) b
@@ -153,24 +149,3 @@ instance forall f x xs b g a.
          CallableFunctionNP PureFn f x xs b (YulCat'P a) (YulCat'P a) Many where
   call (MkPureFn (cid, cat)) x = curryNP @g @xs @b @(YulCat'P a) @(YulCat'P a) @(YulCat'P a)
     (\xs -> consNP x xs >.> YulJmpU (cid, cat))
-
-
-instance forall f xs b r.
-         ( YulO3 (NP xs) b r
-         , EquivalentNPOfFunction f xs b
-         , ConvertibleNPtoTupleN (NP (MapList (YulCat'P r) xs))
-         , DistributiveNP (YulCat'P r) xs
-         ) =>
-         CallableFunctionN PureFn f xs b (YulCat'P r) (YulCat'P r) Many where
-  callN (MkPureFn (cid, cat)) tpl = distributeNP (fromTupleNtoNP tpl) >.> YulJmpU (cid, cat)
-
--- | Automatically generate a source location based id using template haskell.
-fnLocId :: TH.Q TH.Exp
-fnLocId = do
-  loc <- TH.location
-  let modname = TH.loc_module loc
-      -- normalize module name: replace "."
-      modname' = fmap (\x -> if x `elem` "." then '_' else x) modname
-      (s1, s2) = TH.loc_start loc
-  TH.litE (TH.StringL (modname' ++ "_" ++ show s1 ++ "_" ++ show s2))
-
