@@ -21,7 +21,7 @@ import Prelude.Linear
 -- yul-dsl
 import YulDSL.Core
 -- yul-dsl-pure
-import YulDSL.Haskell.LibPure
+import YulDSL.Haskell.Effects.Pure
 --
 import YulDSL.Haskell.Effects.LinearSMC.YulPort
 

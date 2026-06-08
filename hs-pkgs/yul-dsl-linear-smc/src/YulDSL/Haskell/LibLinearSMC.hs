@@ -1,12 +1,10 @@
 module YulDSL.Haskell.LibLinearSMC
-  ( module YulDSL.Haskell.LibPure
-  , keccak256'l
+  (  keccak256'l
   ) where
 -- linear-base
 -- yul-dsl
 import YulDSL.Core
 -- yul-dsl-pure
-import YulDSL.Haskell.LibPure
 -- (lvm)
 --
 import YulDSL.Haskell.Effects.LinearSMC.YulPort

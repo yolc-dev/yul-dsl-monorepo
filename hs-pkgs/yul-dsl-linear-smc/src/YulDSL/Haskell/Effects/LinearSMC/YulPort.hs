@@ -15,7 +15,11 @@ import Prelude.Linear
 -- linear-smc
 import Control.Category.Linear             (P, decode, encode)
 -- yul-dsl-pure
-import YulDSL.Haskell.LibPure
+
+import YulDSL.Core
+import YulDSL.Haskell.Effects.Pure
+
+--
 --
 import Control.Category.Constrained.YulDSL ()
 
