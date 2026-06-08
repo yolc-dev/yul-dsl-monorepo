@@ -33,7 +33,6 @@ import GHC.TypeLits
 -- template-haskell
 -- constraints
 --
-import Internal.Data.Type.Bool
 
 
 {- * ABICoreType and their utilities -}

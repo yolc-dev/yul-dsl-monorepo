@@ -28,7 +28,6 @@ import GHC.TypeLits                      (type (+), type (<=), type (<=?))
 -- cereal
 -- eth-abi
 import Ethereum.ContractABI.ABICoreType
-import Internal.Data.Type.Bool
 
 
 -- | ABI integer value types, where @s@ is for signess and @n@ is byte-size of the value.
