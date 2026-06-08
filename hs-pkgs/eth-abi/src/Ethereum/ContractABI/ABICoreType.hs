@@ -1,5 +1,4 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE TemplateHaskell     #-}
 {-|
 
 Copyright   : (c) 2024-2025 Miao, ZhiCheng
@@ -23,6 +22,7 @@ module Ethereum.ContractABI.ABICoreType
   , U256
   , B32
   , module Data.SimpleNP
+  ,  module Data.TupleN
   ) where
 
 -- base
@@ -36,22 +36,26 @@ import GHC.TypeLits
 
 -- base
 import Data.SimpleNP
-import Data.Bits                         (shift)
-import Data.Coerce                       (coerce)
-import Data.Maybe                        (fromJust)
 import Data.Proxy                        (Proxy (Proxy))
 import GHC.TypeLits                      (type (+), type (<=), type (<=?))
+-- base
+import Data.TupleN
+--
+
+
+-- ^ ABI typeable unit.
+instance ABITypeable () where
+  type instance ABITypeDerivedOf () = NP '[]
+
+-- ^ ABI typeable for solo tuple.
+instance ABITypeable a => ABITypeable (Solo a) where
+  type instance ABITypeDerivedOf (Solo a) = NP '[a]
+
+-- | ABI typeable tuple.
+instance (ABITypeable a1, ABITypeable a2) => ABITypeable (a1, a2) where
+  type instance ABITypeDerivedOf (a1, a2) = NP '[a1, a2]
+
 -- cereal
-
-{- * ABICoreType and their utilities -}
-
-
-
--- | A constraint that restricts what Nat values are valid for 'INTx' and 'BYTESn'.
---   Note: It is valid from 1 to 32.
-
-
--- | A top-level splice that declares all the valid INTx n values.
 
 
 class ABITypeable a where
