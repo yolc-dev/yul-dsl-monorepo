@@ -16,9 +16,8 @@ Portability : GHC2024
 
 -}
 module Ethereum.ContractABI.ABITypeable
- ( ABITypeable (..)
+ (
  ) where
 
 -- base
 --
-import  Ethereum.ContractABI.ABICoreType

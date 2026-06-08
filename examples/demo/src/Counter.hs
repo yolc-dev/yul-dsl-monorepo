@@ -1,7 +1,6 @@
 module Counter where
 import Prelude.Linear                           (String)
-import Ethereum.ContractABI.ABICoreType                              (ADDR, NP, REF, U256 )
-import YulDSL.Haskell.Effects.LinearSMC.YulPort (P'P, extendType'l, lfn', keccak256'l , YulO1)
+import YulDSL.Haskell.Effects.LinearSMC.YulPort (P'P, extendType'l, lfn', keccak256'l , YulO1, ADDR, NP, REF, U256 )
 
 
 -- | Get a storage reference from the storage hash-map.
