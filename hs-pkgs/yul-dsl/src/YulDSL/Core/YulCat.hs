@@ -25,7 +25,6 @@ safety to the practice of EVM programming.
 module YulDSL.Core.YulCat
   ( -- * YulCat, the Categorical DSL of Yul
     YulCat (..), AnyYulCat (..)
-  , YulCallTarget, YulCallGasLimit, YulCallValue
   , NamedYulCat, ClassifiedYulCat (withClassifiedYulCat)
   -- * YulCat Stringify Functions
   , yulCatCompactShow
@@ -65,12 +64,6 @@ data AnyYulCat = forall eff a b. (YulO2 a b) => MkAnyYulCat (YulCat eff a b)
 -- | Named YulCat morphism.
 type NamedYulCat eff a b = (String, YulCat eff a b)
 
-type YulCallTarget   = ADDR
-type YulCallGasLimit = U256
-type YulCallValue    = U256
-
--- | A GADT-style DSL of Yul that constructs morphisms between objects (YulCatObj) of the "Yul Category".
---
 --  Note: Unlike its moniker name "Cat" may suggest, the constructors of this data type are morphisms of the Yul
 --  category.
 data YulCat eff a b where
@@ -119,12 +112,6 @@ data YulCat eff a b where
     ) =>
     YulBuiltIn p a b -> YulCat eff a b
   -- ^ Call an external contract at the address along with a possible msgValue.
-  YulCall :: forall eff a b.
-    ( YulO2 a b
-    , AssertNonPureEffect eff
-    ) =>
-    SELECTOR -> YulCat eff ((YulCallTarget, YulCallValue, YulCallGasLimit), a) b
-
   -- * Storage Primitives
   --
   -- ^ Get storage word.
@@ -177,9 +164,7 @@ yulCatCompactShow = go
     go (YulExtendType @_ @a @b)    = "Te" <> abi_type_name2 @a @b
     go (YulComp cb ac)             = "(" <> go ac <> ");(" <> go cb <> ")"
     go (YulEmb @_ @b x)            = "{"
-    go (YulJmpU @_ @a @b (cid, _)) = "Ju "
     go (YulJmpB @_ @a @b p)        = "Jb "
-    go (YulCall @_ @a @b sel)      = "C"
     go (YulUnsafeCoerceEffect c)   = go c
     go _ = error "a"
     -- A 'abi_type_name variant, enclosing name with "@()".

@@ -42,9 +42,3 @@ instance Monoidal (YulCat eff) where
   assoc'  = YulCoerceType
   swap    = YulSwap
 
-instance Cartesian (YulCat eff) where
-  (▵) = YulFork
-  exl = YulExl
-  exr = YulExr
-  dis = YulDis
-  dup = YulDup
