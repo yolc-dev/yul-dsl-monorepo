@@ -14,7 +14,7 @@ documentation](https://docs.soliditylang.org/en/latest/yul.html#specification-of
 module YulDSL.Core.YulObject
   (-- $AnyExportedYulCat
     AnyExportedYulCat (MkAnyExportedYulCat), withAnyExportedYulCat
-  , pureFn, staticFn, omniFn
+  , pureFn
     -- $YulObject
   , YulObject (..), mkYulObject
   ) where
@@ -51,24 +51,8 @@ pureFn :: forall fn efc xs b.
   ) => String -> fn -> AnyExportedYulCat
 pureFn fname fn = withClassifiedYulCat fn (MkAnyExportedYulCat (mkTypedSelector @(NP xs) fname) PureEffect)
 
-staticFn :: forall fn efc xs b.
-  ( ClassifiedYulCat fn efc (NP xs) b
-  , efc ~ StaticEffect
-  , YulO2 (NP xs) b
-  ) => String -> fn -> AnyExportedYulCat
-staticFn fname fn = withClassifiedYulCat fn (MkAnyExportedYulCat (mkTypedSelector @(NP xs) fname) StaticEffect)
-
-omniFn :: forall fn efc xs b.
-  ( ClassifiedYulCat fn efc (NP xs) b
-  , efc ~ OmniEffect
-  , YulO2 (NP xs) b
-  ) => String -> fn -> AnyExportedYulCat
-omniFn fname fn = withClassifiedYulCat fn (MkAnyExportedYulCat (mkTypedSelector @(NP xs) fname) OmniEffect)
-
 instance Show AnyExportedYulCat where
   show (MkAnyExportedYulCat s PureEffect   cat) = "pure "   <> show_fn_spec s cat
-  show (MkAnyExportedYulCat s StaticEffect cat) = "static " <> show_fn_spec s cat
-  show (MkAnyExportedYulCat s OmniEffect   cat) = "omni "   <> show_fn_spec s cat
 
 show_fn_spec :: forall xs b eff. YulO2 (NP xs) b
              => SELECTOR -> NamedYulCat eff (NP xs) b -> String

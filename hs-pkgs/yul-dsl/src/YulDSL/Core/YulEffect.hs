@@ -3,7 +3,7 @@ module YulDSL.Core.YulEffect
   ( IsEffectNotPure, MayEffectWorld
   , YulCatEffectClass (..), SYulCatEffectClass, KnownYulCatEffectClass(yulCatEffectClassSing, fromSYulCatEffectClass)
   , ClassifiedYulCatEffect (classifyYulCatEffect)
-  , AssertPureEffect, AssertNonPureEffect, AssertStaticEffect, AssertOmniEffect, IsNonsenseEffect
+  , AssertPureEffect, AssertNonPureEffect, IsNonsenseEffect
   ) where
 -- base
 import Data.Kind      (Constraint)
@@ -21,8 +21,6 @@ type family MayEffectWorld (eff :: k) :: Bool
 -- | Classification of yul category effect.
 data YulCatEffectClass
   = PureEffect
-  | StaticEffect
-  | OmniEffect
   deriving (Eq, Show)
 
 -- | Singleton data for yul category effect classifications.
@@ -34,8 +32,6 @@ class KnownYulCatEffectClass (efc :: YulCatEffectClass) where
   yulCatEffectClassSing = SYulCatEffectClass @efc
   fromSYulCatEffectClass :: SYulCatEffectClass efc -> YulCatEffectClass
 instance KnownYulCatEffectClass PureEffect where fromSYulCatEffectClass _ = PureEffect
-instance KnownYulCatEffectClass StaticEffect where fromSYulCatEffectClass _ = StaticEffect
-instance KnownYulCatEffectClass OmniEffect where fromSYulCatEffectClass _ = OmniEffect
 
 -- | Singleton class for YulCat effect classification.
 class ClassifiedYulCatEffect (eff :: k) where
@@ -52,15 +48,7 @@ type AssertNonPureEffect :: k -> Constraint
 type AssertNonPureEffect eff = Assert (IsEffectNotPure eff)
                                (Unsatisfiable (Text "non-pure effect expected"))
 
--- | Assert whether an effect can be used for morphisms that are non-pure but cannot change world. (T, F)
-type AssertStaticEffect :: k -> Constraint
-type AssertStaticEffect eff = Assert (IsEffectNotPure eff && Not (MayEffectWorld eff))
-                              (Unsatisfiable (Text "static effect expected"))
 
--- | Assert whether an effect can be used for morphisms that are non-pure and may change world. (T, T)
-type AssertOmniEffect :: k -> Constraint
-type AssertOmniEffect eff = Assert (IsEffectNotPure eff && MayEffectWorld eff)
-                            (Unsatisfiable (Text "omni effect expected"))
 
 -- | This effect doesn't make sense. (F, T)
 type IsNonsenseEffect :: k -> Bool

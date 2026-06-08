@@ -109,8 +109,6 @@ ifunc_name (MkAnyExportedYulCat (SELECTOR (_, Just (MkFuncSig fname))) fnEff (_ 
     where argTypes = map (T.pack . abiCoreTypeCanonName) (abiTypeInfo @a)
           retTypes = map (T.pack . abiCoreTypeCanonName) (abiTypeInfo @b)
           effect PureEffect   = " pure"
-          effect StaticEffect = " view"
-          effect OmniEffect   = ""
 ifunc_name _ = Nothing
 
 -- Compile interface of the build unit.
