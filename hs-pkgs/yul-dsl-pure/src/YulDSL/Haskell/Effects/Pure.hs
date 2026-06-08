@@ -22,7 +22,6 @@ module YulDSL.Haskell.Effects.Pure
   ) where
 -- template-haskell
 -- TO BE MOVED
-import Data.Type.Function
 -- yul-dsl
 import YulDSL.Core
 
