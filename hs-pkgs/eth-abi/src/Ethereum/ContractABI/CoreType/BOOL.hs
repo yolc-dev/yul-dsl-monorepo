@@ -23,7 +23,6 @@ import Internal.Data.Type.Bool
 --
 import Ethereum.ContractABI.ABICoreType
 import Ethereum.ContractABI.ABITypeable
-import Ethereum.ContractABI.ABITypeCodec
 
 
 -- | ABI boolean value type.
@@ -40,8 +39,6 @@ false = BOOL False
 instance ABITypeable BOOL where
   type instance ABITypeDerivedOf BOOL = BOOL
   abiTypeInfo = [BOOL']
-
-instance ABITypeCodec BOOL where
 
 instance Bounded BOOL where
   minBound = false

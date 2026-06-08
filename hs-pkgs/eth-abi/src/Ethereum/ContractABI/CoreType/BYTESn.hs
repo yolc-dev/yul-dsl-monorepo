@@ -14,7 +14,6 @@ import Data.Word                          (Word8)
 --
 import Ethereum.ContractABI.ABICoreType
 import Ethereum.ContractABI.ABITypeable
-import Ethereum.ContractABI.ABITypeCodec
 import Ethereum.ContractABI.CoreType.INTx (INTx)
 
 
@@ -27,7 +26,6 @@ instance (ValidINTn n) => ABITypeable (BYTESn n) where
   type instance ABITypeDerivedOf (BYTESn n) = BYTESn n
   abiTypeInfo = [BYTESn' (natSing @n)]
 
-instance (ValidINTn n) => ABITypeCodec (BYTESn n) where
 
 
 type B32 = BYTESn 32

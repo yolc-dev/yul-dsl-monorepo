@@ -21,7 +21,6 @@ module Ethereum.ContractABI.CoreType.ADDR
 --
 import Ethereum.ContractABI.ABICoreType
 import Ethereum.ContractABI.ABITypeable
-import Ethereum.ContractABI.ABITypeCodec
 
 newtype ADDR = ADDR Integer deriving newtype (Ord, Eq, Enum)
 
@@ -35,4 +34,3 @@ instance ABITypeable ADDR where
   type instance ABITypeDerivedOf ADDR = ADDR
   abiTypeInfo = [ADDR']
 
-instance ABITypeCodec ADDR where

@@ -39,7 +39,6 @@ import Data.Serialize                    qualified as S
 -- eth-abi
 import Ethereum.ContractABI.ABICoreType
 import Ethereum.ContractABI.ABITypeable
-import Ethereum.ContractABI.ABITypeCodec
 import Internal.Data.Type.Bool
 
 
@@ -77,7 +76,6 @@ instance forall s n. ValidINTx s n => ABITypeable (INTx s n) where
   type instance ABITypeDerivedOf (INTx s n) = INTx s n
   abiTypeInfo = [INTx' (boolSing @s) (natSing @n)]
 
-instance forall s n. ValidINTx s n => ABITypeCodec (INTx s n) where
 
 --
 --  Num hierarchy classes for (Maybe INTx s n)
