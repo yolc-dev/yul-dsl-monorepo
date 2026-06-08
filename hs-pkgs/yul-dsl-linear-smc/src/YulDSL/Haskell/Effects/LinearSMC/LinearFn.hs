@@ -32,7 +32,7 @@ import Data.Kind     (Type)
 
 lfn' :: forall x xs b.
   ( YulO2 (NP '[x]) b
-  , '[x] ~ xs
+  , '[x] ~ xs   -- crash stops after removing this line
   ) =>
   (forall r. YulO1 r => P'P r (NP '[x]) ⊸ P'P r b) ->
   PureFn (x -> b)

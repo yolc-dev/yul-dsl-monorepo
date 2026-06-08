@@ -44,4 +44,3 @@ data PureFn f where
 
 pureFn :: (PureFn fn) -> String
 pureFn (MkPureFn fn) = show fn
-
