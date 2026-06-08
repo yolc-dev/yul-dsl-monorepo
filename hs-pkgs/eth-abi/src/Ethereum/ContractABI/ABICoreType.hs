@@ -38,13 +38,8 @@ import GHC.TypeLits
     , withKnownNat
     , withSomeSNat
     )
-import Numeric                      (showHex)
-import Text.ParserCombinators.ReadP qualified as RP
 -- template-haskell
-import Language.Haskell.TH          qualified as TH
 -- constraints
-import Data.Constraint              (Dict, (\\))
-import Data.Constraint.Unsafe       (unsafeAxiom)
 --
 import Internal.Data.Type.Bool
 
@@ -77,7 +72,7 @@ type ValidINTn n = (KnownNat n, ValidINTn_ n)
 class ValidINTn_ n
 
 -- | A top-level splice that declares all the valid INTx n values.
-flip foldMap [1 .. 32] $ \i -> [d| instance ValidINTn_ $(TH.litT (TH.numTyLit i)) |]
+instance ValidINTn_ 32
 
 -- | Compact but unambiguous names for the core types..
 abiCoreTypeCompactName :: ABICoreType -> String
@@ -93,3 +88,4 @@ class ABITypeable a where
 
   abiTypeInfo :: String
   abiFromCoreType :: a -> a
+  abiFromCoreType x = x
