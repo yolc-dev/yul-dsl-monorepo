@@ -44,7 +44,7 @@ newtype P'x (eff :: PortEffect) r a = MkP'x (P (YulCat PortEffect) r a)
 -- ^ Role annotation to make sure @eff@ is nominal, so only unsafe coercing is allowed.
 type role P'x nominal _ _
 
-unP'x :: forall (eff :: PortEffect) r a. P'x eff r a ⊸ P (YulCat PortEffect) r a
+unP'x :: forall r a. P'x PurePort r a ⊸ P (YulCat PortEffect) r a
 unP'x (MkP'x x) = x
 
 -- | Linear port of yul category with pure data, aka. pure yul ports.
@@ -55,29 +55,29 @@ type P'P = P'x PurePort
 encodeP'x :: forall (eff :: PortEffect) a b r.
   YulO3 r a b =>
   YulCat PortEffect a b ->
-  (P'x eff r a ⊸ P'x eff r b)
+  (P'x PurePort r a ⊸ P'x PurePort r b)
 encodeP'x c = MkP'x . encode c . unP'x
 
-decodeP'x :: forall (eff :: PortEffect) a b.
+decodeP'x :: forall a b.
   YulO2 a b =>
-  (forall r. YulO1 r => P'x eff r a ⊸ P'x eff r b) ->
+  (forall r. YulO1 r => P'x PurePort r a ⊸ P'x PurePort r b) ->
   YulCat PortEffect a b
 decodeP'x f = decode (\a -> unP'x (f (MkP'x a)))
 
 -- | Unsafe coerce yul port' effects.
-unsafeCoerceYulPort :: forall (eff1 :: PortEffect) (eff2 :: PortEffect) r a.
-  P'x eff1 r a ⊸ P'x eff2 r a
+unsafeCoerceYulPort :: forall  r a.
+  P'x PurePort r a ⊸ P'x PurePort r a
 unsafeCoerceYulPort = MkP'x . unP'x
 
 -- | Unsafe coerce yul port diagram's effects.
-unsafeCoerceYulPortDiagram :: forall (eff1 :: PortEffect) (eff2 :: PortEffect) (eff3 :: PortEffect) r a b.
-    (P'x eff1 r a ⊸ P'x eff2 r b) ⊸ (P'x eff3 r a ⊸ P'x eff3 r b)
+unsafeCoerceYulPortDiagram :: forall  r a b.
+    (P'x PurePort r a ⊸ P'x PurePort r b) ⊸ (P'x PurePort r a ⊸ P'x PurePort r b)
 unsafeCoerceYulPortDiagram f x = unsafeCoerceYulPort (f (unsafeCoerceYulPort x))
 ------------------------------------------------------------------------------------------------------------------------
 
-extendType'l :: forall a eff r.
+extendType'l :: forall a r.
   (YulO3 a (ABITypeDerivedOf a) r) =>
-  P'x eff r (ABITypeDerivedOf a) ⊸ P'x eff r a
+  P'x PurePort r (ABITypeDerivedOf a) ⊸ P'x PurePort r a
 extendType'l = encodeP'x YulExtendType
 
 --
