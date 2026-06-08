@@ -5,8 +5,6 @@ module Eval_prop (tests) where
 -- hspec, quickcheck
 import Test.Hspec
 import Test.QuickCheck
--- eth-abi
-import Ethereum.ContractABI
 -- yul-dsl
 import YulDSL.Core
 import YulDSL.Eval

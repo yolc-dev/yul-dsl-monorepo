@@ -23,6 +23,8 @@ module Ethereum.ContractABI.ABICoreType
   , B32
   , module Data.SimpleNP
   ,  module Data.TupleN
+  , REF
+  , ValidSlot
   ) where
 
 -- base
@@ -42,6 +44,21 @@ import GHC.TypeLits                      (type (+), type (<=), type (<=?))
 import Data.TupleN
 --
 
+-- base
+import GHC.TypeLits
+--
+
+
+-- | A storage or memory reference to type @a@ at the solidity conventional "(slot, offset)".
+newtype REF a = REF Integer deriving (Ord, Eq)
+
+instance Show (REF a) where show (REF x) = show x
+
+-- | Each slot uses 32 bytes
+type ValidSlot n = (KnownNat n, n <= (2 ^ 248))
+
+instance ABITypeable a => ABITypeable (REF a) where
+  type instance ABITypeDerivedOf (REF a) = B32
 
 -- ^ ABI typeable unit.
 instance ABITypeable () where
