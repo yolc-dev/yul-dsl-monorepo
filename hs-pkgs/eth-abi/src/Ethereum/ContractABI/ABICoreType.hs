@@ -24,7 +24,6 @@ module Ethereum.ContractABI.ABICoreType
   , abiCoreTypeCompactName
   -- EVM word representations
   , WORD, integerToWord, wordToInteger, defWord, maxWord
-  , ABIWordValue (ABIWordNBytes, toWord, fromWord)
   ) where
 
 -- base
@@ -141,12 +140,3 @@ defWord = WORD 0
 -- | Maximum word value: 2^256 - 1.
 maxWord :: WORD
 maxWord = WORD (2 ^ (256 :: Int) - 1)
-
--- | ABI values that can be stored in one word.
-class Bounded a => ABIWordValue a where
-  -- | Number of bytes the ABI word requires.
-  type family ABIWordNBytes a :: Nat
-  -- | Convert from a storage value to an ABI typed value.
-  fromWord :: WORD -> Maybe a
-  -- | Convert from a ABI typed value to a storage value.
-  toWord :: a -> WORD

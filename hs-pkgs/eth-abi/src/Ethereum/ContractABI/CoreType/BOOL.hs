@@ -48,16 +48,6 @@ instance Bounded BOOL where
   minBound = false
   maxBound = true
 
-instance ABIWordValue BOOL where
-  type instance ABIWordNBytes BOOL = 1
-  fromWord w = case wordToInteger w of
-    0 -> Just false
-    1 -> Just true
-    _ -> Nothing
-
-  toWord (BOOL False) = integerToWord 0
-  toWord (BOOL True)  = integerToWord 1
-
 instance Show BOOL where
   show (BOOL True)  = "true"
   show (BOOL False) = "false"
