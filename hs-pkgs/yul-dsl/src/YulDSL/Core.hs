@@ -10,8 +10,6 @@ module YulDSL.Core
   , module YulDSL.Core.YulCatObj
   , module YulDSL.Core.YulBuiltIn
   , module YulDSL.Core.YulCat
-  , module YulDSL.Core.YulObject
-  , module YulDSL.Core.YulLib
   ) where
 -- eth-abi
 import Ethereum.ContractABI
