@@ -25,7 +25,6 @@ safety to the practice of EVM programming.
 module YulDSL.Core.YulCat
   ( -- * YulCat, the Categorical DSL of Yul
     YulCat (..), AnyYulCat (..)
-  , NamedYulCat
   -- * YulCat Stringify Functions
   , yulCatCompactShow
   ) where
@@ -54,8 +53,6 @@ type YulCat :: forall effKind. effKind -> Type -> Type -> Type
 -- | Existential wrapper of the 'YulCat'.
 data AnyYulCat = forall eff a b. (YulO2 a b) => MkAnyYulCat (YulCat eff a b)
 
--- | Named YulCat morphism.
-type NamedYulCat eff a b = (YulCat eff a b)
 
 --  Note: Unlike its moniker name "Cat" may suggest, the constructors of this data type are morphisms of the Yul
 --  category.

@@ -41,7 +41,7 @@ type instance MayEffectWorld  (eff :: PureEffectKind) = False
 
 -- | Function without side effects, hence pure.
 data PureFn f where
-  MkPureFn :: forall f xs b. NamedYulCat Pure (NP xs) b -> PureFn f
+  MkPureFn :: forall f xs b. YulCat Pure (NP xs) b -> PureFn f
 
 pureFn :: (PureFn fn) -> String
 pureFn (MkPureFn fn) = show fn
