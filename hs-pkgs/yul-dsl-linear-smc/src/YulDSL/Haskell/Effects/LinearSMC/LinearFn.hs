@@ -11,29 +11,5 @@ Stability   : experimental
 -}
 module YulDSL.Haskell.Effects.LinearSMC.LinearFn
   ( -- * Build Linear Yul Functions
-    lfn'
     -- * Call External Smart Contract Functions
   ) where
--- base
--- template-haskell
--- linear-base
-import Prelude.Linear
--- yul-dsl
-import YulDSL.Core
--- yul-dsl-pure
-import YulDSL.Haskell.Effects.Pure
---
-import YulDSL.Haskell.Effects.LinearSMC.YulPort
-
-import Data.Kind     (Type)
---
-
-
-
-lfn' :: forall x xs b.
-  ( YulO2 (NP '[x]) b
-  , '[x] ~ xs   -- crash stops after removing this line
-  ) =>
-  (forall r. YulO1 r => P'P r (NP '[x]) ⊸ P'P r b) ->
-  PureFn (x -> b)
-lfn' f = MkPureFn (decodeP'x f)

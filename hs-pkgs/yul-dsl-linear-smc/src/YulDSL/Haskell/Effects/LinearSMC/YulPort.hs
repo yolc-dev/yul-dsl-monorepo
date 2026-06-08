@@ -9,6 +9,7 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
     -- * Type Operations
     -- $TypeOps
   , extendType'l
+  , lfn'
   ) where
 -- linear-base
 import Prelude.Linear
@@ -22,6 +23,28 @@ import YulDSL.Haskell.Effects.Pure
 --
 --
 import Control.Category.Constrained.YulDSL ()
+-- base
+-- template-haskell
+-- linear-base
+import Prelude.Linear
+-- yul-dsl
+import YulDSL.Core
+-- yul-dsl-pure
+import YulDSL.Haskell.Effects.Pure
+--
+
+import Data.Kind     (Type)
+--
+
+
+
+lfn' :: forall x xs b.
+  ( YulO2 (NP '[x]) b
+  , '[x] ~ xs   -- crash stops after removing this line
+  ) =>
+  (forall r. YulO1 r => P'P r (NP '[x]) ⊸ P'P r b) ->
+  PureFn (x -> b)
+lfn' f = MkPureFn (decodeP'x f)
 
 
 ------------------------------------------------------------------------------------------------------------------------
