@@ -10,10 +10,6 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
     -- $TypeOps
   , extendType'l
   , lfn'
-    -- $PureEffectKind
-    -- $PureFn
-  , PureFn (MkPureFn)
-  , pureFn
   ) where
 -- linear-base
 import Prelude.Linear
@@ -34,8 +30,8 @@ lfn' :: forall b xs.
   , '[ADDR] ~ xs   -- crash stops after removing this line
   ) =>
   (forall r. YulO1 r => P'P r (NP '[ADDR]) ⊸ P'P r b) ->
-  PureFn
-lfn' f = MkPureFn (decodeP'x f)
+  String
+lfn' f = yulCatCompactShow (decodeP'x f)
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -75,8 +71,3 @@ extendType'l = encodeP'x YulExtendType
 keccak256'l :: forall a r. YulO2 r a => P'P r a ⊸ P'P r B32
 keccak256'l = encodeP'x YulJmpB
 
-data PureFn where
-  MkPureFn :: forall xs b. YulCat (NP xs) b -> PureFn
-
-pureFn :: PureFn -> String
-pureFn (MkPureFn fn) = yulCatCompactShow fn
