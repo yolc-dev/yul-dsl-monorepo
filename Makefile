@@ -112,7 +112,10 @@ dev:
 repl-eth-abi:
 	$(CABAL) --builddir=$(CABAL_DEFAULT_BUILD_DIR) repl eth-abi
 
-.PHONY: all lint build build-* clean install-* test test-* dev repl-eth-abi
+repro: build-all
+	$(CABAL) --builddir=$(CABAL_DEFAULT_BUILD_DIR) exec test-yol-demo
+
+.PHONY: all lint build build-* clean install-* test test-* dev repl-eth-abi repro
 
 $(LINEAR_SMC_PATH_FILE):
 	[ -d 3rd-parties/linear-smc ] || exit 1
