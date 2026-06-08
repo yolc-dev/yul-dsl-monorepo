@@ -15,7 +15,7 @@ This module provides the operations for working with the 'Pure' kind of effect f
 module YulDSL.Haskell.Effects.Pure
   (
     -- $PureEffectKind
-    PureEffectKind (Pure, Total)
+    PureEffectKind (Pure)
     -- $PureFn
   , PureFn (MkPureFn)
   ) where
@@ -33,7 +33,6 @@ import YulDSL.Core
 
 -- | Data kind for pure morphisms in the yul category.
 data PureEffectKind = Pure  -- ^ Pure morphism, may not be total
-                    | Total -- ^ TODO, to further distinguish totality from other pure morphism.
 
 type instance IsEffectNotPure (eff :: PureEffectKind) = False
 type instance MayEffectWorld  (eff :: PureEffectKind) = False

@@ -31,20 +31,13 @@ module YulDSL.Core.YulCat
   ) where
 -- base
 import Data.Kind                    (Constraint, Type)
-import Text.Printf                  (printf)
 -- bytestring
-import Data.ByteString              qualified as BS
-import Data.ByteString.Char8        qualified as BS_Char8
 -- memory
-import Data.ByteArray               qualified as BA
 -- crypton
-import Crypto.Hash                  qualified as Hash
 -- text
-import Data.Text.Lazy               qualified as T
 -- eth-abi
 import Ethereum.ContractABI
 --
-import CodeGenUtils.CodeFormatters
 import YulDSL.Core.YulBuiltIn
 import YulDSL.Core.YulCatObj
 import YulDSL.Core.YulEffect
@@ -69,9 +62,6 @@ type NamedYulCat eff a b = (String, YulCat eff a b)
 data YulCat eff a b where
   -- * Type Conversions
   --
-  -- ^ Convert from extended yul object to its core yul object.
-  YulReduceType :: forall eff a b. (YulO2 a b, ABITypeDerivedOf a ~ b) => YulCat eff a b
-  -- ^ Extend core yul object type.
   YulExtendType :: forall eff a b. (YulO2 a b, a ~ ABITypeDerivedOf b) => YulCat eff a b
   -- ^ Convert between coercible yul objects.
   YulCoerceType :: forall eff a b. (YulO2 a b, ABITypeCoercible a b) => YulCat eff a b
@@ -79,23 +69,15 @@ data YulCat eff a b where
   -- * SMC
   --
   -- ** Category
-  YulId   :: forall eff a.     YulO2 a a   => YulCat eff a a
-  YulComp :: forall eff a b c. YulO3 a b c => YulCat eff c b %1-> YulCat eff a c %1-> YulCat eff a b
+  YulId   :: forall eff a.      YulCat eff a a
+  YulComp :: forall eff a b c.  YulCat eff c b %1-> YulCat eff a c %1-> YulCat eff a b
   -- ** Monoidal Category
-  YulProd :: forall eff a b c d. YulO4 a b c d => YulCat eff a b %1-> YulCat eff c d %1-> YulCat eff (a, c) (b, d)
-  YulSwap :: forall eff a b.     YulO2 a b     => YulCat eff (a, b) (b, a)
-  -- ** Cartesian Category
-  YulFork :: forall eff a b c. YulO3 a b c => YulCat eff a b %1-> YulCat eff a c %1-> YulCat eff a (b, c)
-  YulDis  :: forall eff a. YulO1 a => YulCat eff a ()
-  YulDup  :: forall eff a. YulO1 a => YulCat eff a (a, a)
+  YulProd :: forall eff a b c d.  YulCat eff a b %1-> YulCat eff c d %1-> YulCat eff (a, c) (b, d)
+  YulSwap :: forall eff a b.      YulCat eff (a, b) (b, a)
 
   -- * Control Flow Primitives
   --
   -- ^ Embed a constant value @b@ and disregard any input object @a@.
-  YulEmb :: forall eff b.
-    YulO1 b =>
-    b %1-> YulCat eff () b
-  -- ^ If-then-else expression.
   YulJmpB :: forall eff a b p.
     ( YulO2 a b, YulBuiltInPrefix p a b
     , If (IsYulBuiltInNonPure p) (AssertNonPureEffect eff) (() :: Constraint)
@@ -107,7 +89,6 @@ data YulCat eff a b where
 
   -- ^ Unsafe coerce between different effects.
   YulUnsafeCoerceEffect :: forall k1 k2 (eff1 :: k1) (eff2 :: k2) a b.
-    YulO2 a b =>
     YulCat eff1 a b %1-> YulCat eff2 a b
 
 -- | Yul morphisms with classified effect.
@@ -139,19 +120,14 @@ yulCatCompactShow :: YulCat eff a b -> String
 yulCatCompactShow = go
   where
     go :: YulCat eff' a' b' -> String
-    go (YulExtendType @_ @a @b)    = "Te" <> abi_type_name2 @a @b
+    go (YulExtendType @_ @a @b)    = "Te" <> abi_type_name @b
     go (YulComp cb ac)             = "(" <> go ac <> ");(" <> go cb <> ")"
-    go (YulEmb @_ @b x)            = "{"
     go (YulJmpB @_ @a @b p)        = "Jb "
     go (YulUnsafeCoerceEffect c)   = go c
-    go _ = error "a"
+    go _ = error "no segfault"
     -- A 'abi_type_name variant, enclosing name with "@()".
     abi_type_name :: forall a. ABITypeable a => String
-    abi_type_name = "@" ++ abiTypeCompactName @a
-    abi_type_name2 :: forall a b. (ABITypeable a, ABITypeable b) => String
-    abi_type_name2 = abi_type_name @a ++ abi_type_name @b
-    -- TODO escape the value of x
-    -- escape = show
+    abi_type_name = abiTypeCompactName @a
 
 
 instance Show (YulCat eff a b) where show = yulCatCompactShow
