@@ -55,6 +55,7 @@ library
                     yul-dsl,
                     linear-base,
                     yul-dsl-pure,
+                    eth-abi,
                     -- base
                     -- text >= 2.0.1,
                     -- bytestring >= 0.11,

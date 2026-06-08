@@ -11,7 +11,7 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
   ) where
 import Prelude.Linear
 import Control.Category.Linear             (P, decode, encode)
-import YulDSL.Core
+import Ethereum.ContractABI.ABICoreType
 import Prelude (undefined)
 import Control.Category.Constrained (Cartesian (..), Category (..), Monoidal (..), ProdObj (..))
 import Data.Kind                    (Type)

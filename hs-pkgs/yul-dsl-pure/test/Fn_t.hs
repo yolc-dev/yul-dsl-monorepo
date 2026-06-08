@@ -7,8 +7,6 @@ import Test.Hspec
 import Test.QuickCheck
 -- eth-abi
 -- yul-dsl
-import YulDSL.Core
-import YulDSL.Eval
 --
 --
 import TestCommon                   ()

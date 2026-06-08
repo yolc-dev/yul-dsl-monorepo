@@ -5,6 +5,4 @@ Maintainer  : hellwolf@yolc.dev
 Stability   : experimental
 -}
 module YulDSL.Core
-  ( module Ethereum.ContractABI.ABICoreType
-  ) where
-import Ethereum.ContractABI.ABICoreType
+  ( ) where

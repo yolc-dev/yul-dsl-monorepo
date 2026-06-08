@@ -4,10 +4,6 @@ module YulGen_tests where
 -- hspec
 import Test.Hspec
 --
-import YulDSL.Core
---
-import YulDSL.CodeGens.YulGen
---
 import TestCommon
 
 tests = describe "YulDSL.YulGen tests" $ do

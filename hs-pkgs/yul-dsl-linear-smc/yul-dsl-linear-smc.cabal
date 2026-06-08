@@ -50,7 +50,8 @@ library
                       linear-smc >= 2.2.3,
                       yul-dsl,
                       yul-dsl-pure,
-                      yul-dsl-linear-smc:linearly-versioned-monad
+                      yul-dsl-linear-smc:linearly-versioned-monad,
+                      eth-abi,
   -- modules
   exposed-modules:
     -- YulDSL/Haskell's linear-base instances
