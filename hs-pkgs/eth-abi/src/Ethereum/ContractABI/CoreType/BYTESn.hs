@@ -30,11 +30,4 @@ instance (ValidINTn n) => ABITypeable (BYTESn n) where
 instance (ValidINTn n) => ABITypeCodec (BYTESn n) where
 
 
---
--- Internal function
---
-
-
--- shell: $ for i in `seq 1 32`;do echo "type B$i = BYTESn $i";done
-
 type B32 = BYTESn 32
