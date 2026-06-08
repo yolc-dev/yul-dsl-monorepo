@@ -16,12 +16,10 @@ module YulDSL.Haskell.Effects.Pure
   (
     -- $PureEffectKind
     PureEffectKind (Pure, Total)
-  , YulCat'P
     -- $PureFn
   , PureFn (MkPureFn)
   ) where
 -- template-haskell
-import Language.Haskell.TH qualified as TH
 -- TO BE MOVED
 import Data.Type.Function
 -- yul-dsl
@@ -40,11 +38,6 @@ data PureEffectKind = Pure  -- ^ Pure morphism, may not be total
 type instance IsEffectNotPure (eff :: PureEffectKind) = False
 type instance MayEffectWorld  (eff :: PureEffectKind) = False
 
--- | Pure yul category morphisms.
-type YulCat'P = YulCat Pure
-
-
---
 
 -- | Function without side effects, hence pure.
 data PureFn f where
