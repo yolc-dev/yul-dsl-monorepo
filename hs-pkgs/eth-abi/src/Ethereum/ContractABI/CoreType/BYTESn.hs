@@ -3,7 +3,6 @@ module Ethereum.ContractABI.CoreType.BYTESn
   ( BYTESn (BYTESn)
   , bytesnToInteger, bytesnToWords
   , bytesnFromWord8s
-  , stringKeccak256
   , B1, B2, B3, B4, B5, B6, B7, B8
   , B9, B10, B11, B12, B13, B14, B15, B16
   , B17, B18, B19, B20, B21, B22, B23, B24
@@ -15,14 +14,9 @@ import Control.Exception                  (assert)
 import Data.Word                          (Word8)
 import Numeric                            (showHex)
 -- bytestring
-import Data.ByteString                    qualified as BS
-import Data.ByteString.Char8 qualified
 -- memory
-import Data.ByteArray                     qualified as BA
 -- crypton
-import Crypto.Hash                        qualified as Hash
 -- cereal
-import Data.Serialize                     qualified as S
 --
 import Ethereum.ContractABI.ABICoreType
 import Ethereum.ContractABI.ABITypeable
@@ -52,10 +46,6 @@ bytesnFromWord8s ws = assert (toInteger (length ws) <= fromSNat (natSing @n)) (B
         g _ []     = 0
         g i (x:xs) = (toInteger x) * (2 ^ i) + g (i + 8) xs
 
--- | Keccack256 of a string value.
-stringKeccak256:: String -> BYTESn 32
-stringKeccak256 s = let hash = Hash.hash (Data.ByteString.Char8.pack s) :: Hash.Digest Hash.Keccak_256
-                    in bytesnFromWord8s (BS.unpack (BA.convert hash :: BS.ByteString))
 
 --
 -- Instances
@@ -67,8 +57,6 @@ instance (ValidINTn n) => ABITypeable (BYTESn n) where
 
 instance (ValidINTn n) => ABITypeCodec (BYTESn n) where
 
-instance ValidINTn n => Show (BYTESn n) where
-  show b = "0x" ++ concatMap show_word8 (bytesnToWords b)
 
 instance ValidINTn n => Bounded (BYTESn n) where
   minBound = BYTESn 0

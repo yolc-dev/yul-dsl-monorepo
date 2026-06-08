@@ -18,7 +18,6 @@ module Ethereum.ContractABI.CoreType.BOOL
   ) where
 
 -- cereal
-import Data.Serialize                    qualified as S
 --
 import Internal.Data.Type.Bool
 --
