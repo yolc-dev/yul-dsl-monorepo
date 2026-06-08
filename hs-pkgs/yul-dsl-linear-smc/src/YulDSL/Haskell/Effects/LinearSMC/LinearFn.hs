@@ -23,8 +23,13 @@ import YulDSL.Core
 -- yul-dsl-pure
 import YulDSL.Haskell.LibPure
 --
-import YulDSL.Haskell.Effects.LinearSMC.LinearYulCat
 import YulDSL.Haskell.Effects.LinearSMC.YulPort
+
+
+decode'l :: forall a b. YulO2 a b
+  => (forall r. YulO1 r => P'x PurePort r a ⊸ P'x PurePort r b)
+  -> YulCat Pure a b
+decode'l f = YulUnsafeCoerceEffect (decodeP'x (unsafeCoerceYulPortDiagram f))
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Linear Non-Pure Effects
