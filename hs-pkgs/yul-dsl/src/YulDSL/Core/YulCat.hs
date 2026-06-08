@@ -42,9 +42,7 @@ import Ethereum.ContractABI
 import YulDSL.Core.YulBuiltIn
 import YulDSL.StdBuiltIns.ValueType ()
 -- constraints
-import Data.Constraint      (Dict (Dict))
 -- template-haskell
-import Language.Haskell.TH  qualified as TH
 -- eth-abi
 
 
@@ -93,10 +91,7 @@ type YulCat :: forall effKind. effKind -> Type -> Type -> Type
 data YulCat eff a b where
   YulExtendType :: forall eff a b. (YulO2 a b, a ~ ABITypeDerivedOf b) => YulCat eff a b
   YulComp :: forall eff a b c.  YulCat eff c b %1-> YulCat eff a c %1-> YulCat eff a b
-  YulJmpB :: forall eff a b p.
-    ( YulO2 a b, YulBuiltInPrefix p a b
-    ) =>
-    YulBuiltIn p a b -> YulCat eff a b
+  YulJmpB :: forall eff a b p. ( YulO2 a b) => YulBuiltIn p a b -> YulCat eff a b
 
 
 

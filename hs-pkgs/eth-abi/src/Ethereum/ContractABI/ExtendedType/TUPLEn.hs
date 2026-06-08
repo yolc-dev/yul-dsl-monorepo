@@ -51,17 +51,3 @@ instance (ABITypeable a1, ABITypeable a2) => ABITypeable (a1, a2) where
 
 instance (ABITypeCodec a1, ABITypeCodec a2) => ABITypeCodec (a1, a2)
 
--- Generate the rest: Tuple3 .. Tuple64
-
-do
-  insts <- mapM (\n -> do
-    as <- replicateM n (TH.newName "a")
-    [d| instance $(tupleNFromVarsTWith (TH.conT ''ABITypeable `TH.appT`) as) =>
-                  ABITypeable $(tupleNFromVarsT as) where
-          type instance ABITypeDerivedOf $(tupleNFromVarsT as) = NP $(promotedListFromVarsT as)
-          abiToCoreType = $(TH.varE 'fromTupleNtoNP)
-          abiFromCoreType = $(TH.varE 'fromNPtoTupleN)
-        instance $(tupleNFromVarsTWith (TH.conT ''ABITypeCodec `TH.appT`) as) =>
-                 ABITypeCodec $(tupleNFromVarsT as)
-     |]) [3..64]
-  pure (concat insts)

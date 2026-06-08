@@ -24,7 +24,6 @@ instance YulBuiltInPrefix "__cleanup_t_" U256 BOOL where
   yulB_body _ = ( [MkVar "value"], [MkVar "cleaned"]
                 , [ "cleaned := iszero(iszero(value))" ]
                 , [])
-  yulB_eval b = error ("NoImpl: yulB_eval " ++ yulB_prefix b)
 
 instance ValidINTx s n => YulBuiltInPrefix "__cleanup_t_" U256 (INTx s n) where
   yulB_fname b = yulB_prefix b <> abiTypeCanonName @(INTx s n)
@@ -41,7 +40,6 @@ instance ValidINTx s n => YulBuiltInPrefix "__cleanup_t_" U256 (INTx s n) where
     in ( [MkVar "value"], [MkVar "cleaned"]
        , if fromBoolKind @s then icode else ucode
        , [])
-  yulB_eval b = error ("NoImpl: yulB_eval " ++ yulB_prefix b)
 
 instance YulBuiltInPrefix "__cleanup_t_" U256 ADDR where
   yulB_fname b = yulB_prefix b ++ "address"
@@ -49,7 +47,6 @@ instance YulBuiltInPrefix "__cleanup_t_" U256 ADDR where
                 , [ "cleaned := " <> T.pack (yulB_fname cleanup_f) <> "(value)" ]
                 , [MkAnyYulBuiltIn cleanup_f])
     where cleanup_f = MkYulBuiltIn @"__cleanup_t_" @U256 @U160
-  yulB_eval b = error ("NoImpl: yulB_eval " ++ yulB_prefix b)
 
 instance (ABITypeable a, YulBuiltInPrefix "__cleanup_t_" U256 a) => YulBuiltInPrefix "__validate_t_" a () where
   yulB_fname b = yulB_prefix b ++ abiTypeCanonName @a
@@ -57,7 +54,6 @@ instance (ABITypeable a, YulBuiltInPrefix "__cleanup_t_" U256 a) => YulBuiltInPr
                 , [ "if neq(value, " <> T.pack (yulB_fname cleanup_f) <> "(value)) { revert(0, 0) }" ]
                 , [MkAnyYulBuiltIn cleanup_f])
     where cleanup_f = MkYulBuiltIn @"__cleanup_t_" @U256 @a
-  yulB_eval b = error ("NoImpl: yulB_eval " ++ yulB_prefix b)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Integer comparators
@@ -73,27 +69,21 @@ mk_cmp_body op = ( MkVar <$> ["x", "y"], [MkVar "b"]
 instance ValidINTx s n => YulBuiltInPrefix "__cmp_eq_t_" (INTx s n, INTx s n) BOOL where
   yulB_fname b = yulB_prefix b <> abiTypeCanonName @(INTx s n)
   yulB_body _ = mk_cmp_body @s @n "eq"
-  yulB_eval _ (x, y) = BOOL (x == y)
 instance ValidINTx s n => YulBuiltInPrefix "__cmp_ne_t_" (INTx s n, INTx s n) BOOL where
   yulB_fname b = yulB_prefix b <> abiTypeCanonName @(INTx s n)
   yulB_body _ = mk_cmp_body @s @n "neq"
-  yulB_eval _ (x, y) = BOOL (x /= y)
 instance ValidINTx s n => YulBuiltInPrefix "__cmp_lt_t_" (INTx s n, INTx s n) BOOL where
   yulB_fname b = yulB_prefix b <> abiTypeCanonName @(INTx s n)
   yulB_body _ = mk_cmp_body @s @n (if fromBoolKind @s then "slt" else "lt")
-  yulB_eval _ (x, y) = BOOL (x < y)
 instance ValidINTx s n => YulBuiltInPrefix "__cmp_le_t_" (INTx s n, INTx s n) BOOL where
   yulB_fname b = yulB_prefix b <> abiTypeCanonName @(INTx s n)
   yulB_body _ = mk_cmp_body @s @n (if fromBoolKind @s then "sle" else "le")
-  yulB_eval _ (x, y) = BOOL (x <= y)
 instance ValidINTx s n => YulBuiltInPrefix "__cmp_gt_t_" (INTx s n, INTx s n) BOOL where
   yulB_fname b = yulB_prefix b <> abiTypeCanonName @(INTx s n)
   yulB_body _ = mk_cmp_body @s @n (if fromBoolKind @s then "sgt" else "gt")
-  yulB_eval _ (x, y) = BOOL (x > y)
 instance ValidINTx s n => YulBuiltInPrefix "__cmp_ge_t_" (INTx s n, INTx s n) BOOL where
   yulB_fname b = yulB_prefix b <> abiTypeCanonName @(INTx s n)
   yulB_body _ = mk_cmp_body @s @n (if fromBoolKind @s then "sge" else "ge")
-  yulB_eval _ (x, y) = BOOL (x >= y)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Integer arithmetic, including safe, checked, and maybe variants
@@ -125,7 +115,6 @@ instance ValidINTx s n => YulBuiltInPrefix "__safe_add_t_" (INTx s n, INTx s n) 
                 [ ") { failed := true }" ]
     in ( inVars, outVars, if fromBoolKind @s then icode else ucode
        , [MkAnyYulBuiltIn cleanup_f] )
-  yulB_eval _ (x, y) = case Just x + Just y of Just z  -> (true, z); Nothing -> (false, 0)
 
 instance ValidINTx s n => YulBuiltInPrefix "__safe_sub_t_" (INTx s n, INTx s n) (BOOL, INTx s n) where
   yulB_fname b = yulB_prefix b <> abiTypeCanonName @(INTx s n)
@@ -154,7 +143,6 @@ instance ValidINTx s n => YulBuiltInPrefix "__safe_sub_t_" (INTx s n, INTx s n) 
                 ]
     in ( inVars, outVars, if fromBoolKind @s then icode else ucode
        , [MkAnyYulBuiltIn cleanup_f] )
-  yulB_eval _ (x, y) = case Just x - Just y of Just z  -> (true, z); Nothing -> (false, 0)
 
 instance ValidINTx s n => YulBuiltInPrefix "__safe_mul_t_" (INTx s n, INTx s n) (BOOL, INTx s n) where
   yulB_fname b = yulB_prefix b <> abiTypeCanonName @(INTx s n)
@@ -189,7 +177,6 @@ instance ValidINTx s n => YulBuiltInPrefix "__safe_mul_t_" (INTx s n, INTx s n) 
                 else [ "if neq(product, product_raw) { failed := true }" ]
     in ( inVars, outVars, if fromBoolKind @s then icode else ucode
        , [MkAnyYulBuiltIn cleanup_f] )
-  yulB_eval _ (x, y) = case Just x * Just y of Just z  -> (true, z); Nothing -> (false, 0)
 
 --
 -- checked operation
@@ -207,23 +194,18 @@ mk_checked_body safe_op =
 instance ValidINTx s n => YulBuiltInPrefix "__checked_add_t_" (INTx s n, INTx s n) (INTx s n) where
   yulB_fname b = yulB_prefix b <> abiTypeCanonName @(INTx s n)
   yulB_body _ = mk_checked_body (MkYulBuiltIn @"__safe_add_t_" @(INTx s n, INTx s n) @(BOOL, INTx s n))
-  yulB_eval _ (x, y) = x + y
 instance ValidINTx s n => YulBuiltInPrefix "__checked_sub_t_" (INTx s n, INTx s n) (INTx s n) where
   yulB_fname b = yulB_prefix b <> abiTypeCanonName @(INTx s n)
   yulB_body _ = mk_checked_body (MkYulBuiltIn @"__safe_sub_t_" @(INTx s n, INTx s n) @(BOOL, INTx s n))
-  yulB_eval _ (x, y) = x - y
 instance ValidINTx s n => YulBuiltInPrefix "__checked_mul_t_" (INTx s n, INTx s n) (INTx s n) where
   yulB_fname b = yulB_prefix b <> abiTypeCanonName @(INTx s n)
   yulB_body _ = mk_checked_body (MkYulBuiltIn @"__safe_mul_t_" @(INTx s n, INTx s n) @(BOOL, INTx s n))
-  yulB_eval _ (x, y) = x * y
 instance ValidINTx s n => YulBuiltInPrefix "__checked_sig_t_" (INTx s n) (INTx s n) where
   yulB_fname b = yulB_prefix b <> abiTypeCanonName @(INTx s n)
   yulB_body _ = undefined -- FIXME
-  yulB_eval _ = signum
 instance ValidINTx s n => YulBuiltInPrefix "__checked_abs_t_" (INTx s n) (INTx s n) where
   yulB_fname b = yulB_prefix b <> abiTypeCanonName @(INTx s n)
   yulB_body _ = undefined -- FIXME
-  yulB_eval _ = abs
 
 mk_maybe_body :: YulBuiltInPrefix p a b => YulBuiltIn p a b -> ([Var], [Var], [Code], [AnyYulBuiltIn])
 mk_maybe_body safe_op =
@@ -242,23 +224,18 @@ mk_maybe_body safe_op =
 instance ValidINTx s n => YulBuiltInPrefix "__maybe_add_t_" (Maybe (INTx s n), Maybe (INTx s n)) (Maybe (INTx s n)) where
   yulB_fname b = yulB_prefix b <> abiTypeCanonName @(INTx s n)
   yulB_body _ = mk_maybe_body (MkYulBuiltIn @"__safe_add_t_" @(INTx s n, INTx s n) @(BOOL, INTx s n))
-  yulB_eval _ (x, y) = x + y
 instance ValidINTx s n => YulBuiltInPrefix "__maybe_sub_t_" (Maybe (INTx s n), Maybe (INTx s n)) (Maybe (INTx s n)) where
   yulB_fname b = yulB_prefix b <> abiTypeCanonName @(INTx s n)
   yulB_body _ = mk_maybe_body (MkYulBuiltIn @"__safe_sub_t_" @(INTx s n, INTx s n) @(BOOL, INTx s n))
-  yulB_eval _ (x, y) = x - y
 instance ValidINTx s n => YulBuiltInPrefix "__maybe_mul_t_" (Maybe (INTx s n), Maybe (INTx s n)) (Maybe (INTx s n)) where
   yulB_fname b = yulB_prefix b <> abiTypeCanonName @(INTx s n)
   yulB_body _ = mk_maybe_body (MkYulBuiltIn @"__safe_mul_t_" @(INTx s n, INTx s n) @(BOOL, INTx s n))
-  yulB_eval _ (x, y) = x * y
 instance ValidINTx s n => YulBuiltInPrefix "__maybe_sig_t_" (Maybe (INTx s n)) (Maybe (INTx s n)) where
   yulB_fname b = yulB_prefix b <> abiTypeCanonName @(INTx s n)
   yulB_body _ = undefined -- FIXME
-  yulB_eval _ = signum
 instance ValidINTx s n => YulBuiltInPrefix "__maybe_abs_t_" (Maybe (INTx s n)) (Maybe (INTx s n)) where
   yulB_fname b = yulB_prefix b <> abiTypeCanonName @(INTx s n)
   yulB_body _ = undefined -- FIXME
-  yulB_eval _ = abs
 
 --
 -- Internal functions
