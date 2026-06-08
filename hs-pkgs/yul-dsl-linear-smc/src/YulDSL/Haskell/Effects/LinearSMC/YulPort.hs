@@ -11,11 +11,9 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
 
   -- ABI type names
   , ABITypeable(..)
-  , ADDR
   , U256
-  , B32
   , REF
-  , NP
+  , NP2
   ) where
 import Prelude (undefined)
 import Prelude.Linear
@@ -29,14 +27,12 @@ import Data.Kind                    (Type)
 --
 
 -- base
-import Data.SimpleNP
 import Data.Proxy                        (Proxy (Proxy))
 -- base
 import Data.TupleN
 --
 
 -- base
-import GHC.TypeLits
 --
 
 
@@ -66,12 +62,6 @@ class ABITypeable a where
   abiFromCoreType :: a -> a
   abiFromCoreType x = x
 
-data ADDR
-
-instance ABITypeable ADDR where
-  abiTypeInfo = "a"
-
--- eth-abi
 
 
 -- | ABI integer value types, where @s@ is for signess and @n@ is byte-size of the value.
@@ -83,21 +73,9 @@ instance ABITypeable U256 where
   abiTypeInfo = "i"
 
 
-type B32 = U256
-
--- cereal
---
---
+type NP2 = U256
 
 
-instance ABITypeable (NP '[]) where
-  abiTypeInfo = []
-
-instance ( ABITypeable x) => ABITypeable (NP (x : '[])) where
-  abiTypeInfo = abiTypeInfo @x
-
-
--- | All objects in the yul category is simply a 'YulCatObj'.
 class (ABITypeable a, ABITypeable a) => YulCatObj a where
   -- | Possible breakdown of the product object of the category.
 
@@ -109,9 +87,7 @@ type YulO3 a b c = (YulCatObj a, YulO2 b c)
 -- Enumerate known YulCat objects:
 --
 
--- NP
-instance YulCatObj (NP '[])
-instance (YulCatObj x) => YulCatObj (NP '[x])
+
 
 -- TupleN (3..15)
 instance YulCatObj ()
@@ -119,7 +95,6 @@ instance (YulCatObj a1, YulCatObj a2) => YulCatObj (a1, a2)
 
 -- Value Types
 instance YulCatObj U256
-instance YulCatObj ADDR
 
 -- REF
 instance YulCatObj a => YulCatObj (REF a)
@@ -133,7 +108,7 @@ instance YulCatObj a => YulCatObj (REF a)
 type YulCat ::  Type -> Type -> Type
 
 data YulCat a b where
-  YulExtendType :: forall b. (YulO2 B32 b) => YulCat B32 b
+  YulExtendType :: forall b. (YulO2 U256 b) => YulCat U256 b
   YulComp :: forall a b c.  YulCat c b %1-> YulCat a c %1-> YulCat a b
   YulJmpB :: forall a b. ( YulO2 a b) =>  YulCat a b
 
@@ -171,10 +146,10 @@ instance Monoidal YulCat where
 --
 
 lfn' :: forall b xs.
-  ( YulO2 (NP '[ADDR]) (REF b)
-  , '[ADDR] ~ xs   -- crash stops after removing this line
+  ( YulO2 NP2 (REF b)
+  , '[U256] ~ xs   -- crash stops after removing this line
   ) =>
-  (forall r. YulO1 r => P'P r (NP '[ADDR]) ⊸ P'P r (REF b)) ->
+  (forall r. YulO1 r => P'P r (NP2 ) ⊸ P'P r (REF b)) ->
   String
 lfn' f = yulCatCompactShow (decode f)
 
@@ -186,9 +161,9 @@ type P'P =  P YulCat
 ------------------------------------------------------------------------------------------------------------------------
 
 extendType'l :: forall a r.
-  (YulO3 a B32 r) =>
-  P'P r B32 ⊸ P'P r a
+  (YulO3 a U256 r) =>
+  P'P r U256 ⊸ P'P r a
 extendType'l = encode YulExtendType
 
-keccak256'l :: forall a r. YulO2 r a => P'P r a ⊸ P'P r B32
+keccak256'l :: forall a r. YulO2 r a => P'P r a ⊸ P'P r U256
 keccak256'l = encode YulJmpB
