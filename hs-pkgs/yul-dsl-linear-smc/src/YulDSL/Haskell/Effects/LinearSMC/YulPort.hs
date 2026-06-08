@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -dlint #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 module YulDSL.Haskell.Effects.LinearSMC.YulPort
   (P'P ,  keccak256'l
@@ -72,13 +73,10 @@ data YulCat a b where
 
 
 
-yulCatCompactShow :: YulCat a b -> String
-yulCatCompactShow = go
-  where
-    go :: YulCat a' b' -> String
-    go (YulExtendType @b) = "Te" <> abiTypeInfo @b
-    go (YulComp cb ac)    = "(" <> go ac <> ");(" <> go cb <> ")"
-    go YulJmpB            = "Jb "
+yulShow :: YulCat a' b' -> String
+yulShow (YulExtendType @b) = "Te" <> abiTypeInfo @b
+yulShow (YulComp cb ac)    = "(" <> yulShow ac <> ");(" <> yulShow cb <> ")"
+yulShow YulJmpB            = "Jb "
 
 
 --
@@ -107,9 +105,8 @@ lfn' :: forall b xs.
   ( YulO1 (REF b)
   , U256 ~ xs   -- crash stops after removing this line
   ) =>
-  (forall r. YulO1 r => P'P r U256 ⊸ P'P r (REF b)) ->
-  String
-lfn' f = yulCatCompactShow (decode f)
+  (forall r. YulO1 r => P'P r U256 ⊸ P'P r (REF b)) -> String
+lfn' f = yulShow (decode f)
 
 
 type P'P =  P YulCat

@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -dlint #-}
 module Counter where
 import Prelude.Linear                           (String)
 import YulDSL.Haskell.Effects.LinearSMC.YulPort (P'P, extendType'l, lfn', keccak256'l , YulO1, REF, U256 )
