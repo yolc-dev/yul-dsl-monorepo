@@ -76,18 +76,6 @@ extendType'l = encodeP'x YulExtendType
 keccak256'l :: forall a r. YulO2 r a => P'P r a ⊸ P'P r B32
 keccak256'l = encodeP'x YulJmpB
 
-
-    -- abi_type_name :: forall a. ABITypeable a => String
-    -- abi_type_name = abiTypeCompactName @a
-
-------------------------------------------------------------------------------------------------------------------------
--- $PureEffectKind
--- * Pure Effect Kind
-------------------------------------------------------------------------------------------------------------------------
-
--- | Data kind for pure morphisms in the yul category.
-data PureEffectKind = Pure  -- ^ Pure morphism, may not be total
-
 data PureFn f where
   MkPureFn :: forall f xs b. YulCat Pure (NP xs) b -> PureFn f
 

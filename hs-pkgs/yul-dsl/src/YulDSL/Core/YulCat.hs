@@ -29,6 +29,7 @@ module YulDSL.Core.YulCat
   , yulCatCompactShow
   , YulCatObj
   , YulO1, YulO2, YulO3
+  , PureEffectKind (Pure)
   ) where
 -- base
 import Data.Kind                    (Constraint, Type)
@@ -45,7 +46,7 @@ import Ethereum.ContractABI
 
 
 -- | All objects in the yul category is simply a 'YulCatObj'.
-class (ABITypeable a, ABITypeCodec a, Show a) => YulCatObj a where
+class (ABITypeable a, ABITypeCodec a) => YulCatObj a where
   -- | Possible breakdown of the product object of the category.
 
 --
@@ -104,5 +105,8 @@ yulCatCompactShow = go
     -- A 'abi_type_name variant, enclosing name with "@()".
     abi_type_name :: forall a. ABITypeable a => String
     abi_type_name = abiTypeCompactName @a
+
+
+data PureEffectKind = Pure  -- ^ Pure morphism, may not be total
 
 
