@@ -11,15 +11,10 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
     -- $TypeOps
   , extendType'l
   ) where
--- base
-import Control.Monad                       (replicateM)
-import Prelude                             qualified as BasePrelude
--- template-haskell
-import Language.Haskell.TH                 qualified as TH
 -- linear-base
 import Prelude.Linear
 -- linear-smc
-import Control.Category.Linear             (P, copy, decode, discard, encode, ignore, merge, mkUnit, split)
+import Control.Category.Linear             (P, decode, encode)
 -- yul-dsl-pure
 import YulDSL.Haskell.LibPure
 --
@@ -46,7 +41,7 @@ unP'x (MkP'x x) = x
 
 -- | Linear port of yul category with linearly versioned data, aka. versioned yul ports.
 
-encodeP'x :: forall (eff :: PortEffect) a b r.
+encodeP'x :: forall a b r.
   YulO3 r a b =>
   YulCat PortEffect a b ->
   (P'P r a ⊸ P'P r b)
@@ -64,6 +59,3 @@ extendType'l :: forall a r.
   (YulO3 a (ABITypeDerivedOf a) r) =>
   P'P r (ABITypeDerivedOf a) ⊸ P'P r a
 extendType'l = encodeP'x YulExtendType
-
---
--- NP type

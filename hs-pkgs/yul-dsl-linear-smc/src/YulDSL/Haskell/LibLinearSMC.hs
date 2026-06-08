@@ -3,7 +3,6 @@ module YulDSL.Haskell.LibLinearSMC
   , keccak256'l
   ) where
 -- linear-base
-import Prelude.Linear
 -- yul-dsl
 import YulDSL.Core
 -- yul-dsl-pure
