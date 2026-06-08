@@ -26,7 +26,7 @@ module Data.Type.Function
   , EquivalentNPOfFunction
   , UncurriableNP (uncurryNP)
   , CurriableNP (curryNP)
-  , CallableFunctionNP (call), CallableFunctionN (callN, (<$*>))
+  , CallableFunctionNP (call)
   ) where
 -- base
 import Data.Kind     (Type)
@@ -112,22 +112,3 @@ class ( EquivalentNPOfFunction f (x:xs) b
       ) =>
       CallableFunctionNP fn f x xs b m mb p | fn m -> mb p where
   call :: forall. fn f -> (m x %p -> LiftFunction (CurryNP (NP xs) b) m mb p)
-
-class ( EquivalentNPOfFunction f xs b
-      , ConvertibleNPtoTupleN (NP (MapList m xs))
-      ) =>
-      CallableFunctionN fn f xs b m mb p | fn mb -> m p where
-  callN, (<$*>) :: forall. fn f -> NPtoTupleN (NP (MapList m xs)) %p -> mb b
-  (<$*>) = callN
-
---
---
---
-
--- type family SafeHead xs where
---   SafeHead '[] = ()
---   SafeHead (x:_) = x
-
--- type family SafeTail xs where
---   SafeTail '[] = '[]
---   SafeTail (_:xs) = xs
