@@ -41,11 +41,6 @@ library
   -- other-modules:
   -- other-extensions:
   build-depends:    text >= 2.0.1,
-                    process >= 1.6.17,
                     template-haskell >= 2.19.0,
-                    PyF >= 0.11.1,
-                    lens >= 5.2.0,
-                    aeson >= 2.2.0,
-                    lens-aeson >= 1.2.2,
-                    yul-dsl
+                    PyF >= 0.11.1
   hs-source-dirs:   src
