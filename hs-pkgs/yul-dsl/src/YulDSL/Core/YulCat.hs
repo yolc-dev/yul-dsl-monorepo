@@ -29,7 +29,6 @@ module YulDSL.Core.YulCat
   , yulCatCompactShow
   , YulCatObj
   , YulO1, YulO2, YulO3
-  , PureEffectKind (Pure)
   ) where
 -- base
 import Data.Kind                    (Constraint, Type)
@@ -85,19 +84,19 @@ instance YulCatObj a => YulCatObj (REF a)
 ------------------------------------------------------------------------------------------------------------------------
 
 -- | Use kind signature for the 'YulCat' to introduce the terminology in a lexical-orderly way.
-type YulCat :: forall effKind. effKind -> Type -> Type -> Type
+type YulCat ::  Type -> Type -> Type
 
-data YulCat eff a b where
-  YulExtendType :: forall eff a b. (YulO2 a b, a ~ ABITypeDerivedOf b) => YulCat eff a b
-  YulComp :: forall eff a b c.  YulCat eff c b %1-> YulCat eff a c %1-> YulCat eff a b
-  YulJmpB :: forall eff a b p. ( YulO2 a b) =>  YulCat eff a b
+data YulCat a b where
+  YulExtendType :: forall eff a b. (YulO2 a b, a ~ ABITypeDerivedOf b) => YulCat a b
+  YulComp :: forall eff a b c.  YulCat c b %1-> YulCat a c %1-> YulCat a b
+  YulJmpB :: forall eff a b p. ( YulO2 a b) =>  YulCat a b
 
 
 
-yulCatCompactShow :: YulCat eff a b -> String
+yulCatCompactShow :: YulCat a b -> String
 yulCatCompactShow = go
   where
-    go :: YulCat eff' a' b' -> String
+    go :: YulCat a' b' -> String
     go (YulExtendType @_ @a @b)    = "Te" <> abi_type_name @b
     go (YulComp cb ac)             = "(" <> go ac <> ");(" <> go cb <> ")"
     go (YulJmpB @_ @a @b )        = "Jb "
@@ -106,7 +105,5 @@ yulCatCompactShow = go
     abi_type_name :: forall a. ABITypeable a => String
     abi_type_name = abiTypeCompactName @a
 
-
-data PureEffectKind = Pure  -- ^ Pure morphism, may not be total
 
 

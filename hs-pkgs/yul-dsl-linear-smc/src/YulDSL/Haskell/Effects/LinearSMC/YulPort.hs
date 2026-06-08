@@ -10,8 +10,7 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
     -- $TypeOps
   , extendType'l
   , lfn'
-  , -- $PureEffectKind
-    PureEffectKind (Pure)
+    -- $PureEffectKind
     -- $PureFn
   , PureFn (MkPureFn)
   , pureFn
@@ -46,9 +45,9 @@ lfn' f = MkPureFn (decodeP'x f)
 
 
 -- | Linear port of yul categories with the port effect kind, aka. yul ports.
-newtype P'P r a = MkP'x (P (YulCat Pure) r a)
+newtype P'P r a = MkP'x (P (YulCat ) r a)
 
-unP'x :: forall r a. P'P r a ⊸ P (YulCat Pure) r a
+unP'x :: forall r a. P'P r a ⊸ P (YulCat ) r a
 unP'x (MkP'x x) = x
 
 
@@ -56,14 +55,14 @@ unP'x (MkP'x x) = x
 
 encodeP'x :: forall a b r.
   YulO3 r a b =>
-  YulCat Pure a b ->
+  YulCat a b ->
   (P'P r a ⊸ P'P r b)
 encodeP'x c = MkP'x . encode c . unP'x
 
 decodeP'x :: forall  b.
   YulO2 (NP '[ADDR]) b =>
   (forall r. YulO1 r => P'P r (NP '[ADDR]) ⊸ P'P r b) ->
-  YulCat Pure (NP '[ADDR]) b
+  YulCat (NP '[ADDR]) b
 decodeP'x f = decode (\a -> unP'x (f (MkP'x a)))
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -77,7 +76,7 @@ keccak256'l :: forall a r. YulO2 r a => P'P r a ⊸ P'P r B32
 keccak256'l = encodeP'x YulJmpB
 
 data PureFn f where
-  MkPureFn :: forall f xs b. YulCat Pure (NP xs) b -> PureFn f
+  MkPureFn :: forall f xs b. YulCat (NP xs) b -> PureFn f
 
 pureFn :: PureFn fn -> String
 pureFn (MkPureFn fn) = yulCatCompactShow fn

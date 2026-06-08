@@ -29,12 +29,12 @@ instance ProdObj YulCatObj where
   objprod = undefined
   objunit = Dict
 
-instance Category (YulCat eff) where
-  type Obj (YulCat eff) = YulCatObj
+instance Category YulCat where
+  type Obj YulCat = YulCatObj
   id  = undefined
   (∘) = YulComp
 
-instance Monoidal (YulCat eff) where
+instance Monoidal YulCat where
   (×)     = undefined
   unitor  = undefined
   unitor' = undefined
