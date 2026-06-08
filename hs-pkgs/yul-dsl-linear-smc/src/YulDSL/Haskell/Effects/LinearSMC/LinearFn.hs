@@ -41,7 +41,7 @@ type family UncurryNP'Snd (f :: Type) where
 decode'l :: forall a b. YulO2 a b
   => (forall r. YulO1 r => P'P r a ⊸ P'P r b)
   -> YulCat Pure a b
-decode'l f = YulUnsafeCoerceEffect (decodeP'x f)
+decode'l f = (decodeP'x f)
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Linear Non-Pure Effects

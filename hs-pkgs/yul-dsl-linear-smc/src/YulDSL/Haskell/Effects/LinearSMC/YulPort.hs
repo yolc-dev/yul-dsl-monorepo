@@ -27,9 +27,9 @@ import Control.Category.Constrained.YulDSL ()
 
 
 -- | Linear port of yul categories with the port effect kind, aka. yul ports.
-newtype P'P r a = MkP'x (P (YulCat PureEffectKind) r a)
+newtype P'P r a = MkP'x (P (YulCat Pure) r a)
 
-unP'x :: forall r a. P'P r a ⊸ P (YulCat PureEffectKind) r a
+unP'x :: forall r a. P'P r a ⊸ P (YulCat Pure) r a
 unP'x (MkP'x x) = x
 
 
@@ -37,14 +37,14 @@ unP'x (MkP'x x) = x
 
 encodeP'x :: forall a b r.
   YulO3 r a b =>
-  YulCat PureEffectKind a b ->
+  YulCat Pure a b ->
   (P'P r a ⊸ P'P r b)
 encodeP'x c = MkP'x . encode c . unP'x
 
 decodeP'x :: forall a b.
   YulO2 a b =>
   (forall r. YulO1 r => P'P r a ⊸ P'P r b) ->
-  YulCat PureEffectKind a b
+  YulCat Pure a b
 decodeP'x f = decode (\a -> unP'x (f (MkP'x a)))
 
 ------------------------------------------------------------------------------------------------------------------------
