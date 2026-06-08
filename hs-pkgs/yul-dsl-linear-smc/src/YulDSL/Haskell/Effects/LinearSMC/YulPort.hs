@@ -10,8 +10,36 @@ import Control.Category.Linear             (P, decode, encode)
 
 import YulDSL.Core
 
-import Control.Category.Constrained.YulDSL ()
 import YulDSL.Core.YulCat
+
+
+import Prelude (undefined)
+-- base
+-- constraints
+import Data.Constraint              (Dict (Dict))
+-- linear-smc
+import Control.Category.Constrained (Cartesian (..), Category (..), Monoidal (..), ProdObj (..))
+--
+import YulDSL.Core.YulCat           (YulCat (..), YulCatObj )
+
+-- | Instance for linear-smc 'ProdObj' for the objects in the category.
+instance ProdObj YulCatObj where
+  prodobj = undefined
+  objprod = undefined
+  objunit = undefined
+
+instance Category YulCat where
+  type Obj YulCat = YulCatObj
+  id  = undefined
+  (∘) = YulComp
+
+instance Monoidal YulCat where
+  (×)     = undefined
+  unitor  = undefined
+  unitor' = undefined
+  assoc   = undefined
+  assoc'  = undefined
+  swap    = undefined
 
 
 --
