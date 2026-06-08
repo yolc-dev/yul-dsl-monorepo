@@ -23,20 +23,17 @@ import Control.Category.Linear             (P, decode, encode)
 -- yul-dsl-pure
 
 import YulDSL.Core
-import YulDSL.Haskell.Effects.Pure
 
 import Control.Category.Constrained.YulDSL ()
 
 --
 
-
-
 lfn' :: forall x xs b.
-  ( YulO2 (NP '[x]) b
-  , '[x] ~ xs   -- crash stops after removing this line
+  ( YulO2 (NP '[ADDR]) b
+  , '[ADDR] ~ xs   -- crash stops after removing this line
   ) =>
-  (forall r. YulO1 r => P'P r (NP '[x]) ⊸ P'P r b) ->
-  PureFn (x -> b)
+  (forall r. YulO1 r => P'P r (NP '[ADDR]) ⊸ P'P r b) ->
+  PureFn (ADDR -> b)
 lfn' f = MkPureFn (decodeP'x f)
 
 
@@ -95,5 +92,5 @@ type instance MayEffectWorld  (eff :: PureEffectKind) = False
 data PureFn f where
   MkPureFn :: forall f xs b. YulCat Pure (NP xs) b -> PureFn f
 
-pureFn :: (PureFn fn) -> String
-pureFn (MkPureFn fn) = show fn
+pureFn :: PureFn fn -> String
+pureFn (MkPureFn fn) = yulCatCompactShow fn
