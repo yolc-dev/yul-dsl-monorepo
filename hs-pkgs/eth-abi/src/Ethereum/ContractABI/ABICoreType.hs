@@ -75,7 +75,7 @@ instance ValidINTn_ 32
 -- | Compact but unambiguous names for the core types..
 abiCoreTypeCompactName :: ABICoreType -> String
 abiCoreTypeCompactName BOOL'       = "b"
-abiCoreTypeCompactName (INTx' s n) = (if fromSBool s then "i" else "u") <> show (natVal n)
+abiCoreTypeCompactName (INTx' s n) = (if fromSBool s then "i" else "u")
 abiCoreTypeCompactName ADDR'       = "a"
 abiCoreTypeCompactName (BYTESn' n) = "B" ++ show (natVal n)
 
