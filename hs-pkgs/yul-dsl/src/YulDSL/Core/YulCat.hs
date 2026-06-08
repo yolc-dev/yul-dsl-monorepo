@@ -198,30 +198,14 @@ yulCatCompactShow :: YulCat eff a b -> String
 yulCatCompactShow = go
   where
     go :: YulCat eff' a' b' -> String
-    go (YulReduceType @_ @a @b)    = "Tr" <> abi_type_name2 @a @b
     go (YulExtendType @_ @a @b)    = "Te" <> abi_type_name2 @a @b
-    go (YulCoerceType @_ @a @b)    = "Tc" <> abi_type_name2 @a @b
-    --
-    go (YulId @_ @a)               = "id" <> abi_type_name @a
     go (YulComp cb ac)             = "(" <> go ac <> ");(" <> go cb <> ")"
-    go (YulProd ab cd)             = "(" <> go ab <> ")×(" <> go cd <> ")"
-    go (YulSwap @_ @a @b)          = "σ" <> abi_type_name2 @a @b
-    go (YulFork ab ac)             = "(" <> go ab <> ")▵(" <> go ac <> ")"
-    go (YulExl @_ @a @b)           = "π₁" <> abi_type_name2 @a @b
-    go (YulExr @_ @a @b)           = "π₂" <> abi_type_name2 @a @b
-    go (YulDis @_ @a)              = "ε" <> abi_type_name @a
-    go (YulDup @_ @a)              = "δ" <> abi_type_name @a
-    --
-    go (YulEmb @_ @b x)            = "{" <> show x <> "}" <> abi_type_name @b
-    go (YulITE a b)                = "?" <> "(" <> go a <> "):(" <> go b <> ")"
-    go (YulJmpU @_ @a @b (cid, _)) = "Ju " <> cid <> abi_type_name2 @a @b
-    go (YulJmpB @_ @a @b p)        = "Jb " <> yulB_fname p <> abi_type_name2 @a @b
-    go (YulCall @_ @a @b sel)      = "C" <> showSelectorOnly sel <> abi_type_name2 @a @b
-    --
-    go (YulSGet @_ @a)             = "Sg" <> abi_type_name @a
-    go (YulSPut @_ @a)             = "Sp" <> abi_type_name @a
-    --
+    go (YulEmb @_ @b x)            = "{"
+    go (YulJmpU @_ @a @b (cid, _)) = "Ju "
+    go (YulJmpB @_ @a @b p)        = "Jb "
+    go (YulCall @_ @a @b sel)      = "C"
     go (YulUnsafeCoerceEffect c)   = go c
+    go _ = error "a"
     -- A 'abi_type_name variant, enclosing name with "@()".
     abi_type_name :: forall a. ABITypeable a => String
     abi_type_name = "@" ++ abiTypeCompactName @a

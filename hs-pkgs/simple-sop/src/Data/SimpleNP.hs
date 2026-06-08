@@ -20,6 +20,8 @@ module Data.SimpleNP
   , MapList, MapNP
   , NonEmptyNP, splitNonEmptyNP
   , ConstructibleNP (consNP, unconsNP)
+  , TraversableNP (sequenceNP), DistributiveNP (distributeNP)
+  , LinearTraversableNP (linearSequenceNP), LinearDistributiveNP (linearDistributeNP)
   -- re-export multiplicity types
   , Multiplicity (Many, One)
   ) where
