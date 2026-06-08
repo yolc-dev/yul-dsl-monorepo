@@ -20,7 +20,6 @@ module Ethereum.ContractABI.ExtendedType.TUPLEn
   ) where
 -- base
 import Control.Monad                     (replicateM)
--- (simple-np)
 import Data.TupleN
 --
 import Ethereum.ContractABI.ABICoreType
