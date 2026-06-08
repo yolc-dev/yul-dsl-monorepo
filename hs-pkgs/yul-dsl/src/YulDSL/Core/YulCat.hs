@@ -83,12 +83,6 @@ yulCatCompactShow :: YulCat a b -> String
 yulCatCompactShow = go
   where
     go :: YulCat a' b' -> String
-    go (YulExtendType  @a @b)    = "Te" <> abi_type_name @b
+    go (YulExtendType  @a @b)    = "Te" <> abiTypeCompactName @b
     go (YulComp cb ac)             = "(" <> go ac <> ");(" <> go cb <> ")"
     go (YulJmpB  @a @b )        = "Jb "
-    -- A 'abi_type_name variant, enclosing name with "@()".
-    abi_type_name :: forall a. ABITypeable a => String
-    abi_type_name = abiTypeCompactName @a
-
-
-
