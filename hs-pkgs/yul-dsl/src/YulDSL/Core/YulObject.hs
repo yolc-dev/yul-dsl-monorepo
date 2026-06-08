@@ -13,15 +13,13 @@ documentation](https://docs.soliditylang.org/en/latest/yul.html#specification-of
 -}
 module YulDSL.Core.YulObject
   (-- $AnyExportedYulCat
-    AnyExportedYulCat (MkAnyExportedYulCat), withAnyExportedYulCat
+    AnyExportedYulCat (MkAnyExportedYulCat)
   , pureFn
   ) where
 -- base
 import Data.List                                  (intercalate)
 -- eth-abi
-import Ethereum.ContractABI.ABITypeable           (abiTypeCanonName)
 import Ethereum.ContractABI.CoreType.NP
-import Ethereum.ContractABI.ExtendedType.SELECTOR
 --
 import YulDSL.Core.YulCat
 import YulDSL.Core.YulCatObj
@@ -34,29 +32,11 @@ import YulDSL.Core.YulEffect
 -- | Existential type wrapper for yul function that is exported.
 data AnyExportedYulCat where
   MkAnyExportedYulCat :: forall k { eff :: k } xs b. YulO2 (NP xs) b
-                      => SELECTOR -> YulCatEffectClass -> NamedYulCat eff (NP xs) b -> AnyExportedYulCat
-
--- | The function to process the content of 'AnyExportedYulCat'.
-withAnyExportedYulCat :: AnyExportedYulCat
-  -> (forall k { eff :: k } xs b. (YulO2 (NP xs) b ) => NamedYulCat eff (NP xs) b -> a)
-  -> a
-withAnyExportedYulCat (MkAnyExportedYulCat _ _ f) g = g f
+                      => NamedYulCat eff (NP xs) b -> AnyExportedYulCat
 
 pureFn :: forall fn xs b.
   ( ClassifiedYulCat fn PureEffect (NP xs) b
   , YulO2 (NP xs) b
-  ) => String -> fn -> AnyExportedYulCat
-pureFn fname fn = withClassifiedYulCat fn (MkAnyExportedYulCat (mkTypedSelector @(NP xs) fname) PureEffect)
-
-instance Show AnyExportedYulCat where
-  show (MkAnyExportedYulCat s PureEffect   cat) = "pure "   <> show_fn_spec s cat
-
-show_fn_spec :: forall xs b eff. YulO2 (NP xs) b
-             => SELECTOR -> NamedYulCat eff (NP xs) b -> String
-show_fn_spec (SELECTOR (sel, fsig)) cat@(cid, _) =
-  let fspec = case fsig of
-                Just (MkFuncSig fname) -> fname ++ "," ++ show sel ++ "," ++ cid
-                Nothing                -> show sel ++ "," ++ cid
-  in "fn " <> fspec <> "(" <> abiTypeCanonName @(NP xs) <> ") -> " <> abiTypeCanonName @b <> "\n" <>
-     show cat
-
+  ) => fn -> String
+pureFn fn = case withClassifiedYulCat fn MkAnyExportedYulCat of
+              MkAnyExportedYulCat cat -> show cat

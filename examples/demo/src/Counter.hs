@@ -1,5 +1,5 @@
 module Counter where
-import Prelude.Linear                           (fromString)
+import Prelude.Linear                           (fromString, String)
 import YulDSL.Core                              (ADDR, NP, REF, U256, YulO1, pureFn, AnyExportedYulCat)
 import YulDSL.Haskell.Effects.LinearSMC.YulPort (P'P, extendType'l )
 import YulDSL.Haskell.Effects.LinearSMC.LinearFn (lfn')
@@ -19,5 +19,5 @@ getCounterRef' a = extendType'l (keccak256'l a)
 getCounterRef :: PureFn (ADDR -> REF U256)
 getCounterRef = lfn' "getRef" getCounterRef'
 
-object :: AnyExportedYulCat
-object = pureFn "getCounterRef" getCounterRef
+object :: String
+object = pureFn getCounterRef
