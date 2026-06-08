@@ -40,7 +40,7 @@ instance (YulCatObj a1, YulCatObj a2) => YulCatObj (a1, a2)
 -- Value Types
 instance YulCatObj U256
 instance YulCatObj ADDR
-instance YulCatObj (BYTESn 32)
+instance YulCatObj B32
 
 -- REF
 instance YulCatObj a => YulCatObj (REF a)

@@ -32,8 +32,7 @@ import Internal.Data.Type.Bool
 
 
 -- | ABI integer value types, where @s@ is for signess and @n@ is byte-size of the value.
-newtype U256 = INT Integer
-  deriving newtype (Eq, Ord, Enum)
+data U256
 
 
 
