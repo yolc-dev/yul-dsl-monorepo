@@ -24,7 +24,6 @@ import Control.Monad                     (replicateM)
 import Data.TupleN
 --
 import Ethereum.ContractABI.ABITypeable  (ABITypeable (..))
-import Ethereum.ContractABI.ABITypeCodec (ABITypeCodec (..))
 import Ethereum.ContractABI.CoreType.NP  (NP (..))
 
 -- ^ ABI typeable unit.
@@ -32,20 +31,16 @@ instance ABITypeable () where
   type instance ABITypeDerivedOf () = NP '[]
   abiToCoreType () = Nil
   abiFromCoreType Nil = ()
-instance ABITypeCodec ()
 
 -- ^ ABI typeable for solo tuple.
 instance ABITypeable a => ABITypeable (Solo a) where
   type instance ABITypeDerivedOf (Solo a) = NP '[a]
   abiToCoreType = fromTupleNtoNP
   abiFromCoreType = fromNPtoTupleN
-instance ABITypeCodec a => ABITypeCodec (Solo a)
 
 -- | ABI typeable tuple.
 instance (ABITypeable a1, ABITypeable a2) => ABITypeable (a1, a2) where
   type instance ABITypeDerivedOf (a1, a2) = NP '[a1, a2]
   abiToCoreType = fromTupleNtoNP
   abiFromCoreType = fromNPtoTupleN
-
-instance (ABITypeCodec a1, ABITypeCodec a2) => ABITypeCodec (a1, a2)
 

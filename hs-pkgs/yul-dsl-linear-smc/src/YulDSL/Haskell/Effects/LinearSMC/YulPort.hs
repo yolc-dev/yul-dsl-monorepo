@@ -17,10 +17,8 @@ import Control.Category.Constrained (Cartesian (..), Category (..), Monoidal (..
 import Data.Kind                    (Type)
 
 
-
-
 -- | All objects in the yul category is simply a 'YulCatObj'.
-class (ABITypeable a, ABITypeCodec a) => YulCatObj a where
+class (ABITypeable a, ABITypeable a) => YulCatObj a where
   -- | Possible breakdown of the product object of the category.
 
 type YulO1 a = YulCatObj a
@@ -94,10 +92,10 @@ instance Monoidal YulCat where
 --
 
 lfn' :: forall b xs.
-  ( YulO2 (NP '[ADDR]) b
+  ( YulO2 (NP '[ADDR]) (REF b)
   , '[ADDR] ~ xs   -- crash stops after removing this line
   ) =>
-  (forall r. YulO1 r => P'P r (NP '[ADDR]) ⊸ P'P r b) ->
+  (forall r. YulO1 r => P'P r (NP '[ADDR]) ⊸ P'P r (REF b)) ->
   String
 lfn' f = yulCatCompactShow (decode f)
 

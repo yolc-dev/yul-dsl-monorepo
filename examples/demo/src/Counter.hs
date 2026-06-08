@@ -14,4 +14,4 @@ getCounterRef' :: forall b r.
 getCounterRef' a = extendType'l (keccak256'l a)
 
 object :: String
-object = lfn' @(REF U256) getCounterRef'
+object = lfn' @U256 getCounterRef'

@@ -22,7 +22,6 @@ module Ethereum.ContractABI.CoreType.NP
 import Data.SimpleNP
 --
 import Ethereum.ContractABI.ABITypeable  (ABITypeable (..))
-import Ethereum.ContractABI.ABITypeCodec (ABITypeCodec (..))
 
 
 instance ABITypeable (NP '[]) where
@@ -34,7 +33,3 @@ instance ( ABITypeable x, ABITypeable (NP xs)
   type instance ABITypeDerivedOf (NP (x : xs)) = NP (x : xs)
   abiTypeInfo = abiTypeInfo @x <> abiTypeInfo @(NP xs)
 
-instance ABITypeCodec (NP '[]) where
-
-instance ( ABITypeable x, ABITypeCodec x, ABITypeCodec (NP xs)
-         ) => ABITypeCodec (NP (x : xs)) where

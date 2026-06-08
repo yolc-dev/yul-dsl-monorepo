@@ -23,7 +23,6 @@ module Ethereum.ContractABI.ExtendedType.REF
 import GHC.TypeLits
 --
 import Ethereum.ContractABI.ABITypeable     (ABITypeable (..))
-import Ethereum.ContractABI.ABITypeCodec    (ABITypeCodec (..))
 import Ethereum.ContractABI.CoreType.BYTESn
 
 
@@ -39,5 +38,3 @@ instance ABITypeable a => ABITypeable (REF a) where
   type instance ABITypeDerivedOf (REF a) = B32
   abiToCoreType (REF n) = BYTESn n
   abiFromCoreType (BYTESn n) = REF n
-
-instance ABITypeable a => ABITypeCodec (REF a)
