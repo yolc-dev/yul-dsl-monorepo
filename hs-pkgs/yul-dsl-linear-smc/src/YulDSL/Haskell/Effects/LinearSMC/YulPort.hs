@@ -7,13 +7,12 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
   , YulCat (..)
   -- * YulCat Stringify Functions
   , YulCatObj
-  , YulO1, YulO2, YulO3
+  , YulO1
 
   -- ABI type names
   , ABITypeable(..)
   , U256
   , REF
-  , NP2
   ) where
 import Prelude (undefined)
 import Prelude.Linear
@@ -21,38 +20,9 @@ import Control.Category.Linear             (P, decode, encode)
 import Control.Category.Constrained (Cartesian (..), Category (..), Monoidal (..), ProdObj (..))
 import Data.Kind                    (Type)
 
--- base
--- template-haskell
--- constraints
---
+data U256
+data REF a
 
--- base
-import Data.Proxy                        (Proxy (Proxy))
--- base
-import Data.TupleN
---
-
--- base
---
-
-
--- | A storage or memory reference to type @a@ at the solidity conventional "(slot, offset)".
-newtype REF a = REF Integer
-
-
-
-instance ABITypeable a => ABITypeable (REF a) where
-
--- ^ ABI typeable unit.
-instance ABITypeable () where
-
--- ^ ABI typeable for solo tuple.
-instance ABITypeable a => ABITypeable (Solo a) where
-
--- | ABI typeable tuple.
-instance (ABITypeable a1, ABITypeable a2) => ABITypeable (a1, a2) where
-
--- cereal
 
 
 class ABITypeable a where
@@ -62,38 +32,27 @@ class ABITypeable a where
   abiFromCoreType :: a -> a
   abiFromCoreType x = x
 
+instance ABITypeable a => ABITypeable (REF a) where
 
+instance ABITypeable () where
 
--- | ABI integer value types, where @s@ is for signess and @n@ is byte-size of the value.
-data U256
-
-
+instance (ABITypeable a1, ABITypeable a2) => ABITypeable (a1, a2) where
 
 instance ABITypeable U256 where
-  abiTypeInfo = "i"
 
 
-type NP2 = U256
 
 
 class (ABITypeable a, ABITypeable a) => YulCatObj a where
   -- | Possible breakdown of the product object of the category.
 
 type YulO1 a = YulCatObj a
-type YulO2 a b = (YulCatObj a, YulO1 b)
-type YulO3 a b c = (YulCatObj a, YulO2 b c)
-
---
--- Enumerate known YulCat objects:
---
+type YulO2 a b = (YulCatObj a, YulCatObj b)
 
 
-
--- TupleN (3..15)
 instance YulCatObj ()
 instance (YulCatObj a1, YulCatObj a2) => YulCatObj (a1, a2)
 
--- Value Types
 instance YulCatObj U256
 
 -- REF
@@ -118,9 +77,9 @@ yulCatCompactShow :: YulCat a b -> String
 yulCatCompactShow = go
   where
     go :: YulCat a' b' -> String
-    go (YulExtendType   @b)    = "Te" <> abiTypeInfo @b
-    go (YulComp cb ac)             = "(" <> go ac <> ");(" <> go cb <> ")"
-    go (YulJmpB  )        = "Jb "
+    go (YulExtendType @b) = "Te" <> abiTypeInfo @b
+    go (YulComp cb ac)    = "(" <> go ac <> ");(" <> go cb <> ")"
+    go YulJmpB            = "Jb "
 
 
 --
@@ -146,10 +105,10 @@ instance Monoidal YulCat where
 --
 
 lfn' :: forall b xs.
-  ( YulO2 NP2 (REF b)
+  ( YulO2 U256 (REF b)
   , '[U256] ~ xs   -- crash stops after removing this line
   ) =>
-  (forall r. YulO1 r => P'P r (NP2 ) ⊸ P'P r (REF b)) ->
+  (forall r. YulO1 r => P'P r (U256 ) ⊸ P'P r (REF b)) ->
   String
 lfn' f = yulCatCompactShow (decode f)
 
@@ -161,7 +120,7 @@ type P'P =  P YulCat
 ------------------------------------------------------------------------------------------------------------------------
 
 extendType'l :: forall a r.
-  (YulO3 a U256 r) =>
+  (YulO1 a, YulO1 r) =>
   P'P r U256 ⊸ P'P r a
 extendType'l = encode YulExtendType
 
