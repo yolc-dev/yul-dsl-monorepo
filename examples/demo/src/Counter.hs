@@ -19,7 +19,5 @@ getCounterRef' a = extendType'l (keccak256'l a)
 getCounterRef :: PureFn (ADDR -> REF U256)
 getCounterRef = lfn' "getRef" getCounterRef'
 
-object :: [AnyExportedYulCat]
-object =
-  [ pureFn "getCounterRef" getCounterRef
-  ]
+object :: AnyExportedYulCat
+object = pureFn "getCounterRef" getCounterRef
