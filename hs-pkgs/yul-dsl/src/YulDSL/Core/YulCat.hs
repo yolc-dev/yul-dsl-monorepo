@@ -86,8 +86,6 @@ data YulCat eff a b where
   YulSwap :: forall eff a b.     YulO2 a b     => YulCat eff (a, b) (b, a)
   -- ** Cartesian Category
   YulFork :: forall eff a b c. YulO3 a b c => YulCat eff a b %1-> YulCat eff a c %1-> YulCat eff a (b, c)
-  YulExl  :: forall eff a b.   YulO2 a b   => YulCat eff (a, b) a
-  YulExr  :: forall eff a b.   YulO2 a b   => YulCat eff (a, b) b
   YulDis  :: forall eff a. YulO1 a => YulCat eff a ()
   YulDup  :: forall eff a. YulO1 a => YulCat eff a (a, a)
 
@@ -98,14 +96,6 @@ data YulCat eff a b where
     YulO1 b =>
     b %1-> YulCat eff () b
   -- ^ If-then-else expression.
-  YulITE :: forall eff a b.
-    YulO2 a b =>
-    YulCat eff a b %1-> YulCat eff a b %1-> YulCat eff (BOOL, a) b
-  -- ^ Jump to an user-defined morphism.
-  YulJmpU :: forall eff a b.
-    YulO2 a b =>
-    NamedYulCat eff a b %1-> YulCat eff a b
-  -- ^ Jump to a built-in yul function.
   YulJmpB :: forall eff a b p.
     ( YulO2 a b, YulBuiltInPrefix p a b
     , If (IsYulBuiltInNonPure p) (AssertNonPureEffect eff) (() :: Constraint)
@@ -114,18 +104,6 @@ data YulCat eff a b where
   -- ^ Call an external contract at the address along with a possible msgValue.
   -- * Storage Primitives
   --
-  -- ^ Get storage word.
-  YulSGet :: forall eff a.
-    ( YulO1 a, ABIWordValue a
-    , AssertNonPureEffect eff
-    ) =>
-    YulCat eff B32 a
-  -- ^ Put storage word.
-  YulSPut :: forall eff a.
-    ( YulO1 a, ABIWordValue a
-    , AssertNonPureEffect eff
-    ) =>
-    YulCat eff (B32, a) ()
 
   -- ^ Unsafe coerce between different effects.
   YulUnsafeCoerceEffect :: forall k1 k2 (eff1 :: k1) (eff2 :: k2) a b.
