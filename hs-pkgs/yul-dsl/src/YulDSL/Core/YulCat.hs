@@ -39,8 +39,6 @@ import Data.Kind                    (Constraint, Type)
 -- eth-abi
 import Ethereum.ContractABI
 --
-import YulDSL.Core.YulBuiltIn
-import YulDSL.StdBuiltIns.ValueType ()
 -- constraints
 -- template-haskell
 -- eth-abi
@@ -91,7 +89,7 @@ type YulCat :: forall effKind. effKind -> Type -> Type -> Type
 data YulCat eff a b where
   YulExtendType :: forall eff a b. (YulO2 a b, a ~ ABITypeDerivedOf b) => YulCat eff a b
   YulComp :: forall eff a b c.  YulCat eff c b %1-> YulCat eff a c %1-> YulCat eff a b
-  YulJmpB :: forall eff a b p. ( YulO2 a b) => YulBuiltIn p a b -> YulCat eff a b
+  YulJmpB :: forall eff a b p. ( YulO2 a b) =>  YulCat eff a b
 
 
 
@@ -101,7 +99,7 @@ yulCatCompactShow = go
     go :: YulCat eff' a' b' -> String
     go (YulExtendType @_ @a @b)    = "Te" <> abi_type_name @b
     go (YulComp cb ac)             = "(" <> go ac <> ");(" <> go cb <> ")"
-    go (YulJmpB @_ @a @b p)        = "Jb "
+    go (YulJmpB @_ @a @b )        = "Jb "
     go _ = error "no segfault"
     -- A 'abi_type_name variant, enclosing name with "@()".
     abi_type_name :: forall a. ABITypeable a => String

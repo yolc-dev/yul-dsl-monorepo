@@ -4,14 +4,10 @@ module YulDSL.StdBuiltIns.ABICodec where
 -- eth-abi
 import Ethereum.ContractABI
 -- text
-import Data.Text.Lazy               qualified as T
 -- CodeGenUtils
-import CodeGenUtils.CodeFormatters
-import CodeGenUtils.Variable
 --
 import YulDSL.Core.YulBuiltIn
 --
-import YulDSL.StdBuiltIns.ValueType ()
 
 
 ------------------------------------------------------------------------------------------------------------------------

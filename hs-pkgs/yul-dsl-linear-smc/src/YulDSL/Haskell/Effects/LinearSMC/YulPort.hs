@@ -25,14 +25,12 @@ import Control.Category.Linear             (P, decode, encode)
 import YulDSL.Core
 
 import Control.Category.Constrained.YulDSL ()
-import YulDSL.StdBuiltIns.ABICodec  ()
-import YulDSL.Core.YulBuiltIn
 import YulDSL.Core.YulCat
 
 
 --
 
-lfn' :: forall x xs b.
+lfn' :: forall xs b.
   ( YulO2 (NP '[ADDR]) b
   , '[ADDR] ~ xs   -- crash stops after removing this line
   ) =>
@@ -62,7 +60,7 @@ encodeP'x :: forall a b r.
   (P'P r a ⊸ P'P r b)
 encodeP'x c = MkP'x . encode c . unP'x
 
-decodeP'x :: forall a b.
+decodeP'x :: forall  b.
   YulO2 (NP '[ADDR]) b =>
   (forall r. YulO1 r => P'P r (NP '[ADDR]) ⊸ P'P r b) ->
   YulCat Pure (NP '[ADDR]) b
@@ -76,7 +74,7 @@ extendType'l :: forall a r.
 extendType'l = encodeP'x YulExtendType
 
 keccak256'l :: forall a r. YulO2 r a => P'P r a ⊸ P'P r B32
-keccak256'l = encodeP'x (YulJmpB (MkYulBuiltIn @"__keccak_c_" @a @B32))
+keccak256'l = encodeP'x YulJmpB
 
 
     -- abi_type_name :: forall a. ABITypeable a => String
