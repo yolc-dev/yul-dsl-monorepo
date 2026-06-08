@@ -50,17 +50,11 @@ import Internal.Data.Type.Bool
 
 {- * ABICoreType and their utilities -}
 
--- | Contract ABI core types.
 data ABICoreType where
-  -- ^ Boolean
   BOOL'   :: ABICoreType
-  -- ^ Fixed-precision integers
   INTx'   :: forall s n. (KnownBool s, ValidINTn n) => SBool s -> SNat n -> ABICoreType
-  -- ^ Ethereum addresses
   ADDR'   :: ABICoreType
-  -- ^ Fixed-size byte arrays
   BYTESn' :: forall n. (ValidINTn n) => SNat n -> ABICoreType
-  -- ^ Arrays of values of the same ABI core type
 
 instance Eq ABICoreType where
   BOOL'       == BOOL'         = True

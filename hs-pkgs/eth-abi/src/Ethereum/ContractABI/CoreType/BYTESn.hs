@@ -24,7 +24,7 @@ newtype BYTESn n = BYTESn Integer deriving (Eq, Ord)
 
 instance (ValidINTn n) => ABITypeable (BYTESn n) where
   type instance ABITypeDerivedOf (BYTESn n) = BYTESn n
-  abiTypeInfo = [BYTESn' (natSing @n)]
+  abiTypeInfo = "b"
 
 
 

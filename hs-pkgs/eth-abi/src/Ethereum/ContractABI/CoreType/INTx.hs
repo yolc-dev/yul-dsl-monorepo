@@ -32,10 +32,8 @@ import Data.Bits                         (shift)
 import Data.Coerce                       (coerce)
 import Data.Maybe                        (fromJust)
 import Data.Proxy                        (Proxy (Proxy))
-import GHC.TypeError                     (Assert, ErrorMessage (Text), TypeError)
 import GHC.TypeLits                      (type (+), type (<=), type (<=?))
 -- cereal
-import Data.Serialize                    qualified as S
 -- eth-abi
 import Ethereum.ContractABI.ABICoreType
 import Ethereum.ContractABI.ABITypeable
@@ -58,12 +56,6 @@ intxNBits :: forall a (s :: Bool) (n :: Nat). (a ~ INTx s n, ValidINTn n) => Int
 intxNBits = fromEnum (8 * natVal (Proxy @n))
 
 
--- | Safe integer casting.
-intxSafeCast :: forall (s1 :: Bool) (n1 :: Nat) (s2 :: Bool) (n2 :: Nat).
-                (KnownBool s1, KnownBool s2, ValidINTn n1, ValidINTn n2)
-             => INTx s1 n1 -> Maybe (INTx s2 n2)
-intxSafeCast (INT x) = fromInteger x
-
 ------------------------------------------------------------------------------------------------------------------------
 -- Type class instances
 ------------------------------------------------------------------------------------------------------------------------
@@ -74,7 +66,7 @@ intxSafeCast (INT x) = fromInteger x
 
 instance forall s n. ValidINTx s n => ABITypeable (INTx s n) where
   type instance ABITypeDerivedOf (INTx s n) = INTx s n
-  abiTypeInfo = [INTx' (boolSing @s) (natSing @n)]
+  abiTypeInfo = "i"
 
 
 --

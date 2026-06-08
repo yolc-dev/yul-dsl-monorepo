@@ -16,21 +16,11 @@ module Ethereum.ContractABI.CoreType.ADDR
   ( ADDR
   ) where
 
--- base
--- cereal
---
-import Ethereum.ContractABI.ABICoreType
 import Ethereum.ContractABI.ABITypeable
 
 newtype ADDR = ADDR Integer deriving newtype (Ord, Eq, Enum)
 
--- | The proverbial zero address.
-
-
-
-
-
 instance ABITypeable ADDR where
   type instance ABITypeDerivedOf ADDR = ADDR
-  abiTypeInfo = [ADDR']
+  abiTypeInfo = "a"
 

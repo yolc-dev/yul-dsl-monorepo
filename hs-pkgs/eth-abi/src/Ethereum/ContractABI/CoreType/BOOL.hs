@@ -38,7 +38,7 @@ false = BOOL False
 
 instance ABITypeable BOOL where
   type instance ABITypeDerivedOf BOOL = BOOL
-  abiTypeInfo = [BOOL']
+  abiTypeInfo = "b"
 
 instance Bounded BOOL where
   minBound = false

@@ -29,18 +29,15 @@ import Ethereum.ContractABI.CoreType.NP  (NP (..))
 -- ^ ABI typeable unit.
 instance ABITypeable () where
   type instance ABITypeDerivedOf () = NP '[]
-  abiToCoreType () = Nil
   abiFromCoreType Nil = ()
 
 -- ^ ABI typeable for solo tuple.
 instance ABITypeable a => ABITypeable (Solo a) where
   type instance ABITypeDerivedOf (Solo a) = NP '[a]
-  abiToCoreType = fromTupleNtoNP
   abiFromCoreType = fromNPtoTupleN
 
 -- | ABI typeable tuple.
 instance (ABITypeable a1, ABITypeable a2) => ABITypeable (a1, a2) where
   type instance ABITypeDerivedOf (a1, a2) = NP '[a1, a2]
-  abiToCoreType = fromTupleNtoNP
   abiFromCoreType = fromNPtoTupleN
 

@@ -64,7 +64,7 @@ yulCatCompactShow :: YulCat a b -> String
 yulCatCompactShow = go
   where
     go :: YulCat a' b' -> String
-    go (YulExtendType  @a @b)    = "Te" <> abiTypeCompactName @b
+    go (YulExtendType  @a @b)    = "Te" <> abiTypeInfo @b
     go (YulComp cb ac)             = "(" <> go ac <> ");(" <> go cb <> ")"
     go (YulJmpB  @a @b )        = "Jb "
 

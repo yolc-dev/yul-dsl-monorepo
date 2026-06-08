@@ -17,9 +17,6 @@ Portability : GHC2024
 -}
 module Ethereum.ContractABI.ABITypeable
  ( ABITypeable (..)
- , AnyABITypeable (MkAnyABITypeable)
- , abiTypeCompactName
- , IsABICoreType
  ) where
 
 -- base
@@ -37,31 +34,12 @@ class ABITypeable a where
   -- | Returns a list of core types represented by this type.
   --
   -- Invariant: @abi_type_info a == abi_type_info \@(ABITypeDerivedOf a)@
-  abiTypeInfo :: [ABICoreType]
+  abiTypeInfo :: String
   -- ^ The default implementation must be implemented by core types.
-  default abiTypeInfo :: ABITypeable (ABITypeDerivedOf a) => [ABICoreType]
+  default abiTypeInfo :: ABITypeable (ABITypeDerivedOf a) => String
   abiTypeInfo = abiTypeInfo @(ABITypeDerivedOf a)
-
-  -- | Convert a value from the extended type to the core type.
-  abiToCoreType :: a -> ABITypeDerivedOf a
-  default abiToCoreType :: ABITypeDerivedOf a ~ a => a -> ABITypeDerivedOf a
-  abiToCoreType = id
 
   -- | Convert a value from the core type to the extended type.
   abiFromCoreType :: ABITypeDerivedOf a -> a
   default abiFromCoreType :: ABITypeDerivedOf a ~ a => ABITypeDerivedOf a -> a
   abiFromCoreType = id
-
--- | Existential type of all abi types.
-data AnyABITypeable (c :: Type -> Constraint) = forall a. c a => MkAnyABITypeable a
-
-instance Show (AnyABITypeable Show) where
-  show (MkAnyABITypeable a) = show a
-
--- | A 'abiTypeCanonName' variant that is compact to saving characters.
-abiTypeCompactName :: forall a. ABITypeable a => String
-abiTypeCompactName = intercalate "" (fmap abiCoreTypeCompactName (abiTypeInfo @a))
-
--- | Test if a 'ABITypeable' is a core type,
-type IsABICoreType :: Type -> Bool
-type IsABICoreType a = a == (ABITypeDerivedOf a)
