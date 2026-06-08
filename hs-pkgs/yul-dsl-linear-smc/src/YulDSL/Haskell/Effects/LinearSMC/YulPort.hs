@@ -3,7 +3,7 @@
 module YulDSL.Haskell.Effects.LinearSMC.YulPort
   ( -- * Yul Port Definitions
     -- $LinearPortDefs
-    PortEffect (PurePort, VersionedPort)
+    PortEffect (PurePort)
   , P'x (MkP'x), unP'x, P'P, encodeP'x, decodeP'x
   , unsafeCoerceYulPort, unsafeCoerceYulPortDiagram
     -- * General Yul Port Operations
@@ -34,7 +34,6 @@ import Control.Category.Constrained.YulDSL ()
 
 -- | Various types of port effects for the yul port API.
 data PortEffect = PurePort          -- ^ Pure port that does not need to be versioned
-                | VersionedPort Nat -- ^ Linearly versioned port
 
 type instance IsEffectNotPure PortEffect = True
 type instance MayEffectWorld  PortEffect = True
