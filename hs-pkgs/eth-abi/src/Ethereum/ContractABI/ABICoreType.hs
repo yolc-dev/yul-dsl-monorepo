@@ -22,6 +22,7 @@ module Ethereum.ContractABI.ABICoreType
   , ValidINTn
   -- ABI type names
   , abiCoreTypeCompactName
+  , ABITypeable(..)
   -- EVM word representations
   ) where
 
@@ -84,3 +85,11 @@ abiCoreTypeCompactName BOOL'       = "b"
 abiCoreTypeCompactName (INTx' s n) = (if fromSBool s then "i" else "u") <> show (natVal n)
 abiCoreTypeCompactName ADDR'       = "a"
 abiCoreTypeCompactName (BYTESn' n) = "B" ++ show (natVal n)
+
+
+class ABITypeable a where
+  -- | Convert @a@ to the ABI core type it derives from.
+  type ABITypeDerivedOf a
+
+  abiTypeInfo :: String
+  abiFromCoreType :: a -> a

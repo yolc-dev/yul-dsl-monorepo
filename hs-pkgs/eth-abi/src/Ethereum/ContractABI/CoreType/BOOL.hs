@@ -22,7 +22,6 @@ module Ethereum.ContractABI.CoreType.BOOL
 import Internal.Data.Type.Bool
 --
 import Ethereum.ContractABI.ABICoreType
-import Ethereum.ContractABI.ABITypeable
 
 
 -- | ABI boolean value type.

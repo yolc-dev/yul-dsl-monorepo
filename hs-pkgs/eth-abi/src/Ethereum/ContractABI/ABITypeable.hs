@@ -20,10 +20,5 @@ module Ethereum.ContractABI.ABITypeable
  ) where
 
 -- base
-
-class ABITypeable a where
-  -- | Convert @a@ to the ABI core type it derives from.
-  type ABITypeDerivedOf a
-
-  abiTypeInfo :: String
-  abiFromCoreType :: a -> a
+--
+import  Ethereum.ContractABI.ABICoreType

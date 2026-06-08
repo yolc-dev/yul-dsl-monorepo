@@ -28,7 +28,6 @@ import GHC.TypeLits                      (type (+), type (<=), type (<=?))
 -- cereal
 -- eth-abi
 import Ethereum.ContractABI.ABICoreType
-import Ethereum.ContractABI.ABITypeable
 import Internal.Data.Type.Bool
 
 

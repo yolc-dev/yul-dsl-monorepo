@@ -21,7 +21,7 @@ module Ethereum.ContractABI.CoreType.NP
 --
 import Data.SimpleNP
 --
-import Ethereum.ContractABI.ABITypeable  (ABITypeable (..))
+import Ethereum.ContractABI.ABICoreType
 
 
 instance ABITypeable (NP '[]) where

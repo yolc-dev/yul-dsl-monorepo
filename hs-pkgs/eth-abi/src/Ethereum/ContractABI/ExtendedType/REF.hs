@@ -22,7 +22,7 @@ module Ethereum.ContractABI.ExtendedType.REF
 -- base
 import GHC.TypeLits
 --
-import Ethereum.ContractABI.ABITypeable     (ABITypeable (..))
+import Ethereum.ContractABI.ABICoreType
 import Ethereum.ContractABI.CoreType.BYTESn
 
 

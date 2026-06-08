@@ -13,7 +13,6 @@ import Data.Word                          (Word8)
 -- cereal
 --
 import Ethereum.ContractABI.ABICoreType
-import Ethereum.ContractABI.ABITypeable
 import Ethereum.ContractABI.CoreType.INTx (INTx)
 
 

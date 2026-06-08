@@ -23,7 +23,8 @@ import Control.Monad                     (replicateM)
 -- (simple-np)
 import Data.TupleN
 --
-import Ethereum.ContractABI.ABITypeable  (ABITypeable (..))
+import Ethereum.ContractABI.ABICoreType
+
 import Ethereum.ContractABI.CoreType.NP  (NP (..))
 
 -- ^ ABI typeable unit.
