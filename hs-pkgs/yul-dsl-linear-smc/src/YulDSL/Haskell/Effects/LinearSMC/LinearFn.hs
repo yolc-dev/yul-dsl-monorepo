@@ -38,11 +38,6 @@ type family UncurryNP'Snd (f :: Type) where
   UncurryNP'Snd (_ %_-> g) = UncurryNP'Snd (g)
   UncurryNP'Snd        (b) = b
 
-decode'l :: forall a b. YulO2 a b
-  => (forall r. YulO1 r => P'P r a ⊸ P'P r b)
-  -> YulCat Pure a b
-decode'l f = (decodeP'x f)
-
 ------------------------------------------------------------------------------------------------------------------------
 -- Linear Non-Pure Effects
 ------------------------------------------------------------------------------------------------------------------------
@@ -54,4 +49,4 @@ lfn' :: forall f xs b.
   ) =>
   (forall r. YulO1 r => P'P r (NP xs) ⊸ P'P r b) ->
   PureFn f
-lfn' f = MkPureFn (decode'l f)
+lfn' f = MkPureFn (decodeP'x f)
