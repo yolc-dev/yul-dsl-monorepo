@@ -16,9 +16,7 @@ contract ABI types to support the entire contract ABI specification.
 
 -}
 module Ethereum.ContractABI.ABICoreType
-  ( ABICoreType (..)
-  -- for working with INTx, BYTEn
-  , SNat, Nat, natVal, fromSNat
+  ( SNat, Nat, natVal, fromSNat
   , ValidINTn
   -- ABI type names
   , ABITypeable(..)
@@ -43,11 +41,6 @@ import Internal.Data.Type.Bool
 
 {- * ABICoreType and their utilities -}
 
-data ABICoreType where
-  BOOL'   :: ABICoreType
-  INTx'   :: forall s n. (KnownBool s, ValidINTn n) => SBool s -> SNat n -> ABICoreType
-  ADDR'   :: ABICoreType
-  BYTESn' :: forall n. (ValidINTn n) => SNat n -> ABICoreType
 
 
 -- | A constraint that restricts what Nat values are valid for 'INTx' and 'BYTESn'.
