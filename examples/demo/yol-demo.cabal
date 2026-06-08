@@ -53,7 +53,7 @@ library
   build-depends:    yul-dsl-linear-smc,
                     yol-suite,
                     yul-dsl,
-                    linear-base,
+                    base,
                     yul-dsl-pure,
                     eth-abi,
                     -- base

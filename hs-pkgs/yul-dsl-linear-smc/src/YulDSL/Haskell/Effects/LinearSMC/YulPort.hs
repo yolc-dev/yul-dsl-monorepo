@@ -15,7 +15,7 @@ module YulDSL.Haskell.Effects.LinearSMC.YulPort
   , U256
   , REF
   ) where
-import Prelude.Linear
+import Prelude (String, undefined, (<>))
 import Control.Category.Linear             (P, decode, encode)
 import Control.Category.Constrained (Cartesian (..), Category (..), Monoidal (..), ProdObj (..))
 import Data.Kind                    (Type)
