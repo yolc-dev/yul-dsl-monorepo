@@ -18,13 +18,12 @@ module YulDSL.Haskell.Effects.Pure
     PureEffectKind (Pure, Total)
   , YulCat'P
     -- $PureFn
-  , PureFn (MkPureFn), fn', fn, call0
+  , PureFn (MkPureFn), fn', fn
     -- * Template Haskell Support
     -- * Technical Notes
     -- $yulCatVal
 
   -- FIXME: remove
-  , ExternalFn (MkExternalFn), declareExternalFn
   ) where
 -- template-haskell
 import Language.Haskell.TH qualified as TH
@@ -155,11 +154,6 @@ instance forall f x xs b g a.
   call (MkPureFn (cid, cat)) x = curryNP @g @xs @b @(YulCat'P a) @(YulCat'P a) @(YulCat'P a)
     (\xs -> consNP x xs >.> YulJmpU (cid, cat))
 
-call0 :: forall b a.
-  ( YulO2 b a
-  , EquivalentNPOfFunction b '[] b
-  ) => PureFn b -> YulCat'P a b
-call0 f = callN f ()
 
 instance forall f xs b r.
          ( YulO3 (NP xs) b r
@@ -180,26 +174,3 @@ fnLocId = do
       (s1, s2) = TH.loc_start loc
   TH.litE (TH.StringL (modname' ++ "_" ++ show s1 ++ "_" ++ show s2))
 
--- $yulCatVal
---
--- = Yul Categorical Value
---
--- A yul categorical value of @r ⤳ a@ is another way of saying all morphisms that leads to @a@ in the category of
--- 'YulCat'.
---
--- One may also wrap it around an effect kind, e.g. @Pure (r ⤳ a)@ means a pure yul categorical value of @r ⤳ a@.
---
--- From category theory perspective, it is a hom-set @YulCat(-, a)@ that is contravariant of @a@.
-
-
--- | External contract functions that can be called via its selector.
-data ExternalFn f where
-  MkExternalFn :: forall f xs b. EquivalentNPOfFunction f xs b => SELECTOR -> ExternalFn f
-
--- | Create a 'ExternalFn' value by providing its function name function form @f@.
-declareExternalFn :: forall f xs b.
-                     ( EquivalentNPOfFunction f xs b
-                     , YulO2 (NP xs) b
-                     )
-                  => String -> ExternalFn f
-declareExternalFn fname = MkExternalFn (mkTypedSelector @(NP xs) fname)

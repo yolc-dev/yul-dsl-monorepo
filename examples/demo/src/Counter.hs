@@ -1,6 +1,6 @@
 module Counter where
 import Prelude.Linear                           (fromString)
-import YulDSL.Core                              (ADDR, NP, REF, U256, YulO1, mkYulObject, pureFn, yulNoop, AnyExportedYulCat)
+import YulDSL.Core                              (ADDR, NP, REF, U256, YulO1, pureFn, AnyExportedYulCat)
 import YulDSL.Haskell.Effects.LinearSMC.YulPort (P'P, extendType'l )
 import YulDSL.Haskell.Effects.LinearSMC.LinearFn (lfn')
 import YulDSL.Haskell.Effects.Pure              (PureFn)

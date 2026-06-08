@@ -1,7 +1,7 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
+
 module YulDSL.Core.YulEffect
   ( IsEffectNotPure, MayEffectWorld
-  , YulCatEffectClass (..), SYulCatEffectClass, KnownYulCatEffectClass(yulCatEffectClassSing, fromSYulCatEffectClass)
+  , YulCatEffectClass (..)
   , AssertPureEffect, AssertNonPureEffect
   ) where
 -- base
@@ -21,17 +21,6 @@ type family MayEffectWorld (eff :: k) :: Bool
 data YulCatEffectClass
   = PureEffect
   deriving (Eq, Show)
-
--- | Singleton data for yul category effect classifications.
-data SYulCatEffectClass (efc :: YulCatEffectClass) = SYulCatEffectClass
-
--- | Singleton type class for yul category effect classification
-class KnownYulCatEffectClass (efc :: YulCatEffectClass) where
-  yulCatEffectClassSing :: SYulCatEffectClass efc
-  yulCatEffectClassSing = SYulCatEffectClass @efc
-  fromSYulCatEffectClass :: SYulCatEffectClass efc -> YulCatEffectClass
-instance KnownYulCatEffectClass PureEffect where fromSYulCatEffectClass _ = PureEffect
-
 
 -- | Assert whether an effect can be used for morphisms that are pure. (F, F)
 type AssertPureEffect :: k -> Constraint

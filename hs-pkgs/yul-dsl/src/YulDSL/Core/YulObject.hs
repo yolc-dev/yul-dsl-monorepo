@@ -44,9 +44,8 @@ withAnyExportedYulCat :: AnyExportedYulCat
   -> a
 withAnyExportedYulCat (MkAnyExportedYulCat _ _ f) g = g f
 
-pureFn :: forall fn efc xs b.
-  ( ClassifiedYulCat fn efc (NP xs) b
-  , efc ~ PureEffect
+pureFn :: forall fn xs b.
+  ( ClassifiedYulCat fn PureEffect (NP xs) b
   , YulO2 (NP xs) b
   ) => String -> fn -> AnyExportedYulCat
 pureFn fname fn = withClassifiedYulCat fn (MkAnyExportedYulCat (mkTypedSelector @(NP xs) fname) PureEffect)
