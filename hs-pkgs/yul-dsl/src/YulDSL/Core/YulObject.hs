@@ -81,8 +81,6 @@ data YulObject = MkYulObject { yulObjectName    :: String              -- ^ obje
 instance Show YulObject where
   show o = "-- Functions:\n\n"
            <> intercalate "\n\n" (fmap show (yulObjectExports  o))
-           <> "\n\n-- Init code:\n\n"
-           <> (show . yulObjectCtor) o
 
 mkYulObject :: String
             -> AnyYulCat

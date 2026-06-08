@@ -1,5 +1,4 @@
-import Counter                   (getCounterRef, object)
-import YolSuite.YOLC.RunYolModes
+import Counter                   (object)
 
 main :: IO ()
-main = print $ showObjectMode object
+main = print object
